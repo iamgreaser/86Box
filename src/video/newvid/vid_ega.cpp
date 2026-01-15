@@ -51,6 +51,8 @@ struct ega_ar_t {
 
 struct ega_sr_t {
     uint8_t cpu_addr;
+
+    uint8_t sr02_map_mask;
 };
 
 //
@@ -263,19 +265,19 @@ ega_tick_frame(void *priv)
 
     for (size_t y = 0; y < ysize; y++) {
         size_t memy = y / 14;
-        size_t sy = y % 14;
+        size_t sy   = y % 14;
         for (size_t x = 0; x < xsize / 8; x++) {
             uint32_t data = ega->vram_buf[(memy * 80) + x];
 
             // Remap text mode
             // TODO: Actually treat this how the EGA treats it instead of remapping text to graphics --GM
-            uint8_t bg = (data>>12) & 0x0F;
-            uint8_t fg = (data>>8) & 0x0F;
-            uint8_t ch = (data>>0) & 0xFF;
-            uint8_t fontline = ega->vram_buf[(ch<<5) | (sy & 0x1F)];
+            uint8_t bg       = (data >> 12) & 0x0F;
+            uint8_t fg       = (data >> 8) & 0x0F;
+            uint8_t ch       = (data >> 0) & 0xFF;
+            uint8_t fontline = ega->vram_buf[(ch << 5) | (sy & 0x1F)];
 
             uint32_t mask_base = 0;
-            uint32_t mask_xor = 0;
+            uint32_t mask_xor  = 0;
             for (size_t i = 0; i < 4; i++) {
                 if (((bg >> i) & 0b1) != 0) {
                     mask_base |= (0xFF << (i * 8));
@@ -286,7 +288,7 @@ ega_tick_frame(void *priv)
             }
             mask_xor ^= mask_base;
 
-            data = mask_base ^ ((0x01010101 * (uint32_t)fontline) & mask_xor);
+            data = mask_base ^ ((0x01010101 * (uint32_t) fontline) & mask_xor);
 
             for (size_t sx = 0; sx < 8; sx++) {
                 uint8_t c = 0;
@@ -514,8 +516,17 @@ ega_vram_write(uint32_t addr, uint8_t val, void *priv)
         uint32_t bit_mask = 0x01010101 * (uint32_t) (ega->gr.gr08_bit_mask);
         result            = (result & bit_mask) | (ega->gr.latch & ~bit_mask);
 
+        // Compute plane mask
+        uint32_t map_mask = 0;
+        for (size_t i = 0; i < 4; i++) {
+            if ((ega->sr.sr02_map_mask & (1 << i)) != 0) {
+                map_mask |= 0xFF << (i * 8);
+            }
+        }
+        result = (result & map_mask) | (ega->vram_buf[vaddr] & ~map_mask);
+
         // And now for the actual write!
-        //printf("write %05X: %02X -> %08X\n", vaddr, val, result);
+        // printf("write %05X: %02X -> %08X\n", vaddr, val, result);
         ega->vram_buf[vaddr] = result;
     }
 
@@ -682,6 +693,15 @@ ega_io_out(uint16_t addr, uint8_t val, void *priv)
             break;
         // 03C5 W: Data for Sequencer
         case 0x3C5:
+            switch (ega->sr.cpu_addr) {
+                // Map Mask
+                case 0x02:
+                    ega->sr.sr02_map_mask = val & 0x0F;
+                    break;
+
+                default:
+                    break;
+            }
             break;
 
         // 03CA W: Graphics 2 Position (index 1)
