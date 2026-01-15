@@ -1,6 +1,7 @@
 #include <cstdint>
 #include <cstdio>
 #include <cstdlib>
+#include <cstring>
 
 #include <86box/86box.h>
 #include <86box/device.h>
@@ -52,7 +53,6 @@ struct ega_sr_t {
     uint8_t cpu_addr;
 };
 
-
 //
 // The Graphics Controllers are responsible for three completely different things:
 // - Processing and filtering data going to and from the CPU.
@@ -83,17 +83,20 @@ struct ega_gr_t {
     // - 01 = 0x55
     // - 10 = 0xAA
     // - 11 = 0xFF
-    uint8_t gc00_set_reset[2];
-    uint8_t gc01_enable_set_reset[2];
-    uint8_t gc02_color_compare[2];
-    uint8_t gc06_misc[2];
-    uint8_t gc07_color_dont_care[2];
+    uint8_t gr00_set_reset[2];
+    uint8_t gr01_enable_set_reset[2];
+    uint8_t gr02_color_compare[2];
+    uint8_t gr06_misc[2];
+    uint8_t gr07_color_dont_care[2];
 
     // These are shared among both GCs.
-    uint8_t gc03_data_rotate;
-    uint8_t gc04_read_map_select; // Low 3 bits are the map.
-    uint8_t gc05_mode;
-    uint8_t gc08_bit_mask;
+    uint8_t gr03_data_rotate;
+    uint8_t gr04_read_map_select; // Low 3 bits are the map.
+    uint8_t gr05_mode;
+    uint8_t gr08_bit_mask;
+
+    // And here's our read latch data.
+    uint32_t latch;
 };
 
 struct ega_cr_t {
@@ -105,7 +108,7 @@ struct ega_cr_t {
 
 struct ega_t {
     uint32_t     *vram_buf;
-    size_t        vram_size_bytes;
+    size_t        vram_size_vaddrs;
     mem_mapping_t vram_mapping;
 
     uint8_t    monitor_type;
@@ -198,8 +201,10 @@ ega_init(const device_t *info)
     rom_init(&ega->bios_rom, BIOS_IBM_PATH,
              0xc0000, 0x8000, 0x7fff, 0, MEM_MAPPING_EXTERNAL);
 
-    ega->vram_size_bytes = device_get_config_int("memory") * 1024;
-    ega->vram_buf        = (uint32_t *) calloc(ega->vram_size_bytes, 1);
+    // Overallocate and fill with 0xFF to make it easier to render
+    ega->vram_size_vaddrs = (device_get_config_int("memory") * 1024) >> 2;
+    ega->vram_buf         = (uint32_t *) calloc(256 * 1024, 1);
+    memset(ega->vram_buf, 0xFF, 256 * 1024);
     mem_mapping_add(&ega->vram_mapping,
                     0xa0000, 0x20000,
                     ega_vram_read, NULL, NULL,
@@ -247,39 +252,54 @@ ega_tick_frame(void *priv)
 
     ega_update_output(ega);
 
-    // TEST: Render a Mandelbrot lololololol --GM
-    uint32_t pal[0x40];
-    for (int32_t iter = 0; iter < 0x40; iter++) {
-        pal[iter] = makecol32(
-            ((iter >> 0) & 0x3) * 0x55,
-            ((iter >> 2) & 0x3) * 0x55,
-            ((iter >> 4) & 0x3) * 0x55);
+    uint32_t pal[1 << 4];
+    for (int32_t i = 0; i < (1 << 4); i++) {
+        uint8_t v = ega->ar.pal[i & 0xF];
+        pal[i]    = makecol32(
+            (((v >> 2) & 0x1) * 0xAA) | (((v >> 5) & 0x1) * 0x55),
+            (((v >> 1) & 0x1) * 0xAA) | (((v >> 4) & 0x1) * 0x55),
+            (((v >> 0) & 0x1) * 0xAA) | (((v >> 3) & 0x1) * 0x55));
     }
-    int32_t xs      = xsize;
-    int32_t ys      = ysize;
-    float   cr_step = ((((double) 1.0) / xs) * 2.0) * 2.0;
-    float   ci_step = ((((double) 1.0) / ys) * 2.0) * 2.0;
-    float   cr_init = 0.0f - (xs / 2) * cr_step;
-    float   ci_init = 0.0f - (ys / 2) * ci_step;
-    float   ci      = ci_init;
-    for (int32_t y = 0; y < ys; y++, ci += ci_step) {
-        float cr = cr_init;
-        for (int32_t x = 0; x < xs; x++, cr += cr_step) {
-            float   zr   = 0.0;
-            float   zi   = 0.0;
-            int32_t iter = 0;
-            for (; iter < 16; iter++) {
-                float tr = zr * zr - zi * zi;
-                float ti = 2.0f * zr * zi;
-                zr       = tr + cr;
-                zi       = ti + ci;
-                if (zr * zr + zi * zi >= 2.0f * 2.0f) {
-                    break;
+
+    for (size_t y = 0; y < ysize; y++) {
+        size_t memy = y / 14;
+        size_t sy = y % 14;
+        for (size_t x = 0; x < xsize / 8; x++) {
+            uint32_t data = ega->vram_buf[(memy * 80) + x];
+
+            // Remap text mode
+            // TODO: Actually treat this how the EGA treats it instead of remapping text to graphics --GM
+            uint8_t bg = (data>>12) & 0x0F;
+            uint8_t fg = (data>>8) & 0x0F;
+            uint8_t ch = (data>>0) & 0xFF;
+            uint8_t fontline = ega->vram_buf[(ch<<5) | (sy & 0x1F)];
+
+            uint32_t mask_base = 0;
+            uint32_t mask_xor = 0;
+            for (size_t i = 0; i < 4; i++) {
+                if (((bg >> i) & 0b1) != 0) {
+                    mask_base |= (0xFF << (i * 8));
+                }
+                if (((fg >> i) & 0b1) != 0) {
+                    mask_xor |= (0xFF << (i * 8));
                 }
             }
-            buffer32->line[y][x] = pal[iter & 0x3F];
+            mask_xor ^= mask_base;
+
+            data = mask_base ^ ((0x01010101 * (uint32_t)fontline) & mask_xor);
+
+            for (size_t sx = 0; sx < 8; sx++) {
+                uint8_t c = 0;
+                for (size_t i = 0; i < 4; i++) {
+                    if (((data >> (sx + (8 * i))) & 0b1) != 0) {
+                        c |= (1 << i);
+                    }
+                }
+                buffer32->line[y][(x * 8) + sx] = pal[c];
+            }
         }
     }
+
     video_blit_memtoscreen(0, 0, xsize, ysize);
 
     // Refire after 1 frame
@@ -294,6 +314,37 @@ ega_update_output(ega_t *ega)
     (void) ega;
 }
 
+static __inline uint32_t
+ega_cpu_addr_to_vaddr(ega_t *ega, uint32_t addr)
+{
+    uint32_t vaddr = addr;
+
+    // Remap given mapping
+    switch (ega->gr.gr06_misc[1] & EGA_GR06_1_MEMORYMAP_MASK) {
+        case EGA_GR06_1_MEMORYMAP_A000_128K:
+            // We will read the source A16 explicitly for the 128K Odd/Even remap.
+            vaddr &= 0x0FFFF;
+            break;
+        case EGA_GR06_1_MEMORYMAP_A000_64K:
+            vaddr &= 0x0FFFF;
+            break;
+        case EGA_GR06_1_MEMORYMAP_B000_32K:
+            vaddr &= 0x07FFF;
+            break;
+        case EGA_GR06_1_MEMORYMAP_B800_32K:
+            vaddr &= 0x07FFF;
+            break;
+        default:
+            __builtin_unreachable();
+            break;
+    }
+
+    // TODO: Remap in Odd/Even mode --GM
+    // TODO: 64 KB wrap when set up in the sequencer --GM
+
+    return vaddr;
+}
+
 static uint8_t
 ega_vram_read(uint32_t addr, void *priv)
 {
@@ -304,13 +355,64 @@ ega_vram_read(uint32_t addr, void *priv)
         return 0xFF;
     }
 
+    // Get VRAM address number
+    uint32_t vaddr = ega_cpu_addr_to_vaddr(ega, addr);
+
+    // Get data
+    uint32_t data = (vaddr < ega->vram_size_vaddrs)
+        ? ega->vram_buf[vaddr]
+        : ~0;
+
     // Update latch
-    // TODO! --GM
+    ega->gr.latch = data;
 
     // Actually return something
-    // TODO! --GM
+    switch (ega->gr.gr05_mode & EGA_GR05_READMODE_MASK) {
+        case EGA_GR05_READMODE_0_SINGLE:
+            {
+                uint8_t result = 0xFF;
+                // TODO: Remap in GR05 Odd/Even mode --GM
+                if (false) {
+                    data >>= (addr & 0x1) << 3;
+                } else {
+                    data >>= (ega->gr.gr04_read_map_select & 0x1) << 3;
+                }
 
-    return 0xFF;
+                for (size_t i = 0; i < 2; i++) {
+                    if ((((ega->gr.gr04_read_map_select >> 1) ^ ega->gr.position[i]) & 0x3) == 0) {
+                        result &= (uint8_t) (data >> (i * 16));
+                    }
+                }
+                return result;
+            }
+
+        case EGA_GR05_READMODE_1_COMPARE:
+            {
+                // Compute masks
+                uint32_t mask_xor = 0x00000000;
+                uint32_t mask_and = 0x00000000;
+                for (size_t i = 0; i < 4; i++) {
+                    if ((ega->gr.gr02_color_compare[i >> 1] & (1 << (i & 0b1))) != 0) {
+                        mask_xor |= (0xFF << (i * 8));
+                    }
+                    if ((ega->gr.gr07_color_dont_care[i >> 1] & (1 << (i & 0b1))) != 0) {
+                        mask_and |= (0xFF << (i * 8));
+                    }
+                }
+
+                // Construct planes for comparison
+                uint32_t planes = ~((data ^ mask_xor) & mask_and);
+
+                // AND each byte together and return
+                planes &= (planes >> 16);
+                planes &= (planes >> 8);
+                return (uint8_t) planes;
+            }
+
+        default:
+            __builtin_unreachable();
+            return 0xFF;
+    }
 }
 
 static void
@@ -323,8 +425,99 @@ ega_vram_write(uint32_t addr, uint8_t val, void *priv)
         return;
     }
 
-    // Update VRAM if possible
-    // TODO! --GM
+    // Get VRAM address number and ensure that it is in range
+    uint32_t vaddr = ega_cpu_addr_to_vaddr(ega, addr);
+    if (vaddr < ega->vram_size_vaddrs) {
+        // Update VRAM if possible
+        uint32_t result = 0xFFFFFFFF;
+        switch (ega->gr.gr05_mode & EGA_GR05_WRITEMODE_MASK) {
+            case EGA_GR05_WRITEMODE_0:
+                {
+                    result = 0x01010101 * (uint32_t) val;
+
+                    // Apply rotate
+                    uint32_t ror_amount = (ega->gr.gr03_data_rotate & EGA_GR03_ROR_MASK) >> EGA_GR03_ROR_SHIFT;
+                    if (ror_amount != 0) {
+                        // Optimisation: Only rotate if we need to!
+                        uint32_t ror_lmask = 0x01010101 * (0xFF >> ror_amount);
+                        uint32_t ror_rmask = ~ror_lmask;
+
+                        result = 0
+                            | ((result >> ror_amount) & ror_lmask)
+                            | ((result << (8 - ror_amount)) & ror_rmask);
+                    }
+
+                    // Apply logic op
+                    // from the IBM EGA doc:
+                    // "If rotated data is selected, the rotate applies before the logical function."
+                    switch (ega->gr.gr03_data_rotate & EGA_GR03_FUNC_MASK) {
+                        case EGA_GR03_FUNC_SET:
+                            // Leave it as-is.
+                            break;
+
+                        case EGA_GR03_FUNC_AND:
+                            result &= ega->gr.latch;
+                            break;
+
+                        case EGA_GR03_FUNC_OR:
+                            result |= ega->gr.latch;
+                            break;
+
+                        case EGA_GR03_FUNC_XOR:
+                            result ^= ega->gr.latch;
+                            break;
+
+                        default:
+                            __builtin_unreachable();
+                            break;
+                    }
+
+                    // Apply Set/Reset logic
+                    uint32_t sr_mask = 0;
+                    uint32_t sr_val  = 0;
+                    for (size_t i = 0; i < 4; i++) {
+                        if ((ega->gr.gr01_enable_set_reset[i >> 1] & (1 << (i & 0b1))) != 0) {
+                            sr_mask |= (0xFF << (i * 8));
+                        }
+                        if ((ega->gr.gr00_set_reset[i >> 1] & (1 << (i & 0b1))) != 0) {
+                            sr_val |= (0xFF << (i * 8));
+                        }
+                    }
+                    result = (result & ~sr_mask) | (sr_val & sr_mask);
+                    break;
+                }
+
+            // from the IBM EGA doc:
+            // "Each memory plane is written with the contents of the processor latches."
+            // "These latches are loaded by a processor read operation."
+            case EGA_GR05_WRITEMODE_1:
+                result = ega->gr.latch;
+                break;
+
+            case EGA_GR05_WRITEMODE_2:
+                result = 0;
+                for (size_t i = 0; i < 4; i++) {
+                    if ((val & (1 << i)) != 0) {
+                        result |= 0xFF << (i * 8);
+                    }
+                }
+                break;
+
+            default:
+                // TODO: REAL HARDWARE NEEDED: What does the invalid setting of 11 actually do? --GM
+                break;
+        }
+
+        // Apply bit mask
+        // Technically redundant for WM 1 (copy latches directly).
+        // But it keeps the code a bit simpler and reduces stress on your CPU's branch predictor.
+        uint32_t bit_mask = 0x01010101 * (uint32_t) (ega->gr.gr08_bit_mask);
+        result            = (result & bit_mask) | (ega->gr.latch & ~bit_mask);
+
+        // And now for the actual write!
+        //printf("write %05X: %02X -> %08X\n", vaddr, val, result);
+        ega->vram_buf[vaddr] = result;
+    }
 
     // Update output
     ega_update_output(ega);
@@ -510,58 +703,58 @@ ega_io_out(uint16_t addr, uint8_t val, void *priv)
             switch (ega->gr.cpu_addr) {
                 // Set/Reset
                 case 0x00:
-                    ega->gr.gc00_set_reset[0] = ((val >> (ega->gr.position[0] << 1)) & 0b11) * 0x55;
-                    ega->gr.gc00_set_reset[1] = ((val >> (ega->gr.position[1] << 1)) & 0b11) * 0x55;
+                    ega->gr.gr00_set_reset[0] = ((val >> (ega->gr.position[0] << 1)) & 0b11) * 0x55;
+                    ega->gr.gr00_set_reset[1] = ((val >> (ega->gr.position[1] << 1)) & 0b11) * 0x55;
                     break;
 
                 // Enable Set/Reset
                 case 0x01:
-                    ega->gr.gc01_enable_set_reset[0] = ((val >> (ega->gr.position[0] << 1)) & 0b11) * 0x55;
-                    ega->gr.gc01_enable_set_reset[1] = ((val >> (ega->gr.position[1] << 1)) & 0b11) * 0x55;
+                    ega->gr.gr01_enable_set_reset[0] = ((val >> (ega->gr.position[0] << 1)) & 0b11) * 0x55;
+                    ega->gr.gr01_enable_set_reset[1] = ((val >> (ega->gr.position[1] << 1)) & 0b11) * 0x55;
                     break;
 
                 // Color Compare
                 case 0x02:
-                    ega->gr.gc02_color_compare[0] = ((val >> (ega->gr.position[0] << 1)) & 0b11) * 0x55;
-                    ega->gr.gc02_color_compare[1] = ((val >> (ega->gr.position[1] << 1)) & 0b11) * 0x55;
+                    ega->gr.gr02_color_compare[0] = ((val >> (ega->gr.position[0] << 1)) & 0b11) * 0x55;
+                    ega->gr.gr02_color_compare[1] = ((val >> (ega->gr.position[1] << 1)) & 0b11) * 0x55;
                     break;
 
                 // Data Rotate
                 case 0x03:
-                    ega->gr.gc03_data_rotate = val & 0x1F;
+                    ega->gr.gr03_data_rotate = val & 0x1F;
                     break;
 
                 // Read Map Select
                 case 0x04:
-                    ega->gr.gc04_read_map_select = val & 0x07;
+                    ega->gr.gr04_read_map_select = val & 0x07;
                     break;
 
                 // Mode (AFFECTS OUTPUT - bits 2,5)
                 case 0x05:
-                    if (((ega->gr.gc05_mode ^ val)
+                    if (((ega->gr.gr05_mode ^ val)
                          & (EGA_GR05_TESTCOND_MASK | EGA_GR05_SHIFTMODE_MASK))
                         != 0) {
                         ega_update_output(ega);
                     }
-                    ega->gr.gc05_mode = val & 0x3F;
+                    ega->gr.gr05_mode = val & 0x3F;
                     break;
 
                 // Miscellaneous Output (AFFECTS OUTPUT - bits 0,1)
                 case 0x06:
                     ega_update_output(ega);
-                    ega->gr.gc06_misc[0] = ((val >> (ega->gr.position[0] << 1)) & 0b11) * 0x55;
-                    ega->gr.gc06_misc[1] = ((val >> (ega->gr.position[1] << 1)) & 0b11) * 0x55;
+                    ega->gr.gr06_misc[0] = ((val >> (ega->gr.position[0] << 1)) & 0b11) * 0x55;
+                    ega->gr.gr06_misc[1] = ((val >> (ega->gr.position[1] << 1)) & 0b11) * 0x55;
                     break;
 
                 // Color Don't Care
                 case 0x07:
-                    ega->gr.gc07_color_dont_care[0] = ((val >> (ega->gr.position[0] << 1)) & 0b11) * 0x55;
-                    ega->gr.gc07_color_dont_care[1] = ((val >> (ega->gr.position[1] << 1)) & 0b11) * 0x55;
+                    ega->gr.gr07_color_dont_care[0] = ((val >> (ega->gr.position[0] << 1)) & 0b11) * 0x55;
+                    ega->gr.gr07_color_dont_care[1] = ((val >> (ega->gr.position[1] << 1)) & 0b11) * 0x55;
                     break;
 
                 // Bit Mask
                 case 0x08:
-                    ega->gr.gc08_bit_mask = val;
+                    ega->gr.gr08_bit_mask = val;
                     break;
 
                 default:

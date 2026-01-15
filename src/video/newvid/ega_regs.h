@@ -168,6 +168,7 @@
 #define EGA_R3XA_VRETRACE_VRETRACE  (0b1 << EGA_R3XA_VRETRACE_SHIFT)
 
 // Diagnostic Usage
+// From the IBM EGA doc:
 // "The Color Plane Enable register controls the multiplexer for the video wiring."
 // The mux address is AR12.4-5.
 #define EGA_R3XA_DIAGOUT_SHIFT      4
@@ -197,7 +198,7 @@
 #define EGA_W3C0_PALSRC_SHIFT   5
 #define EGA_W3C0_PALSRC_MASK    (0b1 << EGA_W3C0_PALSRC_SHIFT)
 #define EGA_W3C0_PALSRC_BLANK   (0b0 << EGA_W3C0_PALSRC_SHIFT)
-#define EGA_W3C0_PALSRC_DISPLAY (0b0 << EGA_W3C0_PALSRC_SHIFT)
+#define EGA_W3C0_PALSRC_DISPLAY (0b1 << EGA_W3C0_PALSRC_SHIFT)
 
 //
 // 03CE and 03CF W: Graphics Controller registers
