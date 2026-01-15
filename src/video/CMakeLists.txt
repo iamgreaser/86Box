@@ -51,6 +51,9 @@ add_library(vid OBJECT
 
     # CARDS start here
 
+    # newvid EGA
+    newvid/vid_ega.cpp
+
     # CGA / Super CGA
     vid_cga.c
     vid_cga_comp.c

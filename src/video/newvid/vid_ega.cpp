@@ -1,0 +1,675 @@
+#include <cstdint>
+#include <cstdio>
+#include <cstdlib>
+
+#include <86box/86box.h>
+#include <86box/device.h>
+extern "C" {
+#include <86box/io.h>
+#include <86box/mem.h>
+#include <86box/rom.h>
+}
+#include <86box/timer.h>
+
+#include <86box/video.h>
+
+#include "ega_regs.h"
+
+#define DISPLAY_RGB          0
+#define DISPLAY_COMPOSITE    1
+#define DISPLAY_RGB_NO_BROWN 2
+#define DISPLAY_GREEN        3
+#define DISPLAY_AMBER        4
+#define DISPLAY_WHITE        5
+
+static video_timings_t timing_ega = { .type = VIDEO_ISA, .write_b = 8, .write_w = 16, .write_l = 32, .read_b = 8, .read_w = 16, .read_l = 32 };
+
+#define BIOS_IBM_PATH "roms/video/ega/ibm_6277356_ega_card_u44_27128.bin"
+
+// IMPORTANT REFERENCE: "OA - IBM Enhanced Graphics Adapter.pdf" - dated 1984-08-02.
+// This is the official IBM reference.
+// There's a lot of stuff in it that is completely wrong.
+// But it DOES have a schematic you can (and SHALL) peruse.
+// References to various sheets are as follows:
+// - Enhanced Graphics Adapter Sheet x = SHT x (PDF pg 90+x, printed pg 86+x)
+// - Graphics Memory Expansion Card Sheet x = MEMSHT x (PDF pg 101+x, printed pg 97+x)
+
+struct ega_ar_t {
+    uint8_t cpu_addr;
+    bool    ff_is_data;
+    bool    is_video;
+
+    // The 4-bit to 6-bit palette.
+    uint8_t pal[1 << 4];
+
+    uint8_t ar10_mode;
+    uint8_t ar11_overscan_color;
+    uint8_t ar12_plane_enable;
+    uint8_t ar13_pel_panning;
+};
+
+struct ega_sr_t {
+    uint8_t cpu_addr;
+};
+
+
+//
+// The Graphics Controllers are responsible for three completely different things:
+// - Processing and filtering data going to and from the CPU.
+// - Latching in and shifting out pixel data in graphics modes.
+//   (In text modes, the attribute controller handles this instead.)
+// - Some miscellaneous output pins which control other parts of the circuit.
+//   (This is what GR06 does.)
+//
+// Yes, that does say "controllers". Plural. That is not a typo.
+// In EGA, there are 2 of these chips and they handle 2 planes each.
+//
+
+struct ega_gr_t {
+    uint8_t cpu_addr;
+
+    // Which Graphics Controller (GC) does each GC think it is?
+    // - GC #1 should be set to 0.
+    // - GC #2 should be set to 1.
+    // Anything else will be weird.
+    // Registers:
+    // - 03CC W, low 2 bits: Set GC #1 position
+    // - 03CA W, low 2 bits: Set GC #2 position
+    uint8_t position[2];
+
+    // All of these are 2 bits broadcast 4 times.
+    // That is, these are the only valid values:
+    // - 00 = 0x00
+    // - 01 = 0x55
+    // - 10 = 0xAA
+    // - 11 = 0xFF
+    uint8_t gc00_set_reset[2];
+    uint8_t gc01_enable_set_reset[2];
+    uint8_t gc02_color_compare[2];
+    uint8_t gc06_misc[2];
+    uint8_t gc07_color_dont_care[2];
+
+    // These are shared among both GCs.
+    uint8_t gc03_data_rotate;
+    uint8_t gc04_read_map_select; // Low 3 bits are the map.
+    uint8_t gc05_mode;
+    uint8_t gc08_bit_mask;
+};
+
+struct ega_cr_t {
+    uint8_t cpu_addr;
+
+    uint16_t start_vaddr;
+    uint16_t cursor_vaddr;
+};
+
+struct ega_t {
+    uint32_t     *vram_buf;
+    size_t        vram_size_bytes;
+    mem_mapping_t vram_mapping;
+
+    uint8_t    monitor_type;
+    rom_t      bios_rom;
+    pc_timer_t scan_timer;
+
+    // Registers
+
+    // Attribute Controller (ARxx)
+    ega_ar_t ar;
+
+    // Miscellaneous Output Register (U37, 74LS273 8-bit D-latch, SHT 9)
+    // Default: All 0 (confirmed on schematic), which means:
+    // - EGA_W3C2_IOBASE_3BX
+    // - EGA_W3C2_RAMENABLE_OFF
+    // - EGA_W3C2_CLOCKSEL_14MHZ
+    // - EGA_W3C2_VIDDRIVERS_ON
+    // - EGA_W3C2_OEPAGE_HI
+    // - EGA_W3C2_POLARITY_VP_HP_200
+    uint8_t misc_out_3c2;
+
+    // Sequencer (SRxx)
+    ega_sr_t sr;
+
+    // Graphics Controllers (GRxx)
+    // EGA has 2 of them, they control 2 planes each.
+    // And you can potentially have up to 4.
+    ega_gr_t gr;
+
+    // CRT Controller (CRTC) (CRxx)
+    ega_cr_t cr;
+
+    // Feature Control Register (U49, 74LS175 4-bit D-latch, SHT 9)
+    // Only bits 0-1 are used.
+    // Bits 2-3 are written, but not used.
+    // Default: All 0 (confirmed on schematic), which means:
+    // - EGA_W3XA_FEATCTRL_00
+    uint8_t feat_ctrl_3xa;
+
+    uint8_t status_in_3xa;
+};
+
+static const double ega_clock_frequencies_hz[4] = {
+    // 00: ~14 MHz, from the ISA bus
+    (157500000.0 / 11.0),
+    // 01: ~16 MHz, on the card itself
+    16257000.0,
+    // 10: External oscillator on the feature connector, in practice this is floating
+    0.0,
+    // 11: Floating
+    0.0,
+};
+
+static void ega_tick_frame(void *priv);
+
+static void ega_update_output(ega_t *ega);
+
+static uint8_t ega_vram_read(uint32_t addr, void *priv);
+static void    ega_vram_write(uint32_t addr, uint8_t val, void *priv);
+static uint8_t ega_io_in(uint16_t addr, void *priv);
+static void    ega_io_out(uint16_t addr, uint8_t val, void *priv);
+
+static void
+ega_close(void *priv)
+{
+    ega_t *ega = (ega_t *) priv;
+
+    // Stop timers
+    timer_on_auto(&ega->scan_timer, 0.0);
+
+    // Free substructures
+    if (ega->vram_buf != NULL) {
+        free(ega->vram_buf);
+        ega->vram_buf = NULL;
+    }
+
+    // Free the outer structure
+    free(ega);
+}
+
+static void *
+ega_init(const device_t *info)
+{
+    ega_t *ega = (ega_t *) calloc(1, sizeof(ega_t));
+
+    ega->monitor_type = device_get_config_int("monitor_type");
+
+    video_inform(VIDEO_FLAG_TYPE_SPECIAL, &timing_ega);
+
+    rom_init(&ega->bios_rom, BIOS_IBM_PATH,
+             0xc0000, 0x8000, 0x7fff, 0, MEM_MAPPING_EXTERNAL);
+
+    ega->vram_size_bytes = device_get_config_int("memory") * 1024;
+    ega->vram_buf        = (uint32_t *) calloc(ega->vram_size_bytes, 1);
+    mem_mapping_add(&ega->vram_mapping,
+                    0xa0000, 0x20000,
+                    ega_vram_read, NULL, NULL,
+                    ega_vram_write, NULL, NULL,
+                    NULL, MEM_MAPPING_EXTERNAL, ega);
+
+    // Default: EGA_W3C2_IOBASE_3BX (0).
+    io_sethandler(0x03B0, 0x0020,
+                  ega_io_in, NULL, NULL,
+                  ega_io_out, NULL, NULL,
+                  ega);
+
+    // Typical settings (WARNING: from the IBM EGA manual, which is known to contain errors!):
+    // CGA 640 x 200: ~14MHz, 912 wide, 260 high
+    // MDA 640 x 350: ~14MHz, 882 wide, 368 high
+    // EGA 640 x 350: ~16MHz(?!), 744 wide, 364 high
+    // MDA 720 x 350: ~16MHz, 882 wide, 368 high
+    // EGA 720 x 350: ~16MHz, 837 wide, 364 high
+    video_res_x = 720;
+    video_res_y = 350;
+    overscan_x  = 0;
+    overscan_y  = 0;
+    xsize       = video_res_x;
+    ysize       = video_res_y;
+
+    set_screen_size(xsize, ysize);
+    if (video_force_resize_get())
+        video_force_resize_set(0);
+
+    timer_add(&(ega->scan_timer), ega_tick_frame, ega, 0);
+    timer_on_auto(&ega->scan_timer, 1.0);
+    return ega;
+}
+
+static int
+ega_available(void)
+{
+    return rom_present(BIOS_IBM_PATH);
+}
+
+static void
+ega_tick_frame(void *priv)
+{
+    ega_t *ega = (ega_t *) priv;
+
+    ega_update_output(ega);
+
+    // TEST: Render a Mandelbrot lololololol --GM
+    uint32_t pal[0x40];
+    for (int32_t iter = 0; iter < 0x40; iter++) {
+        pal[iter] = makecol32(
+            ((iter >> 0) & 0x3) * 0x55,
+            ((iter >> 2) & 0x3) * 0x55,
+            ((iter >> 4) & 0x3) * 0x55);
+    }
+    int32_t xs      = xsize;
+    int32_t ys      = ysize;
+    float   cr_step = ((((double) 1.0) / xs) * 2.0) * 2.0;
+    float   ci_step = ((((double) 1.0) / ys) * 2.0) * 2.0;
+    float   cr_init = 0.0f - (xs / 2) * cr_step;
+    float   ci_init = 0.0f - (ys / 2) * ci_step;
+    float   ci      = ci_init;
+    for (int32_t y = 0; y < ys; y++, ci += ci_step) {
+        float cr = cr_init;
+        for (int32_t x = 0; x < xs; x++, cr += cr_step) {
+            float   zr   = 0.0;
+            float   zi   = 0.0;
+            int32_t iter = 0;
+            for (; iter < 16; iter++) {
+                float tr = zr * zr - zi * zi;
+                float ti = 2.0f * zr * zi;
+                zr       = tr + cr;
+                zi       = ti + ci;
+                if (zr * zr + zi * zi >= 2.0f * 2.0f) {
+                    break;
+                }
+            }
+            buffer32->line[y][x] = pal[iter & 0x3F];
+        }
+    }
+    video_blit_memtoscreen(0, 0, xsize, ysize);
+
+    // Refire after 1 frame
+    timer_on_auto(&ega->scan_timer,
+                  (1000000.0 * 912.0 * 260.0) / ega_clock_frequencies_hz[0]);
+}
+
+static void
+ega_update_output(ega_t *ega)
+{
+    // TODO: Work out how much more we have to draw --GM
+    (void) ega;
+}
+
+static uint8_t
+ega_vram_read(uint32_t addr, void *priv)
+{
+    ega_t *ega = (ega_t *) priv;
+
+    // If VRAM is disabled, return open bus.
+    if ((ega->misc_out_3c2 & EGA_W3C2_RAMENABLE_MASK) == EGA_W3C2_RAMENABLE_OFF) {
+        return 0xFF;
+    }
+
+    // Update latch
+    // TODO! --GM
+
+    // Actually return something
+    // TODO! --GM
+
+    return 0xFF;
+}
+
+static void
+ega_vram_write(uint32_t addr, uint8_t val, void *priv)
+{
+    ega_t *ega = (ega_t *) priv;
+
+    // If VRAM is disabled, do nothing.
+    if ((ega->misc_out_3c2 & EGA_W3C2_RAMENABLE_MASK) == EGA_W3C2_RAMENABLE_OFF) {
+        return;
+    }
+
+    // Update VRAM if possible
+    // TODO! --GM
+
+    // Update output
+    ega_update_output(ega);
+}
+
+static uint8_t
+ega_io_in(uint16_t addr, void *priv)
+{
+    ega_t *ega = (ega_t *) priv;
+
+    // printf("EGA in %04X\n", addr);
+
+    switch (addr | 0x100) {
+        // 03C2 R: Input Status Register Zero
+        case 0x3C2:
+            {
+                ega_update_output(ega);
+
+                // TODO: Compute the actual result --GM
+                uint8_t result = 0x0F
+                    | EGA_R3C2_FEATCODE_11
+                    | EGA_R3C2_CRTINT_ACTIVEVID;
+
+                uint8_t sw_shift = (ega->misc_out_3c2 & EGA_W3C2_CLOCKSEL_MASK) >> EGA_W3C2_CLOCKSEL_SHIFT;
+                result |= (((ega->monitor_type >> sw_shift) & 0b1) != 0)
+                    ? EGA_R3C2_SWITCHSENSE_ON
+                    : EGA_R3C2_SWITCHSENSE_OFF;
+
+                return result;
+            }
+
+        // 03B5/03D5 R: Data for CRT Controller (CRTC)
+        case 0x3B5:
+        case 0x3D5:
+            switch (ega->cr.cpu_addr) {
+                case 0x0E: // Cursor Location High
+                    return (uint8_t) (ega->cr.cursor_vaddr >> 8);
+
+                case 0x0F: // Cursor Location Low
+                    return (uint8_t) (ega->cr.cursor_vaddr >> 0);
+
+                default:
+                    return 0xFF;
+            }
+
+        // 03BA/03DA R: Input Status Register One
+        case 0x3BA:
+        case 0x3DA:
+            {
+                ega_update_output(ega);
+
+                // Reset the flip-flop for attribute controller access
+                ega->ar.ff_is_data = false;
+
+                // HACK: Toggle the diagnostic lines so the IBM EGA BIOS can boot
+                // FIXME: Implement this properly --GM
+                ega->status_in_3xa ^= EGA_R3XA_DIAGOUT_MASK;
+                // FIXME: This is even worse --GM
+                ega->status_in_3xa ^= EGA_R3XA_DISPENABLE_MASK;
+                ega->status_in_3xa ^= EGA_R3XA_VRETRACE_MASK;
+                if ((ega->status_in_3xa & EGA_R3XA_VRETRACE_MASK) == EGA_R3XA_VRETRACE_VRETRACE) {
+                    ega->status_in_3xa &= ~EGA_R3XA_DISPENABLE_MASK;
+                    ega->status_in_3xa |= EGA_R3XA_DISPENABLE_RETRACE;
+                }
+
+                return ega->status_in_3xa | ~0xBF;
+            }
+
+        default:
+            printf("EGA in %04X\n", addr);
+            return 0xFF;
+    }
+}
+
+static void
+ega_io_out(uint16_t addr, uint8_t val, void *priv)
+{
+    ega_t *ega = (ega_t *) priv;
+
+    // printf("EGA out %04X value %02X\n", addr, val);
+
+    switch (addr | 0x100) {
+        // 03C0 W: Attribute Controller
+        // TODO: Confirm if the 03C1 mirror actually does exist --GM
+        case 0x3C0:
+        case 0x3C1:
+            if (!ega->ar.ff_is_data) {
+                // Select address
+                ega_update_output(ega);
+                ega->ar.cpu_addr   = (val & EGA_W3C0_ADDR_MASK) >> EGA_W3C0_ADDR_SHIFT;
+                ega->ar.is_video   = (val & EGA_W3C0_PALSRC_MASK) == EGA_W3C0_PALSRC_DISPLAY;
+                ega->ar.ff_is_data = true;
+            } else {
+                // Write a register
+                if (ega->ar.cpu_addr < 0x10) {
+                    // TODO: REAL HARDWARE NEEDED: What happens when you try to write to the palette when the screen is not blanked? --GM
+                    if (!ega->ar.is_video) {
+                        ega_update_output(ega);
+                        ega->ar.pal[ega->ar.cpu_addr] = val & 0x3F;
+                    }
+
+                } else {
+                    // TODO: REAL HARDWARE NEEDED: Are any address bits ignored? --GM
+                    switch (ega->ar.cpu_addr) {
+                        // Mode Control (AFFECTS OUTPUT)
+                        case 0x10:
+                            ega_update_output(ega);
+                            ega->ar.ar10_mode = val & 0x0F;
+                            break;
+
+                        // Overscan Color (AFFECTS OUTPUT)
+                        case 0x11:
+                            ega_update_output(ega);
+                            ega->ar.ar11_overscan_color = val & 0x3F;
+                            break;
+
+                        // Color Plane Enable (+ Video Status Mux) (AFFECTS OUTPUT)
+                        case 0x12:
+                            ega_update_output(ega);
+                            ega->ar.ar12_plane_enable = val & 0x3F;
+                            break;
+
+                        // Horizontal Pel Panning (AFFECTS OUTPUT)
+                        case 0x13:
+                            ega_update_output(ega);
+                            ega->ar.ar13_pel_panning = val & 0x0F;
+                            break;
+
+                        default:
+                            break;
+                    }
+                }
+
+                // This does reset the flip-flop, otherwise the IBM EGA video BIOS cannot function correctly
+                ega->ar.ff_is_data = false;
+            }
+            break;
+
+        // 03C2 W: Miscellaneous Output Register (AFFECTS OUTPUT)
+        case 0x3C2:
+            ega_update_output(ega);
+
+            if (((ega->misc_out_3c2 ^ val) & EGA_W3C2_IOBASE_MASK) != 0) {
+                // I/O base changed.
+                io_removehandler((ega->misc_out_3c2 & EGA_W3C2_IOBASE_MASK) == EGA_W3C2_IOBASE_3BX ? 0x3B0 : 0x3C0,
+                                 0x0020,
+                                 ega_io_in, NULL, NULL,
+                                 ega_io_out, NULL, NULL,
+                                 ega);
+                io_sethandler((val & EGA_W3C2_IOBASE_MASK) == EGA_W3C2_IOBASE_3BX ? 0x3B0 : 0x3C0,
+                              0x0020,
+                              ega_io_in, NULL, NULL,
+                              ega_io_out, NULL, NULL,
+                              ega);
+            }
+            ega->misc_out_3c2 = val;
+            break;
+
+        // 03C4 W: Address for Sequencer
+        case 0x3C4:
+            ega->sr.cpu_addr = val & 0x1F;
+            break;
+        // 03C5 W: Data for Sequencer
+        case 0x3C5:
+            break;
+
+        // 03CA W: Graphics 2 Position (index 1)
+        case 0x3CA:
+            ega->gr.position[1] = val & 0b11;
+            break;
+
+        // 03CC W: Graphics 1 Position (index 0)
+        case 0x3CC:
+            ega->gr.position[0] = val & 0b11;
+            break;
+
+        // 03CE W: Address for Graphics Controllers
+        case 0x3CE:
+            ega->gr.cpu_addr = val & 0x0F;
+            break;
+        // 03CF W: Data for Graphics Controllers
+        case 0x3CF:
+            switch (ega->gr.cpu_addr) {
+                // Set/Reset
+                case 0x00:
+                    ega->gr.gc00_set_reset[0] = ((val >> (ega->gr.position[0] << 1)) & 0b11) * 0x55;
+                    ega->gr.gc00_set_reset[1] = ((val >> (ega->gr.position[1] << 1)) & 0b11) * 0x55;
+                    break;
+
+                // Enable Set/Reset
+                case 0x01:
+                    ega->gr.gc01_enable_set_reset[0] = ((val >> (ega->gr.position[0] << 1)) & 0b11) * 0x55;
+                    ega->gr.gc01_enable_set_reset[1] = ((val >> (ega->gr.position[1] << 1)) & 0b11) * 0x55;
+                    break;
+
+                // Color Compare
+                case 0x02:
+                    ega->gr.gc02_color_compare[0] = ((val >> (ega->gr.position[0] << 1)) & 0b11) * 0x55;
+                    ega->gr.gc02_color_compare[1] = ((val >> (ega->gr.position[1] << 1)) & 0b11) * 0x55;
+                    break;
+
+                // Data Rotate
+                case 0x03:
+                    ega->gr.gc03_data_rotate = val & 0x1F;
+                    break;
+
+                // Read Map Select
+                case 0x04:
+                    ega->gr.gc04_read_map_select = val & 0x07;
+                    break;
+
+                // Mode (AFFECTS OUTPUT - bits 2,5)
+                case 0x05:
+                    if (((ega->gr.gc05_mode ^ val)
+                         & (EGA_GR05_TESTCOND_MASK | EGA_GR05_SHIFTMODE_MASK))
+                        != 0) {
+                        ega_update_output(ega);
+                    }
+                    ega->gr.gc05_mode = val & 0x3F;
+                    break;
+
+                // Miscellaneous Output (AFFECTS OUTPUT - bits 0,1)
+                case 0x06:
+                    ega_update_output(ega);
+                    ega->gr.gc06_misc[0] = ((val >> (ega->gr.position[0] << 1)) & 0b11) * 0x55;
+                    ega->gr.gc06_misc[1] = ((val >> (ega->gr.position[1] << 1)) & 0b11) * 0x55;
+                    break;
+
+                // Color Don't Care
+                case 0x07:
+                    ega->gr.gc07_color_dont_care[0] = ((val >> (ega->gr.position[0] << 1)) & 0b11) * 0x55;
+                    ega->gr.gc07_color_dont_care[1] = ((val >> (ega->gr.position[1] << 1)) & 0b11) * 0x55;
+                    break;
+
+                // Bit Mask
+                case 0x08:
+                    ega->gr.gc08_bit_mask = val;
+                    break;
+
+                default:
+                    break;
+            }
+            break;
+
+        // 03B4/03D4 W: Address for CRT Controller (CRTC)
+        case 0x3B4:
+        case 0x3D4:
+            ega->cr.cpu_addr = val & 0b11111;
+            break;
+
+        // 03B5/03D5 W: Data for CRT Controller (CRTC)
+        case 0x3B5:
+        case 0x3D5:
+            switch (ega->cr.cpu_addr) {
+                case 0x0E: // Cursor Location High (AFFECTS OUTPUT)
+                    ega_update_output(ega);
+                    ega->cr.cursor_vaddr = (ega->cr.cursor_vaddr & 0x00FF)
+                        | (((uint16_t) val) << 8);
+                    break;
+
+                case 0x0F: // Cursor Location Low (AFFECTS OUTPUT)
+                    ega_update_output(ega);
+                    ega->cr.cursor_vaddr = (ega->cr.cursor_vaddr & 0xFF00)
+                        | (((uint16_t) val) << 0);
+                    break;
+
+                default:
+                    break;
+            }
+            break;
+
+        default:
+            printf("EGA out %04X value %02X\n", addr, val);
+            break;
+    }
+}
+
+static const device_config_t ega_config[] = {
+    // clang-format off
+    {
+        .name           = "memory",
+        .description    = "Memory size",
+        .type           = CONFIG_SELECTION,
+        .default_string = NULL,
+        .default_int    = 256,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = {
+            { .description =  "64 KB", .value =  64 },
+            { .description = "128 KB", .value = 128 },
+            { .description = "192 KB", .value = 192 },
+            { .description = "256 KB", .value = 256 },
+            { .description = ""                     }
+        },
+        .bios           = { { 0 } }
+    },
+    {
+        .name           = "monitor_type",
+        .description    = "Monitor type",
+        .type           = CONFIG_SELECTION,
+        .default_string = NULL,
+        .default_int    = 9,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = {
+            { .description = "Monochrome (5151/MDA) (white)",             .value = 0x0b | (DISPLAY_WHITE << 4) },
+            { .description = "Monochrome (5151/MDA) (green)",             .value = 0x0b | (DISPLAY_GREEN << 4) },
+            { .description = "Monochrome (5151/MDA) (amber)",             .value = 0x0b | (DISPLAY_AMBER << 4) },
+            { .description = "Color 40x25 (5153/CGA)",                    .value = 0x06                        },
+            { .description = "Color 80x25 (5153/CGA)",                    .value = 0x07                        },
+            { .description = "Enhanced Color - Normal Mode (5154/ECD)",   .value = 0x08                        },
+            { .description = "Enhanced Color - Enhanced Mode (5154/ECD)", .value = 0x09                        },
+            { .description = ""                                                                                }
+        },
+        .bios           = { { 0 } }
+    },
+    {
+        .name           = "base",
+        .description    = "Address",
+        .type           = CONFIG_HEX16,
+        .default_string = NULL,
+        .default_int    = 0x03c0,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = {
+            { .description = "0x3C0", .value = 0x03c0 },
+            { .description = "0x2C0", .value = 0x02c0 },
+            { .description = ""                       }
+        },
+        .bios           = { { 0 } }
+    },
+    { .name = "", .description = "", .type = CONFIG_END }
+    // clang-format on
+};
+
+extern "C" const device_t ega_newvid_device = {
+    .name          = "IBM EGA (*newvid*)",
+    .internal_name = "ega_newvid",
+    .flags         = DEVICE_ISA,
+    .local         = 0,
+    .init          = ega_init,
+    .close         = ega_close,
+    .reset         = NULL,
+    .available     = ega_available,
+    .speed_changed = NULL,
+    .force_redraw  = NULL,
+    .config        = ega_config
+};

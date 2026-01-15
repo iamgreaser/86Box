@@ -31,6 +31,7 @@
 #include <86box/video.h>
 #include <86box/vid_svga.h>
 
+#include <86box/newvid.h>
 #include <86box/vid_cga.h>
 #include <86box/vid_ega.h>
 #include <86box/vid_colorplus.h>
@@ -52,6 +53,7 @@ video_cards[] = {
     { .device = &device_none,                                   .flags = VIDEO_FLAG_TYPE_NONE },
     { .device = &device_internal,                               .flags = VIDEO_FLAG_TYPE_NONE },
     /* ISA */
+    { .device = &ega_newvid_device,                             .flags = VIDEO_FLAG_TYPE_NONE },
     { .device = &ati18800_wonder_device,                        .flags = VIDEO_FLAG_TYPE_NONE },
     { .device = &ati18800_vga88_device,                         .flags = VIDEO_FLAG_TYPE_NONE },
 #ifdef USE_XL24
