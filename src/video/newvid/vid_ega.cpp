@@ -647,6 +647,12 @@ ega_io_in(uint16_t addr, void *priv)
         case 0x3B5:
         case 0x3D5:
             switch (ega->cr.cpu_addr) {
+                case 0x0C: // Start Address High
+                    return (uint8_t) (ega->cr.start_vaddr >> 8);
+
+                case 0x0D: // Start Address Low
+                    return (uint8_t) (ega->cr.start_vaddr >> 0);
+
                 case 0x0E: // Cursor Location High
                     return (uint8_t) (ega->cr.cursor_vaddr >> 8);
 
@@ -896,6 +902,18 @@ ega_io_out(uint16_t addr, uint8_t val, void *priv)
         case 0x3B5:
         case 0x3D5:
             switch (ega->cr.cpu_addr) {
+                case 0x0C: // Start Address High (AFFECTS OUTPUT)
+                    ega_update_output(ega);
+                    ega->cr.start_vaddr = (ega->cr.start_vaddr & 0x00FF)
+                        | (((uint16_t) val) << 8);
+                    break;
+
+                case 0x0D: // Start Address Low (AFFECTS OUTPUT)
+                    ega_update_output(ega);
+                    ega->cr.start_vaddr = (ega->cr.start_vaddr & 0xFF00)
+                        | (((uint16_t) val) << 0);
+                    break;
+
                 case 0x0E: // Cursor Location High (AFFECTS OUTPUT)
                     ega_update_output(ega);
                     ega->cr.cursor_vaddr = (ega->cr.cursor_vaddr & 0x00FF)
