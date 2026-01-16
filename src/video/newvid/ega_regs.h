@@ -201,6 +201,27 @@
 #define EGA_W3C0_PALSRC_DISPLAY (0b1 << EGA_W3C0_PALSRC_SHIFT)
 
 //
+// 03C4 and 03C5 W: Sequencer registers
+//
+
+// Alpha (provides separate A14,A15 for planes 2 and 3)
+#define EGA_SR04_ALPHA_SHIFT   0
+#define EGA_SR04_ALPHA_MASK    (0b1 << EGA_SR04_ALPHA_SHIFT)
+#define EGA_SR04_ALPHA_OFF     (0b0 << EGA_SR04_ALPHA_SHIFT)
+#define EGA_SR04_ALPHA_ON      (0b1 << EGA_SR04_ALPHA_SHIFT)
+// Extended Memory (lets A14,A15 be nonzero)
+// NOTE: On the actual IBM EGA card, these are not address pins, they're 4 chip select pins.
+#define EGA_SR04_EXTMEM_SHIFT   0
+#define EGA_SR04_EXTMEM_MASK    (0b1 << EGA_SR04_EXTMEM_SHIFT)
+#define EGA_SR04_EXTMEM_OFF     (0b0 << EGA_SR04_EXTMEM_SHIFT)
+#define EGA_SR04_EXTMEM_ON      (0b1 << EGA_SR04_EXTMEM_SHIFT)
+// Odd/Even (for plane write enables)
+#define EGA_SR04_ODDEVEN_SHIFT   2
+#define EGA_SR04_ODDEVEN_MASK    (0b1 << EGA_SR04_ODDEVEN_SHIFT)
+#define EGA_SR04_ODDEVEN_ON      (0b0 << EGA_SR04_ODDEVEN_SHIFT)
+#define EGA_SR04_ODDEVEN_OFF     (0b1 << EGA_SR04_ODDEVEN_SHIFT)
+
+//
 // 03CE and 03CF W: Graphics Controller registers
 //
 
@@ -231,11 +252,11 @@
 #define EGA_GR05_READMODE_MASK      (0b1 << EGA_GR05_READMODE_SHIFT)
 #define EGA_GR05_READMODE_0_SINGLE  (0b0 << EGA_GR05_READMODE_SHIFT)
 #define EGA_GR05_READMODE_1_COMPARE (0b1 << EGA_GR05_READMODE_SHIFT)
-// GR05.4: Odd/Even
+// GR05.4: Odd/Even (for plane reads)
 #define EGA_GR05_ODDEVEN_SHIFT     4
 #define EGA_GR05_ODDEVEN_MASK      (0b1 << EGA_GR05_ODDEVEN_SHIFT)
-#define EGA_GR05_ODDEVEN_0_SINGLE  (0b0 << EGA_GR05_ODDEVEN_SHIFT)
-#define EGA_GR05_ODDEVEN_1_COMPARE (0b1 << EGA_GR05_ODDEVEN_SHIFT)
+#define EGA_GR05_ODDEVEN_OFF       (0b0 << EGA_GR05_ODDEVEN_SHIFT)
+#define EGA_GR05_ODDEVEN_ON        (0b1 << EGA_GR05_ODDEVEN_SHIFT)
 // GR05.5: Shift Register
 // - 0: Fully planar.
 // - 1: Each pair of planes is considered to be chunky.
@@ -249,7 +270,7 @@
 #define EGA_GR06_0_GRAPHICS_MASK  (0b1 << EGA_GR06_0_GRAPHICS_SHIFT)
 #define EGA_GR06_0_GRAPHICS_OFF   (0b0 << EGA_GR06_0_GRAPHICS_SHIFT)
 #define EGA_GR06_0_GRAPHICS_ON    (0b1 << EGA_GR06_0_GRAPHICS_SHIFT)
-// GR06 GC #1 .1: Odd/Even
+// GR06 GC #1 .1: Odd/Even (for CPU VRAM address generation)
 #define EGA_GR06_0_ODDEVEN_SHIFT 1
 #define EGA_GR06_0_ODDEVEN_MASK  (0b1 << EGA_GR06_0_ODDEVEN_SHIFT)
 #define EGA_GR06_0_ODDEVEN_OFF   (0b0 << EGA_GR06_0_ODDEVEN_SHIFT)

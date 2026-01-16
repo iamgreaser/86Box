@@ -53,6 +53,7 @@ struct ega_sr_t {
     uint8_t cpu_addr;
 
     uint8_t sr02_map_mask;
+    uint8_t sr04_memory_mode;
 };
 
 //
@@ -257,24 +258,40 @@ ega_tick_frame(void *priv)
     uint32_t pal[1 << 4];
     for (int32_t i = 0; i < (1 << 4); i++) {
         uint8_t v = ega->ar.pal[i & 0xF];
-        pal[i]    = makecol32(
-            (((v >> 2) & 0x1) * 0xAA) | (((v >> 5) & 0x1) * 0x55),
-            (((v >> 1) & 0x1) * 0xAA) | (((v >> 4) & 0x1) * 0x55),
-            (((v >> 0) & 0x1) * 0xAA) | (((v >> 3) & 0x1) * 0x55));
+        if (true) {
+            // CGA monitor mapping
+            pal[i]    = makecol32(
+                (((v >> 2) & 0x1) * 0xAA) | (((v >> 4) & 0x1) * 0x55),
+                (((v >> 1) & 0x1) * 0xAA) | (((v >> 4) & 0x1) * 0x55),
+                (((v >> 0) & 0x1) * 0xAA) | (((v >> 4) & 0x1) * 0x55));
+        } else {
+            // EGA monitor mapping
+            pal[i]    = makecol32(
+                (((v >> 2) & 0x1) * 0xAA) | (((v >> 5) & 0x1) * 0x55),
+                (((v >> 1) & 0x1) * 0xAA) | (((v >> 4) & 0x1) * 0x55),
+                (((v >> 0) & 0x1) * 0xAA) | (((v >> 3) & 0x1) * 0x55));
+        }
     }
 
     for (size_t y = 0; y < ysize; y++) {
         size_t memy = y / 14;
         size_t sy   = y % 14;
         for (size_t x = 0; x < xsize / 8; x++) {
-            uint32_t data = ega->vram_buf[(memy * 80) + x];
+            uint32_t vaddr = (memy * 80) + x;
+
+            // Odd/Even mode
+            // TODO: Read this from the CRTC --GM
+            vaddr = (vaddr << 1) | ((vaddr >> 15) & 0b1);
+
+            uint32_t data = ega->vram_buf[vaddr];
 
             // Remap text mode
             // TODO: Actually treat this how the EGA treats it instead of remapping text to graphics --GM
             uint8_t bg       = (data >> 12) & 0x0F;
             uint8_t fg       = (data >> 8) & 0x0F;
             uint8_t ch       = (data >> 0) & 0xFF;
-            uint8_t fontline = ega->vram_buf[(ch << 5) | (sy & 0x1F)];
+            uint8_t fontline = (uint8_t)(ega->vram_buf[(((uint32_t)ch) << 5) | (sy & 0x1F)] >> 16);
+            //if (sy == 0 && ch != 0x20) printf("ch %02X fg %01X bg %01X\n", ch, fg, bg);
 
             uint32_t mask_base = 0;
             uint32_t mask_xor  = 0;
@@ -288,7 +305,8 @@ ega_tick_frame(void *priv)
             }
             mask_xor ^= mask_base;
 
-            data = mask_base ^ ((0x01010101 * (uint32_t) fontline) & mask_xor);
+            //data = mask_base ^ ((0x01010101 * (uint32_t) fontline) & mask_xor);
+            data = (0x01010101 * (uint32_t) fontline);
 
             for (size_t sx = 0; sx < 8; sx++) {
                 uint8_t c = 0;
@@ -341,7 +359,29 @@ ega_cpu_addr_to_vaddr(ega_t *ega, uint32_t addr)
             break;
     }
 
-    // TODO: Remap in Odd/Even mode --GM
+    // Remap Odd/Even addresses
+    if ((ega->gr.gr06_misc[0] & EGA_GR06_0_ODDEVEN_MASK) == EGA_GR06_0_ODDEVEN_ON) {
+        if ((ega->gr.gr06_misc[1] & EGA_GR06_1_MEMORYMAP_MASK) == EGA_GR06_1_MEMORYMAP_A000_128K) {
+            if (ega->vram_size_vaddrs > (64 * 1024 / 4)) {
+                // Memory is expanded! ~A0 is ~A16.
+                vaddr = (vaddr & ~0b1) | ((addr >> 16) & 0b1);
+            }
+            // If not expanded, ~A0 is ~A0.
+        } else {
+            if (ega->vram_size_vaddrs > (64 * 1024 / 4)) {
+                // Memory is expanded! ~A0 is ~PGSEL.
+                if ((ega->misc_out_3c2 & EGA_W3C2_OEPAGE_MASK) == EGA_W3C2_OEPAGE_HI) {
+                    vaddr |= 0b1;
+                } else {
+                    vaddr &= ~0b1;
+                }
+            } else {
+                // If not expanded, ~A0 is ~A14.
+                vaddr = (vaddr & ~0b1) | ((addr >> 14) & 0b1);
+            }
+        }
+    }
+
     // TODO: 64 KB wrap when set up in the sequencer --GM
 
     return vaddr;
@@ -373,10 +413,11 @@ ega_vram_read(uint32_t addr, void *priv)
         case EGA_GR05_READMODE_0_SINGLE:
             {
                 uint8_t result = 0xFF;
-                // TODO: Remap in GR05 Odd/Even mode --GM
-                if (false) {
+                if ((ega->gr.gr05_mode & EGA_GR05_ODDEVEN_MASK) == EGA_GR05_ODDEVEN_ON) {
+                    // Odd/Even read address
                     data >>= (addr & 0x1) << 3;
                 } else {
+                    // Regular read address
                     data >>= (ega->gr.gr04_read_map_select & 0x1) << 3;
                 }
 
@@ -523,10 +564,14 @@ ega_vram_write(uint32_t addr, uint8_t val, void *priv)
                 map_mask |= 0xFF << (i * 8);
             }
         }
+        // Also apply Odd/Even
+        if ((ega->sr.sr04_memory_mode & EGA_SR04_ODDEVEN_MASK) == EGA_SR04_ODDEVEN_ON) {
+            map_mask &= 0x00FF00FF << (8 * (addr & 0b1));
+        }
+
         result = (result & map_mask) | (ega->vram_buf[vaddr] & ~map_mask);
 
         // And now for the actual write!
-        // printf("write %05X: %02X -> %08X\n", vaddr, val, result);
         ega->vram_buf[vaddr] = result;
     }
 
@@ -697,6 +742,12 @@ ega_io_out(uint16_t addr, uint8_t val, void *priv)
                 // Map Mask
                 case 0x02:
                     ega->sr.sr02_map_mask = val & 0x0F;
+                    break;
+
+                // Memory Mode (AFFECTS OUTPUT)
+                case 0x04:
+                    ega_update_output(ega);
+                    ega->sr.sr04_memory_mode = val & 0x07;
                     break;
 
                 default:
