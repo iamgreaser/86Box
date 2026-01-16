@@ -6,6 +6,7 @@
 // (3.13 works, older versions probably also work as far back as maybe 3.6? Not tested though.)
 //
 
+!boardprefix EGA
 // Helpers
 #define EGA_MAKE_WRITE(_NAME, x) \
     ((((x) + _NAME##_ZERO) << _NAME##_SHIFT) & _NAME##_MASK)
@@ -17,26 +18,15 @@
 //
 // U37, 74LS273 8-bit D-latch, SHT 9
 //
+!startreg W3C2
 
 // 3BX/3DX CRTC I/O Address (~MONO MONITOR)
 // This provides in input into the I/O address decoder PROM (U34, SHT 4).
-#define EGA_W3C2_IOBASE_SHIFT    0
-#define EGA_W3C2_IOBASE_ZERO     0
-#define EGA_W3C2_IOBASE_MASK     (((1 << 1) - 1) << 0)
-#define EGA_W3C2_IOBASE_WRITE(x) EGA_MAKE_WRITE(EGA_W3C2_IOBASE, x)
-#define EGA_W3C2_IOBASE_READ(x)  EGA_MAKE_READ(EGA_W3C2_IOBASE, x)
-#define EGA_W3C2_IOBASE_3BX      ((0b0) << 0)
-#define EGA_W3C2_IOBASE_3DX      ((0b1) << 0)
+!field IOBASE 0 1 0 3BX=0b0 3DX=0b1
 
 // Enable RAM (RAM ENABLE)
 // This provides an input into the memory address decoder PROM (U48, SHT 4).
-#define EGA_W3C2_RAMENABLE_SHIFT    1
-#define EGA_W3C2_RAMENABLE_ZERO     0
-#define EGA_W3C2_RAMENABLE_MASK     (((1 << 1) - 1) << 1)
-#define EGA_W3C2_RAMENABLE_WRITE(x) EGA_MAKE_WRITE(EGA_W3C2_RAMENABLE, x)
-#define EGA_W3C2_RAMENABLE_READ(x)  EGA_MAKE_READ(EGA_W3C2_RAMENABLE, x)
-#define EGA_W3C2_RAMENABLE_OFF      ((0b0) << 1)
-#define EGA_W3C2_RAMENABLE_ON       ((0b1) << 1)
+!field RAMENABLE 1 1 0 OFF=0b0 ON=0b1
 
 // Clock Select (CLK SEL 0/1)
 // These select U15 (74LS153 dual 4-to-1 mux), which selects the following:
@@ -51,27 +41,14 @@
 //   - 01 = SW1 switch 2 (0 = closed)
 //   - 10 = SW1 switch 3 (0 = closed)
 //   - 11 = SW1 switch 4 (0 = closed)
-#define EGA_W3C2_CLOCKSEL_SHIFT    2
-#define EGA_W3C2_CLOCKSEL_ZERO     0
-#define EGA_W3C2_CLOCKSEL_MASK     (((1 << 2) - 1) << 2)
-#define EGA_W3C2_CLOCKSEL_WRITE(x) EGA_MAKE_WRITE(EGA_W3C2_CLOCKSEL, x)
-#define EGA_W3C2_CLOCKSEL_READ(x)  EGA_MAKE_READ(EGA_W3C2_CLOCKSEL, x)
-#define EGA_W3C2_CLOCKSEL_14MHZ    ((0b00) << 2)
-#define EGA_W3C2_CLOCKSEL_16MHZ    ((0b01) << 2)
-#define EGA_W3C2_CLOCKSEL_EXTOSC   ((0b10) << 2)
+!field CLOCKSEL 2 2 0 14MHZ=0b00 16MHZ=0b01 EXTOSC=0b10
 
 // Disable Internal Video Drivers (~INTERNAL)
 // When high, this severs the outputs on U36 (74LS244 4x2=8 buffer, SHT 9).
 // These go to DE-9 output connector J3 (SHT 9).
 // The only output that isn't severed is pin 1 which is hard-wired to GND.
 // The feature connector goes past U36 but before the resistors going to J3.
-#define EGA_W3C2_VIDDRIVERS_SHIFT    4
-#define EGA_W3C2_VIDDRIVERS_ZERO     0
-#define EGA_W3C2_VIDDRIVERS_MASK     (((1 << 1) - 1) << 4)
-#define EGA_W3C2_VIDDRIVERS_WRITE(x) EGA_MAKE_WRITE(EGA_W3C2_VIDDRIVERS, x)
-#define EGA_W3C2_VIDDRIVERS_READ(x)  EGA_MAKE_READ(EGA_W3C2_VIDDRIVERS, x)
-#define EGA_W3C2_VIDDRIVERS_ON       ((0b0) << 4)
-#define EGA_W3C2_VIDDRIVERS_OFF      ((0b1) << 4)
+!field VIDDRIVERS 4 1 0 ON=0b0 OFF=0b1
 
 // Page Bit For Odd/Even (~PGSEL)
 // FREQUENCLY MISDOCUMENTED:
@@ -86,13 +63,7 @@
 // - (C=0) The mapping isn't 128 KB @ A000-BFFF (GR06.2-3 != 00, GC #2 on SHT 6)
 //   - This is an input to the memory address decoder PROM (U48, SHT 4).
 // That is, ~PGSEL provides the INVERSE of address bit 0.
-#define EGA_W3C2_OEPAGE_SHIFT    5
-#define EGA_W3C2_OEPAGE_ZERO     0
-#define EGA_W3C2_OEPAGE_MASK     (((1 << 1) - 1) << 5)
-#define EGA_W3C2_OEPAGE_WRITE(x) EGA_MAKE_WRITE(EGA_W3C2_OEPAGE, x)
-#define EGA_W3C2_OEPAGE_READ(x)  EGA_MAKE_READ(EGA_W3C2_OEPAGE, x)
-#define EGA_W3C2_OEPAGE_HI       ((0b0) << 5)
-#define EGA_W3C2_OEPAGE_LO       ((0b1) << 5)
+!field OEPAGE 5 1 0 HI=0b0 LO=0b1
 
 // Horizontal Retrace Polarity (H POL), bit 6
 // Vertical Retrace Polarity (V POL), bit 7
@@ -100,18 +71,9 @@
 // These XOR the HSYNC/VSYNC values from the CRTC (U8, 74LS86 4x 2-XOR, SHT 9, 2 pairs used).
 // The numbers given are the typical expected number of scanlines.
 // (EGA only cares about 200-line and 350-line screens.)
-#define EGA_W3C2_POLARITY_SHIFT     6
-#define EGA_W3C2_POLARITY_ZERO      0
-#define EGA_W3C2_POLARITY_MASK      (((1 << 2) - 1) << 6)
-#define EGA_W3C2_POLARITY_WRITE(x)  EGA_MAKE_WRITE(EGA_W3C2_POLARITY, x)
-#define EGA_W3C2_POLARITY_READ(x)   EGA_MAKE_READ(EGA_W3C2_POLARITY, x)
-#define EGA_W3C2_POLARITY_VP_HP_200 ((0b00) << 6)
-#define EGA_W3C2_POLARITY_VP_HN_400 ((0b01) << 6)
-#define EGA_W3C2_POLARITY_VN_HP_350 ((0b10) << 6)
-#define EGA_W3C2_POLARITY_VN_HN_480 ((0b11) << 6)
+!field POLARITY 6 2 0 VP_HP_200=0b00 VP_HN_400=0b01 VN_HP_350=0b10 VN_HN_480=0b11
 
-// W3C2 end
-#define EGA_W3C2_MASK 0xff
+!endreg W3C2
 
 //
 // 03C2 R: Input Status Register Zero

@@ -107,6 +107,23 @@ struct ega_cr_t {
 
     uint16_t start_vaddr;
     uint16_t cursor_vaddr;
+
+    // CRxx horizontal timing registers
+    uint16_t htotal;
+    uint16_t hdispend;
+    uint16_t hblankbeg;
+    uint16_t hsyncbeg;
+    uint16_t hsyncend;
+    uint16_t hblankend;
+
+    // CRxx vertical timing registers
+    uint16_t vtotal;
+    uint16_t vdispend;
+    uint16_t vblankbeg;
+    uint16_t vsyncbeg;
+    uint16_t vsyncend;
+    uint16_t vblankend;
+    uint16_t linecompare;
 };
 
 struct ega_t {
@@ -627,6 +644,24 @@ ega_io_in(uint16_t addr, void *priv)
 
                 uint8_t sw_shift = (ega->misc_out_3c2 & EGA_W3C2_CLOCKSEL_MASK) >> EGA_W3C2_CLOCKSEL_SHIFT;
                 // FIXME: Work out what we need to do to get this to behave correctly! --GM
+                //
+                // Official notes from EGA BIOS listing:
+                // - 0000 = MDA primary, EGA uses CGA 40
+                // - 0001 = MDA primary, EGA uses CGA 80
+                // - 0010 = MDA primary, EGA uses EGA 200
+                // - 0011 = MDA primary, EGA uses EGA 350
+                // - 0100 = CGA 40 primary, EGA uses MDA
+                // - 0101 = CGA 80 primary, EGA uses MDA
+                // - 0110 = MDA secondary, EGA uses CGA 40
+                // - 0111 = MDA secondary, EGA uses CGA 80
+                // - 1000 = MDA secondary, EGA uses EGA 200
+                // - 1001 = MDA secondary, EGA uses EGA 350
+                // - 1010 = CGA 40 secondary, EGA uses MDA
+                // - 1011 = CGA 80 secondary, EGA uses MDA
+                // Everything else is reserved.
+                //
+                // 40:87 bit 1: 1=EGA is monochrome, 0=EGA is colour
+                //
                 // 0x00 through 0x02: CGA 80
                 // 0x03: EGA compat?
                 // 0x04 through 0x05: MDA, borked edition
@@ -634,6 +669,10 @@ ega_io_in(uint16_t addr, void *priv)
                 // 0x09: EGA compat?
                 // 0x0A through 0x0B: MDA, borked edition
                 // 0x0C through 0x0F: CGA 80
+                //
+                // Proper EGA setup requirements:
+                // See PDF page 117 / printed page 113 in the IBM EGA doc for the POD14 function listing.
+                //
                 // result |= ((0x0F & (0x08 >> sw_shift)) == 0)
                 result |= ((ega->monitor_type & (0x08 >> sw_shift)) == 0)
                     ? EGA_R3C2_SWITCHSENSE_ON
@@ -648,16 +687,16 @@ ega_io_in(uint16_t addr, void *priv)
         case 0x3D5:
             switch (ega->cr.cpu_addr) {
                 case 0x0C: // Start Address High
-                    return (uint8_t) (ega->cr.start_vaddr >> 8);
+                    return (uint8_t) (EGA_CR0C_STARTHI_READ(ega->cr.start_vaddr >> 8) | ~EGA_CR0C_MASK);
 
                 case 0x0D: // Start Address Low
-                    return (uint8_t) (ega->cr.start_vaddr >> 0);
+                    return (uint8_t) (EGA_CR0D_STARTLO_READ(ega->cr.start_vaddr >> 0) | ~EGA_CR0D_MASK);
 
                 case 0x0E: // Cursor Location High
-                    return (uint8_t) (ega->cr.cursor_vaddr >> 8);
+                    return (uint8_t) (EGA_CR0E_CURSORHI_READ(ega->cr.cursor_vaddr >> 8) | ~EGA_CR0E_MASK);
 
                 case 0x0F: // Cursor Location Low
-                    return (uint8_t) (ega->cr.cursor_vaddr >> 0);
+                    return (uint8_t) (EGA_CR0F_CURSORLO_READ(ega->cr.cursor_vaddr >> 0) | ~EGA_CR0F_MASK);
 
                 default:
                     return 0xFF;
@@ -905,25 +944,25 @@ ega_io_out(uint16_t addr, uint8_t val, void *priv)
                 case 0x0C: // Start Address High (AFFECTS OUTPUT)
                     ega_update_output(ega);
                     ega->cr.start_vaddr = (ega->cr.start_vaddr & 0x00FF)
-                        | (((uint16_t) val) << 8);
+                        | (((uint16_t) EGA_CR0C_STARTHI_READ(val)) << 8);
                     break;
 
                 case 0x0D: // Start Address Low (AFFECTS OUTPUT)
                     ega_update_output(ega);
                     ega->cr.start_vaddr = (ega->cr.start_vaddr & 0xFF00)
-                        | (((uint16_t) val) << 0);
+                        | (((uint16_t) EGA_CR0D_STARTLO_READ(val)) << 0);
                     break;
 
                 case 0x0E: // Cursor Location High (AFFECTS OUTPUT)
                     ega_update_output(ega);
                     ega->cr.cursor_vaddr = (ega->cr.cursor_vaddr & 0x00FF)
-                        | (((uint16_t) val) << 8);
+                        | (((uint16_t) EGA_CR0E_CURSORHI_READ(val)) << 8);
                     break;
 
                 case 0x0F: // Cursor Location Low (AFFECTS OUTPUT)
                     ega_update_output(ega);
                     ega->cr.cursor_vaddr = (ega->cr.cursor_vaddr & 0xFF00)
-                        | (((uint16_t) val) << 0);
+                        | (((uint16_t) EGA_CR0F_CURSORLO_READ(val)) << 0);
                     break;
 
                 default:
