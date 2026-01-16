@@ -598,9 +598,18 @@ ega_io_in(uint16_t addr, void *priv)
 
                 uint8_t sw_shift = (ega->misc_out_3c2 & EGA_W3C2_CLOCKSEL_MASK) >> EGA_W3C2_CLOCKSEL_SHIFT;
                 // FIXME: Work out what we need to do to get this to behave correctly! --GM
-                result |= (((ega->monitor_type >> sw_shift) & 0b1) == 0)
+                // 0x00 through 0x02: CGA 80
+                // 0x03: EGA compat?
+                // 0x04 through 0x05: MDA, borked edition
+                // 0x06 through 0x08: CGA 80
+                // 0x09: EGA compat?
+                // 0x0A through 0x0B: MDA, borked edition
+                // 0x0C through 0x0F: CGA 80
+                //result |= ((0x0F & (0x08 >> sw_shift)) == 0)
+                result |= ((ega->monitor_type & (0x08 >> sw_shift)) == 0)
                     ? EGA_R3C2_SWITCHSENSE_ON
                     : EGA_R3C2_SWITCHSENSE_OFF;
+                printf("sw %02X %02X %2d\n", result, ega->monitor_type, sw_shift);
 
                 return result;
             }
