@@ -305,13 +305,12 @@ ega_tick_frame(void *priv)
             }
             mask_xor ^= mask_base;
 
-            //data = mask_base ^ ((0x01010101 * (uint32_t) fontline) & mask_xor);
-            data = (0x01010101 * (uint32_t) fontline);
+            data = mask_base ^ ((0x01010101 * (uint32_t) fontline) & mask_xor);
 
             for (size_t sx = 0; sx < 8; sx++) {
                 uint8_t c = 0;
                 for (size_t i = 0; i < 4; i++) {
-                    if (((data << (sx + (8 * i))) & 0x80000000) != 0) {
+                    if (((data >> ((sx ^ 0b111) + (8 * i))) & 0b1) != 0) {
                         c |= (1 << i);
                     }
                 }
