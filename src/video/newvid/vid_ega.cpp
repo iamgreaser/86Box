@@ -597,7 +597,8 @@ ega_io_in(uint16_t addr, void *priv)
                     | EGA_R3C2_CRTINT_ACTIVEVID;
 
                 uint8_t sw_shift = (ega->misc_out_3c2 & EGA_W3C2_CLOCKSEL_MASK) >> EGA_W3C2_CLOCKSEL_SHIFT;
-                result |= (((ega->monitor_type >> sw_shift) & 0b1) != 0)
+                // FIXME: Work out what we need to do to get this to behave correctly! --GM
+                result |= (((ega->monitor_type >> sw_shift) & 0b1) == 0)
                     ? EGA_R3C2_SWITCHSENSE_ON
                     : EGA_R3C2_SWITCHSENSE_OFF;
 
