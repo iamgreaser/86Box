@@ -1,6 +1,6 @@
 msgid ""
 msgstr ""
-"PO-Revision-Date: 2026-01-07 16:56+0000\n"
+"PO-Revision-Date: 2026-01-10 12:56+0000\n"
 "Last-Translator: DimMan88 <dimman88@hotmail.com>\n"
 "Language-Team: Greek <https://weblate.86box.net/projects/86box/86box/el/>\n"
 "Language: el-GR\n"
@@ -127,7 +127,7 @@ msgid "&Fullscreen"
 msgstr "&Πλήρης οθόνη"
 
 msgid "Fullscreen &stretch mode"
-msgstr "Πλήρης οθόνη &σε τύπο τεντώματος"
+msgstr "Πλήρης οθόνη &σε λειτουργία τεντώματος"
 
 msgid "&Full screen stretch"
 msgstr "&Τέντωμα πλήρους οθόνης"
@@ -210,14 +210,26 @@ msgstr "&Ανανέωση εικονιδίων γραμμής κατάσταση
 msgid "Take s&creenshot"
 msgstr "Λήψη σ&τιγμιότυπου"
 
+msgid "Take screenshot"
+msgstr "Λήψη στιγμιότυπου"
+
 msgid "Take &raw screenshot"
 msgstr "Λήψη &αρχικού στιγμιότυπου"
+
+msgid "Take raw screenshot"
+msgstr "Λήψη αρχικού στιγμιότυπου"
 
 msgid "C&opy screenshot"
 msgstr "&Αντιγραφή στιγμιότυπου"
 
+msgid "Copy screenshot"
+msgstr "Αντιγραφή στιγμιότυπου"
+
 msgid "Copy r&aw screenshot"
 msgstr "Αντιγραφή α&ρχικού στιγμιότυπου"
+
+msgid "Copy raw screenshot"
+msgstr "Αντιγραφή αρχικού στιγμιότυπου"
 
 msgid "S&ound"
 msgstr "Ή&χος"
@@ -325,7 +337,7 @@ msgid "Disk size:"
 msgstr "Μέγεθος δίσκου:"
 
 msgid "RPM mode:"
-msgstr "Τύπος RPM:"
+msgstr "Λειτουργία RPM:"
 
 msgid "Progress:"
 msgstr "Πρόοδος:"
@@ -537,11 +549,11 @@ msgstr "Ελεγκτής δισκέτας:"
 msgid "CD-ROM controller:"
 msgstr "Ελεγκτής CD-ROM:"
 
-msgid "[ISA16] Tertiary IDE Controller"
-msgstr "[ISA16] Τριτογενής Ελεγκτής IDE"
+msgid "Tertiary IDE Controller"
+msgstr "Τριτογενής Ελεγκτής IDE"
 
-msgid "[ISA16] Quaternary IDE Controller"
-msgstr "[ISA16] Τεταρτογενής Ελεγκτής IDE"
+msgid "Quaternary IDE Controller"
+msgstr "Τεταρτογενής Ελεγκτής IDE"
 
 msgid "Hard disk controllers"
 msgstr "Ελεγκτές σκληρού δίσκου"
@@ -1032,7 +1044,7 @@ msgid "%1 Device Configuration"
 msgstr "%1 Προσαρμογή Συσκευής"
 
 msgid "Monitor in sleep mode"
-msgstr "Οθόνη σε sleep mode"
+msgstr "Οθόνη σε λειτουργία αναμονής"
 
 msgid "GLSL shaders"
 msgstr "GLSL shaders"
@@ -1154,8 +1166,8 @@ msgstr "Αδυναμία ανοίγματος επιλεγμένου αρχεί�
 msgid "Use regular expressions in search box"
 msgstr "Χρήση συχνών εκφράσεων στην αναζήτηση"
 
-msgid "%1 machine(s) are currently active. Are you sure you want to exit the VM manager anyway?"
-msgstr "%1 μηχανής(ών) είναι εν ενεργεία. Είστε σίγουγος για την έξοδο απο το VM manager;"
+msgid "%n machine(s) are currently active. Are you sure you want to exit the VM manager anyway?"
+msgstr "%n μηχανής(ών) είναι εν ενεργεία. Είστε σίγουγος για την έξοδο απο το VM manager;"
 
 msgid "Add new system wizard"
 msgstr "Οδηγός προσθήκης νέο συστήματος"
@@ -1237,9 +1249,6 @@ msgstr "Εισάγετε το νέο όνομα εμφάνισης (κενό γ�
 
 msgid "Change &display name…"
 msgstr "Αλλαγή &ονόματος εμφάνισης…"
-
-msgid "Context Menu"
-msgstr "Μενού επιλογών"
 
 msgid "&Open folder…"
 msgstr "&Άνοιγμα φακέλου…"
@@ -1604,7 +1613,7 @@ msgid "Select media images from program working directory"
 msgstr "Επιλέξτε αρχεία πολυμέσων απο τον ενεργό κατάλογο προγράμματος"
 
 msgid "PIT mode:"
-msgstr "PIT mode:"
+msgstr "Λειτουργία PIT:"
 
 msgid "Auto"
 msgstr "Αυτόματο"
@@ -1674,7 +1683,7 @@ msgid "Open screenshots &folder…"
 msgstr "Άνοιγμα &φακέλου στιγμιότυπων…"
 
 msgid "Appl&y fullscreen stretch mode when maximized"
-msgstr "Εφαρμο&γή πλήρους οθόνης σε τέντωμα κατα την μεγιστοποίηση"
+msgstr "&Εφαρμογή πλήρους οθόνης σε τέντωμα κατα την μεγιστοποίηση"
 
 msgid "&Cursor/Puck"
 msgstr "&Cursor/Puck"
@@ -1801,7 +1810,7 @@ msgid "Network Card #4"
 msgstr "Κάρτα δικτύου #4"
 
 msgid "Mode:"
-msgstr "Τύπος:"
+msgstr "Λειτουργία:"
 
 msgid "Interface:"
 msgstr "Διασύνδεση:"
@@ -1887,8 +1896,8 @@ msgstr "3M MicroTouch (Σειριακό)"
 msgid "Default Baud rate"
 msgstr "Προεπιλεγμένος ρυθμός Baud"
 
-msgid "[COM] Standard Hayes-compliant Modem"
-msgstr "[COM] Τυπικό μόντεμ συμβατό με Hayes"
+msgid "Standard Hayes-compliant Modem"
+msgstr "Τυπικό μόντεμ συμβατό με Hayes"
 
 msgid "Roland MT-32 Emulation"
 msgstr "Εξομοίωση Roland MT-32"
@@ -2344,7 +2353,7 @@ msgid "Transfer Speed"
 msgstr "Ταχύτητα Μεταφοράς"
 
 msgid "EMS mode"
-msgstr "Τύπος EMS"
+msgstr "Λειτουργία EMS"
 
 msgid "EMS Address"
 msgstr "Διεύθυνση EMS"
@@ -2558,10 +2567,10 @@ msgid "Color 80x25 (5153/CGA)"
 msgstr "Έγχρωμο 80x25 (5153/CGA)"
 
 msgid "Enhanced Color - Normal Mode (5154/ECD)"
-msgstr "Ενισχυμένο Έγχρωμο - Κανονικός Τύπος (5154/ECD)"
+msgstr "Ενισχυμένο Έγχρωμο - Κανονική Λειτουργία (5154/ECD)"
 
 msgid "Enhanced Color - Enhanced Mode (5154/ECD)"
-msgstr "Ενισχυμένο Έγχρωμο - Ενισχυμένος Τύπος (5154/ECD)"
+msgstr "Ενισχυμένο Έγχρωμο - Ενισχυμένη Λειτουργία (5154/ECD)"
 
 msgid "Green"
 msgstr "Πράσινο"
@@ -2660,7 +2669,7 @@ msgid "Serial Passthrough Device"
 msgstr "Συσκευή Σειριακής Διέλευσης"
 
 msgid "Passthrough Mode"
-msgstr "Τύπος Διέλευσης"
+msgstr "Λειτουργία Διέλευσης"
 
 msgid "Host Serial Device"
 msgstr "Σειριακή Συσκευή Οικοδεσπότη"
@@ -2850,9 +2859,6 @@ msgstr "Εναλλαγή σε πλήρη οθόνη"
 msgid "Toggle UI in fullscreen"
 msgstr "Εναλλαγή ΠΧ σε πλήρη οθόνη"
 
-msgid "Screenshot"
-msgstr "Λήψη στιγμιότυπου"
-
 msgid "Release mouse pointer"
 msgstr "Απελευθέρωση δείκτη ποντικιού"
 
@@ -3040,7 +3046,7 @@ msgid "OpenGL input scale"
 msgstr "Κλίμακα OpenGL input"
 
 msgid "OpenGL input stretch mode"
-msgstr "OpenGL input σε τύπο τεντώματος"
+msgstr "OpenGL input σε λειτουργία τεντώματος"
 
 msgid "Color scheme"
 msgstr "Συνδυασμός χρωμάτων"
@@ -3065,3 +3071,12 @@ msgstr "&Εξαναγκασμός ερμηνείας"
 
 msgid "&Allow recompilation"
 msgstr "&Να επιτρέπεται ανασύνταξη"
+
+msgid "&Fast forward"
+msgstr ""
+
+msgid "Fast forward"
+msgstr ""
+
+msgid "To change the system directory, stop all running machines."
+msgstr ""
