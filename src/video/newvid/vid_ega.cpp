@@ -213,6 +213,7 @@ ega_init(const device_t *info)
                     ega_vram_read, NULL, NULL,
                     ega_vram_write, NULL, NULL,
                     NULL, MEM_MAPPING_EXTERNAL, ega);
+    mem_mapping_disable(&ega->vram_mapping);
 
     // Default: EGA_W3C2_IOBASE_3BX (0).
     io_sethandler(0x03B0, 0x0020,
@@ -260,13 +261,13 @@ ega_tick_frame(void *priv)
         uint8_t v = ega->ar.pal[i & 0xF];
         if (true) {
             // CGA monitor mapping
-            pal[i]    = makecol32(
+            pal[i] = makecol32(
                 (((v >> 2) & 0x1) * 0xAA) | (((v >> 4) & 0x1) * 0x55),
                 (((v >> 1) & 0x1) * 0xAA) | (((v >> 4) & 0x1) * 0x55),
                 (((v >> 0) & 0x1) * 0xAA) | (((v >> 4) & 0x1) * 0x55));
         } else {
             // EGA monitor mapping
-            pal[i]    = makecol32(
+            pal[i] = makecol32(
                 (((v >> 2) & 0x1) * 0xAA) | (((v >> 5) & 0x1) * 0x55),
                 (((v >> 1) & 0x1) * 0xAA) | (((v >> 4) & 0x1) * 0x55),
                 (((v >> 0) & 0x1) * 0xAA) | (((v >> 3) & 0x1) * 0x55));
@@ -290,8 +291,8 @@ ega_tick_frame(void *priv)
             uint8_t bg       = (data >> 12) & 0x0F;
             uint8_t fg       = (data >> 8) & 0x0F;
             uint8_t ch       = (data >> 0) & 0xFF;
-            uint8_t fontline = (uint8_t)(ega->vram_buf[(((uint32_t)ch) << 5) | (sy & 0x1F)] >> 16);
-            //if (sy == 0 && ch != 0x20) printf("ch %02X fg %01X bg %01X\n", ch, fg, bg);
+            uint8_t fontline = (uint8_t) (ega->vram_buf[(((uint32_t) ch) << 5) | (sy & 0x1F)] >> 16);
+            // if (sy == 0 && ch != 0x20) printf("ch %02X fg %01X bg %01X\n", ch, fg, bg);
 
             uint32_t mask_base = 0;
             uint32_t mask_xor  = 0;
@@ -384,6 +385,34 @@ ega_cpu_addr_to_vaddr(ega_t *ega, uint32_t addr)
     // TODO: 64 KB wrap when set up in the sequencer --GM
 
     return vaddr;
+}
+
+static void
+ega_map_vram(ega_t *ega, uint8_t map)
+{
+    switch (map & EGA_GR06_1_MEMORYMAP_MASK) {
+        case EGA_GR06_1_MEMORYMAP_A000_128K:
+            mem_mapping_set_addr(&ega->vram_mapping, 0xa0000, 0x20000);
+            break;
+        case EGA_GR06_1_MEMORYMAP_A000_64K:
+            mem_mapping_set_addr(&ega->vram_mapping, 0xa0000, 0x10000);
+            break;
+        case EGA_GR06_1_MEMORYMAP_B000_32K:
+            mem_mapping_set_addr(&ega->vram_mapping, 0xb0000, 0x08000);
+            break;
+        case EGA_GR06_1_MEMORYMAP_B800_32K:
+            mem_mapping_set_addr(&ega->vram_mapping, 0xb8000, 0x08000);
+            break;
+        default:
+            __builtin_unreachable();
+            break;
+    }
+}
+
+static void
+ega_unmap_vram(ega_t *ega)
+{
+    mem_mapping_disable(&ega->vram_mapping);
 }
 
 static uint8_t
@@ -605,7 +634,7 @@ ega_io_in(uint16_t addr, void *priv)
                 // 0x09: EGA compat?
                 // 0x0A through 0x0B: MDA, borked edition
                 // 0x0C through 0x0F: CGA 80
-                //result |= ((0x0F & (0x08 >> sw_shift)) == 0)
+                // result |= ((0x0F & (0x08 >> sw_shift)) == 0)
                 result |= ((ega->monitor_type & (0x08 >> sw_shift)) == 0)
                     ? EGA_R3C2_SWITCHSENSE_ON
                     : EGA_R3C2_SWITCHSENSE_OFF;
@@ -738,6 +767,13 @@ ega_io_out(uint16_t addr, uint8_t val, void *priv)
                               ega_io_out, NULL, NULL,
                               ega);
             }
+            if (((ega->misc_out_3c2 ^ val) & EGA_W3C2_RAMENABLE_MASK) != 0) {
+                if ((val & EGA_W3C2_RAMENABLE_MASK) == EGA_W3C2_RAMENABLE_ON) {
+                    ega_map_vram(ega, ega->gr.gr06_misc[1]);
+                } else {
+                    ega_unmap_vram(ega);
+                }
+            }
             ega->misc_out_3c2 = val;
             break;
 
@@ -821,9 +857,17 @@ ega_io_out(uint16_t addr, uint8_t val, void *priv)
 
                 // Miscellaneous Output (AFFECTS OUTPUT - bits 0,1)
                 case 0x06:
-                    ega_update_output(ega);
-                    ega->gr.gr06_misc[0] = ((val >> (ega->gr.position[0] << 1)) & 0b11) * 0x55;
-                    ega->gr.gr06_misc[1] = ((val >> (ega->gr.position[1] << 1)) & 0b11) * 0x55;
+                    {
+                        ega_update_output(ega);
+                        uint8_t old_map      = ega->gr.gr06_misc[1];
+                        ega->gr.gr06_misc[0] = ((val >> (ega->gr.position[0] << 1)) & 0b11) * 0x55;
+                        ega->gr.gr06_misc[1] = ((val >> (ega->gr.position[1] << 1)) & 0b11) * 0x55;
+                        if (((old_map ^ ega->gr.gr06_misc[1]) & EGA_GR06_1_MEMORYMAP_MASK) != 0) {
+                            if ((ega->misc_out_3c2 & EGA_W3C2_RAMENABLE_MASK) == EGA_W3C2_RAMENABLE_ON) {
+                                ega_map_vram(ega, ega->gr.gr06_misc[1]);
+                            }
+                        }
+                    }
                     break;
 
                 // Color Don't Care
