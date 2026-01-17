@@ -629,60 +629,202 @@
 #define EGA_CR0F_MASK 0xff
 
 // CR10 W: Vertical Retrace Start, low 8 bits (bit 8 = CR07.2)
+#define EGA_CR10_VSYNCBEG_SHIFT    0
+#define EGA_CR10_VSYNCBEG_ZERO     0
+#define EGA_CR10_VSYNCBEG_MASK     (((1 << 8) - 1) << 0)
+#define EGA_CR10_VSYNCBEG_WRITE(x) EGA_MAKE_WRITE(EGA_CR10_VSYNCBEG, x)
+#define EGA_CR10_VSYNCBEG_READ(x)  EGA_MAKE_READ(EGA_CR10_VSYNCBEG, x)
+// CR10 end
+#define EGA_CR10_MASK 0xff
 
 // CR10 R: Light Pen High
+#define EGA_CR10R_LPENHI_SHIFT    0
+#define EGA_CR10R_LPENHI_ZERO     0
+#define EGA_CR10R_LPENHI_MASK     (((1 << 8) - 1) << 0)
+#define EGA_CR10R_LPENHI_WRITE(x) EGA_MAKE_WRITE(EGA_CR10R_LPENHI, x)
+#define EGA_CR10R_LPENHI_READ(x)  EGA_MAKE_READ(EGA_CR10R_LPENHI, x)
+// CR10R end
+#define EGA_CR10R_MASK 0xff
 
 // CR11.0-3 W: Vertical Retrace End, low 4 bits
+#define EGA_CR11_VSYNCEND_SHIFT    0
+#define EGA_CR11_VSYNCEND_ZERO     0
+#define EGA_CR11_VSYNCEND_MASK     (((1 << 4) - 1) << 0)
+#define EGA_CR11_VSYNCEND_WRITE(x) EGA_MAKE_WRITE(EGA_CR11_VSYNCEND, x)
+#define EGA_CR11_VSYNCEND_READ(x)  EGA_MAKE_READ(EGA_CR11_VSYNCEND, x)
 // CR11.4 W: Clear Vertical Interrupt (when 0)
+#define EGA_CR11_CLEARVINT_SHIFT    4
+#define EGA_CR11_CLEARVINT_ZERO     0
+#define EGA_CR11_CLEARVINT_MASK     (((1 << 1) - 1) << 4)
+#define EGA_CR11_CLEARVINT_WRITE(x) EGA_MAKE_WRITE(EGA_CR11_CLEARVINT, x)
+#define EGA_CR11_CLEARVINT_READ(x)  EGA_MAKE_READ(EGA_CR11_CLEARVINT, x)
+#define EGA_CR11_CLEARVINT_ON       ((0b0) << 4)
+#define EGA_CR11_CLEARVINT_OFF      ((0b1) << 4)
 // CR11.5 W: Enable Vertical Interrupt (when 0)
+#define EGA_CR11_ENABLEVINT_SHIFT    5
+#define EGA_CR11_ENABLEVINT_ZERO     0
+#define EGA_CR11_ENABLEVINT_MASK     (((1 << 1) - 1) << 5)
+#define EGA_CR11_ENABLEVINT_WRITE(x) EGA_MAKE_WRITE(EGA_CR11_ENABLEVINT, x)
+#define EGA_CR11_ENABLEVINT_READ(x)  EGA_MAKE_READ(EGA_CR11_ENABLEVINT, x)
+#define EGA_CR11_ENABLEVINT_ON       ((0b0) << 5)
+#define EGA_CR11_ENABLEVINT_OFF      ((0b1) << 5)
+// CR11 end
+#define EGA_CR11_MASK 0x3f
 
 // CR11 R: Light Pen Low
+#define EGA_CR11R_LPENLO_SHIFT    0
+#define EGA_CR11R_LPENLO_ZERO     0
+#define EGA_CR11R_LPENLO_MASK     (((1 << 8) - 1) << 0)
+#define EGA_CR11R_LPENLO_WRITE(x) EGA_MAKE_WRITE(EGA_CR11R_LPENLO, x)
+#define EGA_CR11R_LPENLO_READ(x)  EGA_MAKE_READ(EGA_CR11R_LPENLO, x)
+// CR11R end
+#define EGA_CR11R_MASK 0xff
 
 // CR12: Vertical Display Enable End, low 8 bits (bit 8 = CR07.1)
+#define EGA_CR12_VDISPEND_SHIFT    0
+#define EGA_CR12_VDISPEND_ZERO     0
+#define EGA_CR12_VDISPEND_MASK     (((1 << 8) - 1) << 0)
+#define EGA_CR12_VDISPEND_WRITE(x) EGA_MAKE_WRITE(EGA_CR12_VDISPEND, x)
+#define EGA_CR12_VDISPEND_READ(x)  EGA_MAKE_READ(EGA_CR12_VDISPEND, x)
+// CR12 end
+#define EGA_CR12_MASK 0xff
 
 // CR13: Offset (in words or dwords? TODO get this right --GM)
 // This is the display pitch address.
+#define EGA_CR13_OFFSET_SHIFT    0
+#define EGA_CR13_OFFSET_ZERO     0
+#define EGA_CR13_OFFSET_MASK     (((1 << 8) - 1) << 0)
+#define EGA_CR13_OFFSET_WRITE(x) EGA_MAKE_WRITE(EGA_CR13_OFFSET, x)
+#define EGA_CR13_OFFSET_READ(x)  EGA_MAKE_READ(EGA_CR13_OFFSET, x)
+// CR13 end
+#define EGA_CR13_MASK 0xff
 
 // CR14.0-4: Underline Location minus 1
+#define EGA_CR14_UNDERLINE_SHIFT    0
+#define EGA_CR14_UNDERLINE_ZERO     -1
+#define EGA_CR14_UNDERLINE_MASK     (((1 << 8) - 1) << 0)
+#define EGA_CR14_UNDERLINE_WRITE(x) EGA_MAKE_WRITE(EGA_CR14_UNDERLINE, x)
+#define EGA_CR14_UNDERLINE_READ(x)  EGA_MAKE_READ(EGA_CR14_UNDERLINE, x)
+// CR14 end
+#define EGA_CR14_MASK 0xff
 
 // CR15: Start Vertical Blanking, low 8 bits (bit 8 = CR07.3)
+#define EGA_CR15_VBLANKBEG_SHIFT    0
+#define EGA_CR15_VBLANKBEG_ZERO     0
+#define EGA_CR15_VBLANKBEG_MASK     (((1 << 8) - 1) << 0)
+#define EGA_CR15_VBLANKBEG_WRITE(x) EGA_MAKE_WRITE(EGA_CR15_VBLANKBEG, x)
+#define EGA_CR15_VBLANKBEG_READ(x)  EGA_MAKE_READ(EGA_CR15_VBLANKBEG, x)
+// CR15 end
+#define EGA_CR15_MASK 0xff
 
 // CR16.0-4: End Vertical Blanking, low 5 bits
+#define EGA_CR16_VBLANKEND_SHIFT    0
+#define EGA_CR16_VBLANKEND_ZERO     0
+#define EGA_CR16_VBLANKEND_MASK     (((1 << 5) - 1) << 0)
+#define EGA_CR16_VBLANKEND_WRITE(x) EGA_MAKE_WRITE(EGA_CR16_VBLANKEND, x)
+#define EGA_CR16_VBLANKEND_READ(x)  EGA_MAKE_READ(EGA_CR16_VBLANKEND, x)
+// CR16 end
+#define EGA_CR16_MASK 0x1f
 
 // CR17.0: Compatibility Mode Support
 // When 0, this replaces CRTC address bit 13 with row scan count bit 0.
 // Set to 0 for CGA graphics mode compatibility.
+#define EGA_CR17_A13_SHIFT    0
+#define EGA_CR17_A13_ZERO     0
+#define EGA_CR17_A13_MASK     (((1 << 1) - 1) << 0)
+#define EGA_CR17_A13_WRITE(x) EGA_MAKE_WRITE(EGA_CR17_A13, x)
+#define EGA_CR17_A13_READ(x)  EGA_MAKE_READ(EGA_CR17_A13, x)
+#define EGA_CR17_A13_ROW0     ((0b0, ) << 0)
+#define EGA_CR17_A13_NORMAL   ((0b1) << 0)
 
 // CR17.1: Select Row Scan Counter
 // When 0, this replaces CRTC address bit 14 with row scan count bit 0.
 // IBM seems to insist on not explaining what this bit is for.
 // But I will! Set this and CR17.0 to 0 for Hercules graphics mode compatibility.
+#define EGA_CR17_A14_SHIFT    1
+#define EGA_CR17_A14_ZERO     0
+#define EGA_CR17_A14_MASK     (((1 << 1) - 1) << 1)
+#define EGA_CR17_A14_WRITE(x) EGA_MAKE_WRITE(EGA_CR17_A14, x)
+#define EGA_CR17_A14_READ(x)  EGA_MAKE_READ(EGA_CR17_A14, x)
+#define EGA_CR17_A14_ROW1     ((0b0, ) << 1)
+#define EGA_CR17_A14_NORMAL   ((0b1) << 1)
 
 // CR17.2: Horizontal Retrace Select
 // When 1, vertical counters only increment on every 2nd horizontal retrace.
 // When 0, vertical counters increment on every horizontal retrace.
 // WARNING: This WILL require changes to your vertical timings in order to remain compatible!
+#define EGA_CR17_VDIVIDE_SHIFT    2
+#define EGA_CR17_VDIVIDE_ZERO     0
+#define EGA_CR17_VDIVIDE_MASK     (((1 << 1) - 1) << 2)
+#define EGA_CR17_VDIVIDE_WRITE(x) EGA_MAKE_WRITE(EGA_CR17_VDIVIDE, x)
+#define EGA_CR17_VDIVIDE_READ(x)  EGA_MAKE_READ(EGA_CR17_VDIVIDE, x)
+#define EGA_CR17_VDIVIDE_NORMAL   ((0b0, ) << 2)
+#define EGA_CR17_VDIVIDE_DIV2     ((0b1) << 2)
 
 // CR17.3: Count By Two
 // When 1, the memory address only increments on every 2nd character clock.
 // When 0, the memory address increments on every character clock.
 // Set to 1 for Odd/Even mode.
+#define EGA_CR17_ADDRDIVIDE0_SHIFT    3
+#define EGA_CR17_ADDRDIVIDE0_ZERO     0
+#define EGA_CR17_ADDRDIVIDE0_MASK     (((1 << 1) - 1) << 3)
+#define EGA_CR17_ADDRDIVIDE0_WRITE(x) EGA_MAKE_WRITE(EGA_CR17_ADDRDIVIDE0, x)
+#define EGA_CR17_ADDRDIVIDE0_READ(x)  EGA_MAKE_READ(EGA_CR17_ADDRDIVIDE0, x)
+#define EGA_CR17_ADDRDIVIDE0_NORMAL   ((0b0, ) << 3)
+#define EGA_CR17_ADDRDIVIDE0_DIV2     ((0b1) << 3)
 
 // CR17.4: Output Control
 // Set to 0 for normal operation.
 // When 1, this floats all CRTC outputs.
+#define EGA_CR17_OUTCTRL_SHIFT        4
+#define EGA_CR17_OUTCTRL_ZERO         0
+#define EGA_CR17_OUTCTRL_MASK         (((1 << 1) - 1) << 4)
+#define EGA_CR17_OUTCTRL_WRITE(x)     EGA_MAKE_WRITE(EGA_CR17_OUTCTRL, x)
+#define EGA_CR17_OUTCTRL_READ(x)      EGA_MAKE_READ(EGA_CR17_OUTCTRL, x)
+#define EGA_CR17_OUTCTRL_NORMAL       ((0b0, ) << 4)
+#define EGA_CR17_OUTCTRL_FLOATOUTPUTS ((0b1) << 4)
 
 // CR17.5: Address Wrap
 // CR17.6 "Word Mode" must be set to 0 for this to have any effect.
 // When 0, use memory address bit 13 for output address bit 0.
 // When 1, use memory address bit 15 for output address bit 0.
+#define EGA_CR17_WRAPBIT_SHIFT    5
+#define EGA_CR17_WRAPBIT_ZERO     0
+#define EGA_CR17_WRAPBIT_MASK     (((1 << 1) - 1) << 5)
+#define EGA_CR17_WRAPBIT_WRITE(x) EGA_MAKE_WRITE(EGA_CR17_WRAPBIT, x)
+#define EGA_CR17_WRAPBIT_READ(x)  EGA_MAKE_READ(EGA_CR17_WRAPBIT, x)
+#define EGA_CR17_WRAPBIT_A13      ((0b0, ) << 5)
+#define EGA_CR17_WRAPBIT_A15      ((0b1) << 5)
 
 // CR17.6: Word Mode
 // When 0, all memory addresses outputs are shifted left by 1, and output address bit 0 is as per CR17.5.
 // When 1, the memory address is used as-is for the output address.
+#define EGA_CR17_ADDRSHIFT0_SHIFT    6
+#define EGA_CR17_ADDRSHIFT0_ZERO     0
+#define EGA_CR17_ADDRSHIFT0_MASK     (((1 << 1) - 1) << 6)
+#define EGA_CR17_ADDRSHIFT0_WRITE(x) EGA_MAKE_WRITE(EGA_CR17_ADDRSHIFT0, x)
+#define EGA_CR17_ADDRSHIFT0_READ(x)  EGA_MAKE_READ(EGA_CR17_ADDRSHIFT0, x)
+#define EGA_CR17_ADDRSHIFT0_1        ((0b0, ) << 6)
+#define EGA_CR17_ADDRSHIFT0_0        ((0b1) << 6)
 
 // CR17.7: Hardware Reset
 // Set to 1 for normal operation.
 // When 0, horizontal and vertical retraces are forced to be deasserted.
+#define EGA_CR17_RESET_SHIFT     7
+#define EGA_CR17_RESET_ZERO      0
+#define EGA_CR17_RESET_MASK      (((1 << 1) - 1) << 7)
+#define EGA_CR17_RESET_WRITE(x)  EGA_MAKE_WRITE(EGA_CR17_RESET, x)
+#define EGA_CR17_RESET_READ(x)   EGA_MAKE_READ(EGA_CR17_RESET, x)
+#define EGA_CR17_RESET_RESETTING ((0b0, ) << 7)
+#define EGA_CR17_RESET_NORMAL    ((0b1) << 7)
+// CR17 end
+#define EGA_CR17_MASK 0xff
 
 // CR18: Line Compare, low 8 bits (bit 8 = CR07.4)
+#define EGA_CR18_LINECOMPARE_SHIFT    0
+#define EGA_CR18_LINECOMPARE_ZERO     0
+#define EGA_CR18_LINECOMPARE_MASK     (((1 << 8) - 1) << 0)
+#define EGA_CR18_LINECOMPARE_WRITE(x) EGA_MAKE_WRITE(EGA_CR18_LINECOMPARE, x)
+#define EGA_CR18_LINECOMPARE_READ(x)  EGA_MAKE_READ(EGA_CR18_LINECOMPARE, x)
+// CR18 end
+#define EGA_CR18_MASK 0xff

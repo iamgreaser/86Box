@@ -102,6 +102,11 @@ class Processor:
             bits: int = int(bits_str)
             zero: int = int(zero_str)
 
+            if bits < 1:
+                raise Exception(f"Field {name!r} needs at least 1 bit, not {bits}")
+            if shift < 0:
+                raise Exception(f"Field {name!r} cannot shift negative ({shift})")
+
             # Compute mask
             mask = ((1 << bits) - 1) << shift
             if (mask & self.this_register_mask) != 0:

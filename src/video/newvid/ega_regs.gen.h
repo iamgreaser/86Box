@@ -331,61 +331,103 @@
 !field CURSORLO 0 8 0
 !endreg CR0F
 
+!startreg CR10
 // CR10 W: Vertical Retrace Start, low 8 bits (bit 8 = CR07.2)
+!field VSYNCBEG 0 8 0
+!endreg CR10
 
+!startreg CR10R
 // CR10 R: Light Pen High
+!field LPENHI 0 8 0
+!endreg CR10R
 
+!startreg CR11
 // CR11.0-3 W: Vertical Retrace End, low 4 bits
+!field VSYNCEND 0 4 0
 // CR11.4 W: Clear Vertical Interrupt (when 0)
+!field CLEARVINT 4 1 0 ON=0b0 OFF=0b1
 // CR11.5 W: Enable Vertical Interrupt (when 0)
+!field ENABLEVINT 5 1 0 ON=0b0 OFF=0b1
+!endreg CR11
 
+!startreg CR11R
 // CR11 R: Light Pen Low
+!field LPENLO 0 8 0
+!endreg CR11R
 
+!startreg CR12
 // CR12: Vertical Display Enable End, low 8 bits (bit 8 = CR07.1)
+!field VDISPEND 0 8 0
+!endreg CR12
 
+!startreg CR13
 // CR13: Offset (in words or dwords? TODO get this right --GM)
 // This is the display pitch address.
+!field OFFSET 0 8 0
+!endreg CR13
 
+!startreg CR14
 // CR14.0-4: Underline Location minus 1
+!field UNDERLINE 0 8 -1
+!endreg CR14
 
+!startreg CR15
 // CR15: Start Vertical Blanking, low 8 bits (bit 8 = CR07.3)
+!field VBLANKBEG 0 8 0
+!endreg CR15
 
+!startreg CR16
 // CR16.0-4: End Vertical Blanking, low 5 bits
+!field VBLANKEND 0 5 0
+!endreg CR16
 
+!startreg CR17
 // CR17.0: Compatibility Mode Support
 // When 0, this replaces CRTC address bit 13 with row scan count bit 0.
 // Set to 0 for CGA graphics mode compatibility.
+!field A13 0 1 0 ROW0=0b0, NORMAL=0b1
 
 // CR17.1: Select Row Scan Counter
 // When 0, this replaces CRTC address bit 14 with row scan count bit 0.
 // IBM seems to insist on not explaining what this bit is for.
 // But I will! Set this and CR17.0 to 0 for Hercules graphics mode compatibility.
+!field A14 1 1 0 ROW1=0b0, NORMAL=0b1
 
 // CR17.2: Horizontal Retrace Select
 // When 1, vertical counters only increment on every 2nd horizontal retrace.
 // When 0, vertical counters increment on every horizontal retrace.
 // WARNING: This WILL require changes to your vertical timings in order to remain compatible!
+!field VDIVIDE 2 1 0 NORMAL=0b0, DIV2=0b1
 
 // CR17.3: Count By Two
 // When 1, the memory address only increments on every 2nd character clock.
 // When 0, the memory address increments on every character clock.
 // Set to 1 for Odd/Even mode.
+!field ADDRDIVIDE0 3 1 0 NORMAL=0b0, DIV2=0b1
 
 // CR17.4: Output Control
 // Set to 0 for normal operation.
 // When 1, this floats all CRTC outputs.
+!field OUTCTRL 4 1 0 NORMAL=0b0, FLOATOUTPUTS=0b1
 
 // CR17.5: Address Wrap
 // CR17.6 "Word Mode" must be set to 0 for this to have any effect.
 // When 0, use memory address bit 13 for output address bit 0.
 // When 1, use memory address bit 15 for output address bit 0.
+!field WRAPBIT 5 1 0 A13=0b0, A15=0b1
 
 // CR17.6: Word Mode
 // When 0, all memory addresses outputs are shifted left by 1, and output address bit 0 is as per CR17.5.
 // When 1, the memory address is used as-is for the output address.
+!field ADDRSHIFT0 6 1 0 1=0b0, 0=0b1
 
 // CR17.7: Hardware Reset
 // Set to 1 for normal operation.
 // When 0, horizontal and vertical retraces are forced to be deasserted.
+!field RESET 7 1 0 RESETTING=0b0, NORMAL=0b1
+!endreg CR17
 
+!startreg CR18
 // CR18: Line Compare, low 8 bits (bit 8 = CR07.4)
+!field LINECOMPARE 0 8 0
+!endreg CR18
