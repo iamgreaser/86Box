@@ -309,10 +309,82 @@ ega_tick_frame(void *priv)
 
     ega_update_output(ega);
 
-    uint32_t pal[1 << 4];
-    for (int32_t i = 0; i < (1 << 4); i++) {
-        uint8_t v = ega->ar.pal[i & 0xF];
-        if (true) {
+    // Refire after 1 frame
+    uint32_t htotal       = ega->cr.htotal + 2;
+    uint32_t vtotal       = ega->cr.vtotal;
+    uint32_t hdisp        = ega->cr.hdispend;
+    uint32_t vdisp        = ega->cr.vdispend + 1;
+    uint32_t htotal_chars = htotal;
+    uint32_t hdisp_chars  = hdisp;
+    uint32_t offset       = ega->cr.offset * 2;
+
+    uint32_t hblankbeg = ega->cr.hblankbeg;
+    uint32_t hsyncbeg  = ega->cr.hsyncbeg;
+    uint32_t hsyncend  = (hsyncbeg & ~0x1F) | ega->cr.hsyncend;
+    if (hsyncend <= hsyncbeg) {
+        hsyncend += 0x20;
+    }
+    uint32_t hblankend = (hsyncend & ~0x1F) | ega->cr.hblankend;
+    if (hblankend <= hblankbeg) {
+        hblankend += 0x20;
+    }
+
+    uint32_t vblankbeg = ega->cr.vblankbeg;
+    uint32_t vsyncbeg  = ega->cr.vsyncbeg;
+    uint32_t vsyncend  = (vsyncbeg & ~0x0F) | ega->cr.vsyncend;
+    if (vsyncend <= vsyncbeg) {
+        vsyncend += 0x10;
+    }
+    uint32_t vblankend = (vsyncend & ~0x1F) | ega->cr.vblankend;
+    if (vblankend <= vblankbeg) {
+        vblankend += 0x20;
+    }
+
+    // Apply multipliers
+    uint32_t char_width = 1;
+    uint32_t vdivide = ega->cr.vdivide;
+    if (vdivide == 0) {
+        vdivide = 1;
+    }
+    uint32_t xrshift = (ega->sr.sr01_clocking_mode & EGA_SR01_DOTCLK_MASK) == EGA_SR01_DOTCLK_DIV2 ? 1 : 0;
+    char_width *= (ega->sr.sr01_clocking_mode & EGA_SR01_CHARCLK_MASK) == EGA_SR01_CHARCLK_9DOT ? 9 : 8;
+    char_width *= (ega->sr.sr01_clocking_mode & EGA_SR01_DOTCLK_MASK) == EGA_SR01_DOTCLK_DIV2 ? 2 : 1;
+    htotal *= char_width;
+    hdisp *= char_width;
+    vtotal *= vdivide;
+    vdisp *= vdivide;
+    // FIXME: THIS IS A KLUDGE - need to work out how to make this re-fire safely! --GM
+    if (hdisp < 4) {
+        hdisp = 320;
+    }
+    if (vdisp < 4) {
+        vdisp = 200;
+    }
+    if (htotal < 4) {
+        htotal = 320;
+    }
+    if (vtotal < 4) {
+        vtotal = 200;
+    }
+    // printf("total %u x %u (%u)\n", (unsigned int) htotal, (unsigned int) vtotal, EGA_W3C2_CLOCKSEL_READ(ega->misc_out_3c2));
+    // printf("disp %u x %u (%u)\n", (unsigned int) hdisp, (unsigned int) vdisp, EGA_W3C2_CLOCKSEL_READ(ega->misc_out_3c2));
+
+    if (htotal != xsize || vtotal != ysize || video_force_resize_get()) {
+        printf("h %03X %03X %03X %03X %03X %03X\n", hdisp_chars, hblankbeg, hsyncbeg, hsyncend, hblankend, htotal_chars);
+        printf("v %03X %03X %03X %03X %03X %03X\n", vdisp, vblankbeg, vsyncbeg, vsyncend, vblankend, vtotal);
+        xsize = htotal;
+        ysize = vtotal;
+        set_screen_size(xsize, ysize);
+
+        if (video_force_resize_get()) {
+            video_force_resize_set(0);
+        }
+    }
+
+    uint32_t pal[1 << 6];
+    for (int32_t i = 0; i < (1 << 6); i++) {
+        uint8_t v = (uint8_t) i;
+        if (false) {
             // CGA monitor mapping
             pal[i] = makecol32(
                 (((v >> 2) & 0x1) * 0xAA) | (((v >> 4) & 0x1) * 0x55),
@@ -327,86 +399,103 @@ ega_tick_frame(void *priv)
         }
     }
 
-    for (size_t y = 0; y < ysize; y++) {
-        size_t memy = y / 14;
-        size_t sy   = y % 14;
-        for (size_t x = 0; x < xsize / 8; x++) {
-            uint32_t vaddr = (memy * 80) + x;
+    uint32_t y = 0;
+    uint32_t ymemaddr = 0;
+    uint32_t ymemdelta = ega->cr.offset * 2;
+    uint32_t memy = ega->cr.vfinescroll & 0x1F;
+    for (uint32_t py = 0; py < ysize; py++) {
+        if (y < vdisp) {
+            for (uint32_t x = 0; x < htotal_chars; x++) {
+                if (x < hdisp_chars) {
+                    uint32_t vaddr = ymemaddr + x;
 
-            // Odd/Even mode
-            // TODO: Read this from the CRTC --GM
-            vaddr = (vaddr << 1) | ((vaddr >> 15) & 0b1);
+                    // Odd/Even mode
+                    // TODO: Read this from the CRTC --GM
+                    vaddr = (vaddr << 1) | ((vaddr >> 15) & 0b1);
 
-            uint32_t data = ega->vram_buf[vaddr];
+                    uint32_t data = ega->vram_buf[vaddr];
 
-            // Remap text mode
-            // TODO: Actually treat this how the EGA treats it instead of remapping text to graphics --GM
-            uint8_t bg       = (data >> 12) & 0x0F;
-            uint8_t fg       = (data >> 8) & 0x0F;
-            uint8_t ch       = (data >> 0) & 0xFF;
-            uint8_t fontline = (uint8_t) (ega->vram_buf[(((uint32_t) ch) << 5) | (sy & 0x1F)] >> 16);
-            // if (sy == 0 && ch != 0x20) printf("ch %02X fg %01X bg %01X\n", ch, fg, bg);
+                    // Remap text mode
+                    // TODO: Actually treat this how the EGA treats it instead of remapping text to graphics --GM
+                    uint8_t bg       = (data >> 12) & 0x0F;
+                    uint8_t fg       = (data >> 8) & 0x0F;
+                    uint8_t ch       = (data >> 0) & 0xFF;
+                    uint8_t fontline = (uint8_t) (ega->vram_buf[(((uint32_t) ch) << 5) | (memy & 0x1F)] >> 16);
+                    // if (memy == 0 && ch != 0x20) printf("ch %02X fg %01X bg %01X\n", ch, fg, bg);
 
-            uint32_t mask_base = 0;
-            uint32_t mask_xor  = 0;
-            for (size_t i = 0; i < 4; i++) {
-                if (((bg >> i) & 0b1) != 0) {
-                    mask_base |= (0xFF << (i * 8));
-                }
-                if (((fg >> i) & 0b1) != 0) {
-                    mask_xor |= (0xFF << (i * 8));
-                }
-            }
-            mask_xor ^= mask_base;
+                    uint32_t mask_base = 0;
+                    uint32_t mask_xor  = 0;
+                    for (uint32_t i = 0; i < 4; i++) {
+                        if (((bg >> i) & 0b1) != 0) {
+                            mask_base |= (0xFF << (i * 8));
+                        }
+                        if (((fg >> i) & 0b1) != 0) {
+                            mask_xor |= (0xFF << (i * 8));
+                        }
+                    }
+                    mask_xor ^= mask_base;
 
-            data = mask_base ^ ((0x01010101 * (uint32_t) fontline) & mask_xor);
+                    data = mask_base ^ ((0x01010101 * (uint32_t) fontline) & mask_xor);
 
-            for (size_t sx = 0; sx < 8; sx++) {
-                uint8_t c = 0;
-                for (size_t i = 0; i < 4; i++) {
-                    if (((data >> ((sx ^ 0b111) + (8 * i))) & 0b1) != 0) {
-                        c |= (1 << i);
+                    for (uint32_t sx = 0; sx < char_width; sx++) {
+                        uint8_t c = 0;
+                        for (uint32_t i = 0; i < 4; i++) {
+                            if (((data >> (((sx >> xrshift) ^ 0b111) + (8 * i))) & 0b1) != 0) {
+                                c |= (1 << i);
+                            }
+                        }
+                        buffer32->line[y][(x * char_width) + sx] = pal[ega->ar.pal[c]];
+                    }
+                } else {
+                    uint32_t c;
+                    if (x < hblankbeg) {
+                        c = ega->ar.ar11_overscan_color & 0x3F;
+                    } else if (x < hsyncbeg) {
+                        c = 0;
+                    } else if (x < hsyncend) {
+                        c = 0x20; // mark sync with red
+                    } else if (x < hblankend) {
+                        c = 0;
+                    } else {
+                        c = ega->ar.ar11_overscan_color & 0x3F;
+                    }
+                    for (uint32_t sx = 0; sx < char_width; sx++) {
+                        buffer32->line[y][(x * char_width) + sx] = pal[c];
                     }
                 }
-                buffer32->line[y][(x * 8) + sx] = pal[c];
+            }
+        } else {
+            uint32_t c;
+            if (y < vblankbeg) {
+                c = ega->ar.ar11_overscan_color & 0x3F;
+            } else if (y < vsyncbeg) {
+                c = 0;
+            } else if (y < vsyncend) {
+                c = 0x20; // mark sync with red
+            } else if (y < vblankend) {
+                c = 0;
+            } else {
+                c = ega->ar.ar11_overscan_color & 0x3F;
+            }
+            for (uint32_t px = 0; px < htotal; px++) {
+                buffer32->line[y][px] = pal[c];
+            }
+        }
+
+        if ((py & (vdivide-1)) == 0) {
+            //printf("%4u = %2u / %2u %05X %05X\n", y, memy, ega->cr.vnextcharidx, ymemaddr, ymemdelta);
+            y += 1;
+            if (memy == ega->cr.vnextcharidx) {
+                memy = 0;
+                ymemaddr += ymemdelta;
+            } else {
+                memy = (memy + 1) & 0x1F;
             }
         }
     }
 
     video_blit_memtoscreen(0, 0, xsize, ysize);
 
-    // Refire after 1 frame
-    uint32_t htotal = ega->cr.htotal + 2;
-    uint32_t vtotal = ega->cr.vtotal;
-    uint32_t hdisp  = ega->cr.hdispend;
-    uint32_t vdisp  = ega->cr.vdispend + 1;
-
-    // Apply multipliers
-    htotal *= (ega->sr.sr01_clocking_mode & EGA_SR01_CHARCLK_MASK) == EGA_SR01_CHARCLK_9DOT ? 9 : 8;
-    htotal *= (ega->sr.sr01_clocking_mode & EGA_SR01_DOTCLK_MASK) == EGA_SR01_DOTCLK_DIV2 ? 2 : 1;
-    hdisp *= (ega->sr.sr01_clocking_mode & EGA_SR01_CHARCLK_MASK) == EGA_SR01_CHARCLK_9DOT ? 9 : 8;
-    hdisp *= (ega->sr.sr01_clocking_mode & EGA_SR01_DOTCLK_MASK) == EGA_SR01_DOTCLK_DIV2 ? 2 : 1;
-    vtotal *= ega->cr.vdivide;
-    vdisp *= ega->cr.vdivide;
-    // FIXME: THIS IS A KLUDGE - need to work out how to make this re-fire safely! --GM
-    if (htotal < 4) {
-        htotal = 320;
-    }
-    if (vtotal < 4) {
-        vtotal = 200;
-    }
-    // printf("total %u x %u (%u)\n", (unsigned int) htotal, (unsigned int) vtotal, EGA_W3C2_CLOCKSEL_READ(ega->misc_out_3c2));
-    // printf("disp %u x %u (%u)\n", (unsigned int) hdisp, (unsigned int) vdisp, EGA_W3C2_CLOCKSEL_READ(ega->misc_out_3c2));
-
-    if (hdisp != xsize || vdisp != ysize || video_force_resize_get()) {
-        xsize = hdisp;
-        ysize = vdisp;
-        set_screen_size(xsize, ysize);
-
-        if (video_force_resize_get()) {
-            video_force_resize_set(0);
-        }
-    }
     timer_on_auto(&ega->scan_timer,
                   (1000000.0 * (htotal * vtotal)) / ega_clock_frequencies_hz[EGA_W3C2_CLOCKSEL_READ(ega->misc_out_3c2) & 0b01]);
 }
