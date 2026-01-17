@@ -50,7 +50,7 @@ class Processor:
             return
 
         #
-        L = line.split(" ")
+        L = line.rstrip(" ").split(" ")
         if L[0] == "!boardprefix":
             (name,) = L[1:]
             if self.this_board is not None:
@@ -106,6 +106,8 @@ class Processor:
             mask = ((1 << bits) - 1) << shift
             if (mask & self.this_register_mask) != 0:
                 raise Exception(f"Field {name!r} mask overlaps previous fields")
+            if mask > 0xFF:
+                raise Exception(f"Field {name!r} mask exceeds 8-bit limit")
             self.this_register_mask |= mask
 
             # Compute length for alignment

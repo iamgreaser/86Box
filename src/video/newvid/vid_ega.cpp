@@ -524,7 +524,7 @@ ega_vram_write(uint32_t addr, uint8_t val, void *priv)
                     result = 0x01010101 * (uint32_t) val;
 
                     // Apply rotate
-                    uint32_t ror_amount = (ega->gr.gr03_data_rotate & EGA_GR03_ROR_MASK) >> EGA_GR03_ROR_SHIFT;
+                    uint32_t ror_amount = EGA_GR03_ROR_READ(ega->gr.gr03_data_rotate);
                     if (ror_amount != 0) {
                         // Optimisation: Only rotate if we need to!
                         uint32_t ror_lmask = 0x01010101 * (0xFF >> ror_amount);
@@ -638,11 +638,11 @@ ega_io_in(uint16_t addr, void *priv)
                 ega_update_output(ega);
 
                 // TODO: Compute the actual result --GM
-                uint8_t result = 0x0F
+                uint8_t result = (uint8_t)(~EGA_R3C2_MASK)
                     | EGA_R3C2_FEATCODE_11
                     | EGA_R3C2_CRTINT_ACTIVEVID;
 
-                uint8_t sw_shift = (ega->misc_out_3c2 & EGA_W3C2_CLOCKSEL_MASK) >> EGA_W3C2_CLOCKSEL_SHIFT;
+                uint8_t sw_shift = EGA_W3C2_CLOCKSEL_READ(ega->misc_out_3c2);
                 // FIXME: Work out what we need to do to get this to behave correctly! --GM
                 //
                 // Official notes from EGA BIOS listing:
@@ -713,16 +713,16 @@ ega_io_in(uint16_t addr, void *priv)
 
                 // HACK: Toggle the diagnostic lines so the IBM EGA BIOS can boot
                 // FIXME: Implement this properly --GM
-                ega->status_in_3xa ^= EGA_R3XA_DIAGOUT_MASK;
+                ega->status_in_3xa ^= EGA_R3XA_DIAGOUT0_MASK ^ EGA_R3XA_DIAGOUT1_MASK;
                 // FIXME: This is even worse --GM
                 ega->status_in_3xa ^= EGA_R3XA_DISPENABLE_MASK;
                 ega->status_in_3xa ^= EGA_R3XA_VRETRACE_MASK;
-                if ((ega->status_in_3xa & EGA_R3XA_VRETRACE_MASK) == EGA_R3XA_VRETRACE_VRETRACE) {
+                if ((ega->status_in_3xa & EGA_R3XA_VRETRACE_MASK) == EGA_R3XA_VRETRACE_RETRACE) {
                     ega->status_in_3xa &= ~EGA_R3XA_DISPENABLE_MASK;
                     ega->status_in_3xa |= EGA_R3XA_DISPENABLE_RETRACE;
                 }
 
-                return ega->status_in_3xa | ~0xBF;
+                return ega->status_in_3xa | ~EGA_R3XA_MASK;
             }
 
         default:
@@ -746,7 +746,7 @@ ega_io_out(uint16_t addr, uint8_t val, void *priv)
             if (!ega->ar.ff_is_data) {
                 // Select address
                 ega_update_output(ega);
-                ega->ar.cpu_addr   = (val & EGA_W3C0_ADDR_MASK) >> EGA_W3C0_ADDR_SHIFT;
+                ega->ar.cpu_addr   = EGA_W3C0_ADDR_READ(val);
                 ega->ar.is_video   = (val & EGA_W3C0_PALSRC_MASK) == EGA_W3C0_PALSRC_DISPLAY;
                 ega->ar.ff_is_data = true;
             } else {
@@ -837,7 +837,7 @@ ega_io_out(uint16_t addr, uint8_t val, void *priv)
                 // Memory Mode (AFFECTS OUTPUT)
                 case 0x04:
                     ega_update_output(ega);
-                    ega->sr.sr04_memory_mode = val & 0x07;
+                    ega->sr.sr04_memory_mode = val & EGA_SR04_MASK;
                     break;
 
                 default:
@@ -882,7 +882,7 @@ ega_io_out(uint16_t addr, uint8_t val, void *priv)
 
                 // Data Rotate
                 case 0x03:
-                    ega->gr.gr03_data_rotate = val & 0x1F;
+                    ega->gr.gr03_data_rotate = val & EGA_GR03_MASK;
                     break;
 
                 // Read Map Select
@@ -897,7 +897,7 @@ ega_io_out(uint16_t addr, uint8_t val, void *priv)
                         != 0) {
                         ega_update_output(ega);
                     }
-                    ega->gr.gr05_mode = val & 0x3F;
+                    ega->gr.gr05_mode = val & EGA_GR05_MASK;
                     break;
 
                 // Miscellaneous Output (AFFECTS OUTPUT - bits 0,1)
