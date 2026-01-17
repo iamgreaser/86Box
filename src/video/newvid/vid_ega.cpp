@@ -397,6 +397,16 @@ ega_tick_frame(void *priv)
     }
     // printf("total %u x %u (%u)\n", (unsigned int) htotal, (unsigned int) vtotal, EGA_W3C2_CLOCKSEL_READ(ega->misc_out_3c2));
     // printf("disp %u x %u (%u)\n", (unsigned int) hdisp, (unsigned int) vdisp, EGA_W3C2_CLOCKSEL_READ(ega->misc_out_3c2));
+
+    if (hdisp != xsize || vdisp != ysize || video_force_resize_get()) {
+        xsize = hdisp;
+        ysize = vdisp;
+        set_screen_size(xsize, ysize);
+
+        if (video_force_resize_get()) {
+            video_force_resize_set(0);
+        }
+    }
     timer_on_auto(&ega->scan_timer,
                   (1000000.0 * (htotal * vtotal)) / ega_clock_frequencies_hz[EGA_W3C2_CLOCKSEL_READ(ega->misc_out_3c2) & 0b01]);
 }
