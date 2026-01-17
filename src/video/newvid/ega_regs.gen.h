@@ -9,9 +9,9 @@
 !boardprefix EGA
 // Helpers
 #define EGA_MAKE_WRITE(_NAME, x) \
-    ((((x) + _NAME##_ZERO) << _NAME##_SHIFT) & _NAME##_MASK)
+    (((((uint32_t) (x)) + _NAME##_ZERO) << _NAME##_SHIFT) & _NAME##_MASK)
 #define EGA_MAKE_READ(_NAME, x) \
-    ((((x) + (_NAME##_ZERO << _NAME##_SHIFT)) & _NAME##_MASK) >> _NAME##_SHIFT)
+    (((((uint32_t) (x)) + (_NAME##_ZERO << _NAME##_SHIFT)) & _NAME##_MASK) >> _NAME##_SHIFT)
 
 //
 // 03C2 W: Miscellaneous Output Register
@@ -340,7 +340,7 @@
 !field HBLANKEND 0 5 0
 // CR03.5-6: Display Enable Skew Control
 // This basically moves the whole visible border right by CR03.5-6 character clocks.
-!field HDISPSKEW 5 2 0
+!field DISPSKEW 5 2 0
 !endreg CR03
 
 !startreg CR04

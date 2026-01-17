@@ -8,9 +8,9 @@
 
 // Helpers
 #define EGA_MAKE_WRITE(_NAME, x) \
-    ((((x) + _NAME##_ZERO) << _NAME##_SHIFT) & _NAME##_MASK)
+    (((((uint32_t) (x)) + _NAME##_ZERO) << _NAME##_SHIFT) & _NAME##_MASK)
 #define EGA_MAKE_READ(_NAME, x) \
-    ((((x) + (_NAME##_ZERO << _NAME##_SHIFT)) & _NAME##_MASK) >> _NAME##_SHIFT)
+    (((((uint32_t) (x)) + (_NAME##_ZERO << _NAME##_SHIFT)) & _NAME##_MASK) >> _NAME##_SHIFT)
 
 //
 // 03C2 W: Miscellaneous Output Register
@@ -655,11 +655,11 @@
 #define EGA_CR03_HBLANKEND_READ(x)  EGA_MAKE_READ(EGA_CR03_HBLANKEND, x)
 // CR03.5-6: Display Enable Skew Control
 // This basically moves the whole visible border right by CR03.5-6 character clocks.
-#define EGA_CR03_HDISPSKEW_SHIFT    5
-#define EGA_CR03_HDISPSKEW_ZERO     0
-#define EGA_CR03_HDISPSKEW_MASK     (((1 << 2) - 1) << 5)
-#define EGA_CR03_HDISPSKEW_WRITE(x) EGA_MAKE_WRITE(EGA_CR03_HDISPSKEW, x)
-#define EGA_CR03_HDISPSKEW_READ(x)  EGA_MAKE_READ(EGA_CR03_HDISPSKEW, x)
+#define EGA_CR03_DISPSKEW_SHIFT    5
+#define EGA_CR03_DISPSKEW_ZERO     0
+#define EGA_CR03_DISPSKEW_MASK     (((1 << 2) - 1) << 5)
+#define EGA_CR03_DISPSKEW_WRITE(x) EGA_MAKE_WRITE(EGA_CR03_DISPSKEW, x)
+#define EGA_CR03_DISPSKEW_READ(x)  EGA_MAKE_READ(EGA_CR03_DISPSKEW, x)
 // CR03 end
 #define EGA_CR03_MASK 0x7f
 

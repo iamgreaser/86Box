@@ -105,6 +105,7 @@ struct ega_gr_t {
 struct ega_cr_t {
     uint8_t cpu_addr;
 
+    // Address settings
     uint16_t start_vaddr;
     uint16_t cursor_vaddr;
 
@@ -124,6 +125,37 @@ struct ega_cr_t {
     uint16_t vsyncend;
     uint16_t vblankend;
     uint16_t linecompare;
+
+    // CRxx skew registers
+    uint8_t skew_disp;
+    uint8_t skew_hsync;
+    uint8_t skew_cursor;
+
+    // Character height handling
+    uint8_t vfinescroll;
+    uint8_t vnextcharidx;
+    uint8_t cursorbeg;
+    uint8_t cursorend;
+    uint8_t underlinepos;
+
+    // Display pitch
+    uint16_t offset;
+
+    // Interrupt handling
+    bool clearvint;
+    bool enablevint;
+
+    // Mode Control
+    uint8_t a13_bits_from_scanline;
+    uint8_t vdivide;
+    uint8_t addrdivide;
+    bool    floatoutputs;
+    uint8_t wrapbit;
+    uint8_t addrshift;
+    bool    hwreset;
+
+    // Other settings
+    uint8_t hoeoffs; // Horizontal Odd/Even Offset
 };
 
 struct ega_t {
@@ -185,6 +217,7 @@ static const double ega_clock_frequencies_hz[4] = {
 static void ega_tick_frame(void *priv);
 
 static void ega_update_output(ega_t *ega);
+static void ega_update_screen_timings(ega_t *ega);
 
 static uint8_t ega_vram_read(uint32_t addr, void *priv);
 static void    ega_vram_write(uint32_t addr, uint8_t val, void *priv);
@@ -244,7 +277,7 @@ ega_init(const device_t *info)
     // EGA 640 x 350: ~16MHz(?!), 744 wide, 364 high
     // MDA 720 x 350: ~16MHz, 882 wide, 368 high
     // EGA 720 x 350: ~16MHz, 837 wide, 364 high
-    video_res_x = 720;
+    video_res_x = 640;
     video_res_y = 350;
     overscan_x  = 0;
     overscan_y  = 0;
@@ -348,6 +381,14 @@ static void
 ega_update_output(ega_t *ega)
 {
     // TODO: Work out how much more we have to draw --GM
+    (void) ega;
+}
+
+static void
+ega_update_screen_timings(ega_t *ega)
+{
+    // TODO: Work out how much more we have to draw --GM
+    // TODO: Adjust the actual timings --GM
     (void) ega;
 }
 
@@ -638,7 +679,7 @@ ega_io_in(uint16_t addr, void *priv)
                 ega_update_output(ega);
 
                 // TODO: Compute the actual result --GM
-                uint8_t result = (uint8_t)(~EGA_R3C2_MASK)
+                uint8_t result = (uint8_t) (~EGA_R3C2_MASK)
                     | EGA_R3C2_FEATCODE_11
                     | EGA_R3C2_CRTINT_ACTIVEVID;
 
@@ -761,26 +802,22 @@ ega_io_out(uint16_t addr, uint8_t val, void *priv)
                 } else {
                     // TODO: REAL HARDWARE NEEDED: Are any address bits ignored? --GM
                     switch (ega->ar.cpu_addr) {
-                        // Mode Control (AFFECTS OUTPUT)
-                        case 0x10:
+                        case 0x10: // Mode Control (AFFECTS OUTPUT)
                             ega_update_output(ega);
                             ega->ar.ar10_mode = val & 0x0F;
                             break;
 
-                        // Overscan Color (AFFECTS OUTPUT)
-                        case 0x11:
+                        case 0x11: // Overscan Color (AFFECTS OUTPUT)
                             ega_update_output(ega);
                             ega->ar.ar11_overscan_color = val & 0x3F;
                             break;
 
-                        // Color Plane Enable (+ Video Status Mux) (AFFECTS OUTPUT)
-                        case 0x12:
+                        case 0x12: // Color Plane Enable (+ Video Status Mux) (AFFECTS OUTPUT)
                             ega_update_output(ega);
                             ega->ar.ar12_plane_enable = val & 0x3F;
                             break;
 
-                        // Horizontal Pel Panning (AFFECTS OUTPUT)
-                        case 0x13:
+                        case 0x13: // Horizontal Pel Panning (AFFECTS OUTPUT)
                             ega_update_output(ega);
                             ega->ar.ar13_pel_panning = val & 0x0F;
                             break;
@@ -862,36 +899,30 @@ ega_io_out(uint16_t addr, uint8_t val, void *priv)
         // 03CF W: Data for Graphics Controllers
         case 0x3CF:
             switch (ega->gr.cpu_addr) {
-                // Set/Reset
-                case 0x00:
+                case 0x00: // Set/Reset
                     ega->gr.gr00_set_reset[0] = ((val >> (ega->gr.position[0] << 1)) & 0b11) * 0x55;
                     ega->gr.gr00_set_reset[1] = ((val >> (ega->gr.position[1] << 1)) & 0b11) * 0x55;
                     break;
 
-                // Enable Set/Reset
-                case 0x01:
+                case 0x01: // Enable Set/Reset
                     ega->gr.gr01_enable_set_reset[0] = ((val >> (ega->gr.position[0] << 1)) & 0b11) * 0x55;
                     ega->gr.gr01_enable_set_reset[1] = ((val >> (ega->gr.position[1] << 1)) & 0b11) * 0x55;
                     break;
 
-                // Color Compare
-                case 0x02:
+                case 0x02: // Color Compare
                     ega->gr.gr02_color_compare[0] = ((val >> (ega->gr.position[0] << 1)) & 0b11) * 0x55;
                     ega->gr.gr02_color_compare[1] = ((val >> (ega->gr.position[1] << 1)) & 0b11) * 0x55;
                     break;
 
-                // Data Rotate
-                case 0x03:
+                case 0x03: // Data Rotate
                     ega->gr.gr03_data_rotate = val & EGA_GR03_MASK;
                     break;
 
-                // Read Map Select
-                case 0x04:
+                case 0x04: // Read Map Select
                     ega->gr.gr04_read_map_select = val & 0x07;
                     break;
 
-                // Mode (AFFECTS OUTPUT - bits 2,5)
-                case 0x05:
+                case 0x05: // Mode (AFFECTS OUTPUT - bits 2,5)
                     if (((ega->gr.gr05_mode ^ val)
                          & (EGA_GR05_TESTCOND_MASK | EGA_GR05_SHIFTMODE_MASK))
                         != 0) {
@@ -900,8 +931,7 @@ ega_io_out(uint16_t addr, uint8_t val, void *priv)
                     ega->gr.gr05_mode = val & EGA_GR05_MASK;
                     break;
 
-                // Miscellaneous Output (AFFECTS OUTPUT - bits 0,1)
-                case 0x06:
+                case 0x06: // Miscellaneous Output (AFFECTS OUTPUT - bits 0,1)
                     {
                         ega_update_output(ega);
                         uint8_t old_map      = ega->gr.gr06_misc[1];
@@ -915,14 +945,12 @@ ega_io_out(uint16_t addr, uint8_t val, void *priv)
                     }
                     break;
 
-                // Color Don't Care
-                case 0x07:
+                case 0x07: // Color Don't Care
                     ega->gr.gr07_color_dont_care[0] = ((val >> (ega->gr.position[0] << 1)) & 0b11) * 0x55;
                     ega->gr.gr07_color_dont_care[1] = ((val >> (ega->gr.position[1] << 1)) & 0b11) * 0x55;
                     break;
 
-                // Bit Mask
-                case 0x08:
+                case 0x08: // Bit Mask
                     ega->gr.gr08_bit_mask = val;
                     break;
 
@@ -941,6 +969,82 @@ ega_io_out(uint16_t addr, uint8_t val, void *priv)
         case 0x3B5:
         case 0x3D5:
             switch (ega->cr.cpu_addr) {
+                case 0x00: // Horizontal Total (AFFECTS OUTPUT)
+                    ega_update_output(ega);
+                    ega->cr.htotal = EGA_CR00_HTOTAL_READ(val);
+                    ega_update_screen_timings(ega);
+                    break;
+
+                case 0x01: // Horizontal Display Enable End (AFFECTS OUTPUT)
+                    ega_update_output(ega);
+                    ega->cr.hdispend = EGA_CR01_HDISPEND_READ(val);
+                    ega_update_screen_timings(ega);
+                    break;
+
+                case 0x02: // Start Horizontal Blanking (AFFECTS OUTPUT)
+                    ega_update_output(ega);
+                    ega->cr.hblankbeg = EGA_CR02_HBLANKBEG_READ(val);
+                    ega_update_screen_timings(ega);
+                    break;
+
+                case 0x03: // End Horizontal Blanking (AFFECTS OUTPUT)
+                    ega_update_output(ega);
+                    ega->cr.hblankend = EGA_CR03_HBLANKEND_READ(val);
+                    ega->cr.skew_disp = EGA_CR03_DISPSKEW_READ(val);
+                    ega_update_screen_timings(ega);
+                    break;
+
+                case 0x04: // Start Horizontal Retrace (AFFECTS OUTPUT)
+                    ega_update_output(ega);
+                    ega->cr.hsyncbeg = EGA_CR04_HSYNCBEG_READ(val);
+                    ega_update_screen_timings(ega);
+                    break;
+
+                case 0x05: // End Horizontal Retrace (AFFECTS OUTPUT)
+                    ega_update_output(ega);
+                    ega->cr.hsyncend   = EGA_CR05_HSYNCEND_READ(val);
+                    ega->cr.skew_hsync = EGA_CR05_HSYNCSKEW_READ(val);
+                    ega->cr.hoeoffs    = EGA_CR05_HOEOFFS0_READ(val);
+                    ega_update_screen_timings(ega);
+                    break;
+
+                case 0x06: // Vertical Total (AFFECTS OUTPUT)
+                    ega_update_output(ega);
+                    ega->cr.vtotal = (ega->cr.vtotal & ~0xFF) | EGA_CR06_VTOTAL_READ(val);
+                    ega_update_screen_timings(ega);
+                    break;
+
+                case 0x07: // Overflow (AFFECTS OUTPUT)
+                    ega_update_output(ega);
+                    ega->cr.vtotal      = (ega->cr.vtotal & 0xFF) | (EGA_CR07_VTOTAL_8_READ(val) << 8);
+                    ega->cr.vdispend    = (ega->cr.vdispend & 0xFF) | (EGA_CR07_VDISPEND_8_READ(val) << 8);
+                    ega->cr.vsyncbeg    = (ega->cr.vsyncbeg & 0xFF) | (EGA_CR07_VSYNCBEG_8_READ(val) << 8);
+                    ega->cr.vblankbeg   = (ega->cr.vblankbeg & 0xFF) | (EGA_CR07_VBLANKBEG_8_READ(val) << 8);
+                    ega->cr.linecompare = (ega->cr.linecompare & 0xFF) | (EGA_CR07_LINECOMPARE_8_READ(val) << 8);
+                    ega_update_screen_timings(ega);
+                    break;
+
+                case 0x08: // Preset Row Scan (AFFECTS OUTPUT)
+                    ega_update_output(ega);
+                    ega->cr.vfinescroll = EGA_CR08_VFINESCROLL_READ(val);
+                    break;
+
+                case 0x09: // Maximum Scan Line (AFFECTS OUTPUT)
+                    ega_update_output(ega);
+                    ega->cr.vnextcharidx = ((EGA_CR09_CHARHEIGHT_READ(val)) - 1) & 0x1F;
+                    break;
+
+                case 0x0A: // Cursor Start (AFFECTS OUTPUT)
+                    ega_update_output(ega);
+                    ega->cr.cursorbeg = EGA_CR0A_CURSORBEG_READ(val);
+                    break;
+
+                case 0x0B: // Cursor End (AFFECTS OUTPUT)
+                    ega_update_output(ega);
+                    ega->cr.cursorbeg   = EGA_CR0B_CURSOREND_READ(val);
+                    ega->cr.skew_cursor = EGA_CR0B_CURSORSKEW_READ(val);
+                    break;
+
                 case 0x0C: // Start Address High (AFFECTS OUTPUT)
                     ega_update_output(ega);
                     ega->cr.start_vaddr = (ega->cr.start_vaddr & 0x00FF)
@@ -963,6 +1067,65 @@ ega_io_out(uint16_t addr, uint8_t val, void *priv)
                     ega_update_output(ega);
                     ega->cr.cursor_vaddr = (ega->cr.cursor_vaddr & 0xFF00)
                         | (((uint16_t) EGA_CR0F_CURSORLO_READ(val)) << 0);
+                    break;
+
+                case 0x10: // Vertical Retrace Start (AFFECTS OUTPUT)
+                    ega_update_output(ega);
+                    ega->cr.vsyncbeg = (ega->cr.vsyncbeg & ~0xFF) | EGA_CR10_VSYNCBEG_READ(val);
+                    ega_update_screen_timings(ega);
+                    break;
+
+                case 0x11: // Vertical Retrace End (AFFECTS OUTPUT)
+                    ega_update_output(ega);
+                    ega->cr.vsyncend   = EGA_CR11_VSYNCEND_READ(val);
+                    ega->cr.clearvint  = (val & EGA_CR11_CLEARVINT_MASK) == EGA_CR11_CLEARVINT_ON;
+                    ega->cr.enablevint = (val & EGA_CR11_ENABLEVINT_MASK) == EGA_CR11_ENABLEVINT_ON;
+                    ega_update_screen_timings(ega);
+                    break;
+
+                case 0x12: // Vertical Display Enable End (AFFECTS OUTPUT)
+                    ega_update_output(ega);
+                    ega->cr.vdispend = (ega->cr.vdispend & ~0xFF) | EGA_CR12_VDISPEND_READ(val);
+                    ega_update_screen_timings(ega);
+                    break;
+
+                case 0x13: // Offset (AFFECTS OUTPUT)
+                    ega_update_output(ega);
+                    ega->cr.offset = EGA_CR13_OFFSET_READ(val);
+                    break;
+
+                case 0x14: // Underline Location (AFFECTS OUTPUT)
+                    ega_update_output(ega);
+                    ega->cr.underlinepos = EGA_CR14_UNDERLINE_READ(val);
+                    break;
+
+                case 0x15: // Start Vertical Blanking (AFFECTS OUTPUT)
+                    ega_update_output(ega);
+                    ega->cr.vblankbeg = (ega->cr.vblankbeg & ~0xFF) | EGA_CR15_VBLANKBEG_READ(val);
+                    ega_update_screen_timings(ega);
+                    break;
+
+                case 0x16: // End Vertical Blanking (AFFECTS OUTPUT)
+                    ega_update_output(ega);
+                    ega->cr.vblankend = EGA_CR16_VBLANKEND_READ(val);
+                    ega_update_screen_timings(ega);
+                    break;
+
+                case 0x17: // Mode Control (AFFECTS OUTPUT)
+                    ega_update_output(ega);
+                    ega->cr.a13_bits_from_scanline = val & 0b11;
+                    ega->cr.vdivide                = (val & EGA_CR17_VDIVIDE_MASK) == EGA_CR17_VDIVIDE_DIV2 ? 2 : 1;
+                    ega->cr.addrdivide             = (val & EGA_CR17_ADDRDIVIDE0_MASK) == EGA_CR17_ADDRDIVIDE0_DIV2 ? 2 : 1;
+                    ega->cr.floatoutputs           = (val & EGA_CR17_OUTCTRL_MASK) == EGA_CR17_OUTCTRL_FLOATOUTPUTS;
+                    ega->cr.wrapbit                = (val & EGA_CR17_WRAPBIT_MASK) == EGA_CR17_WRAPBIT_A13 ? 13 : 15;
+                    ega->cr.addrshift              = (val & EGA_CR17_ADDRSHIFT0_MASK) == EGA_CR17_ADDRSHIFT0_1 ? 1 : 0;
+                    ega->cr.hwreset                = (val & EGA_CR17_RESET_MASK) == EGA_CR17_RESET_RESETTING;
+                    ega_update_screen_timings(ega);
+                    break;
+
+                case 0x18: // Line Compare (AFFECTS OUTPUT)
+                    ega_update_output(ega);
+                    ega->cr.linecompare = (ega->cr.linecompare & ~0xFF) | EGA_CR18_LINECOMPARE_READ(val);
                     break;
 
                 default:
