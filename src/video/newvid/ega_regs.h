@@ -7,10 +7,17 @@
 //
 
 // Helpers
-#define EGA_MAKE_WRITE(_NAME, x) \
-    (((((uint32_t) (x)) + _NAME##_ZERO) << _NAME##_SHIFT) & _NAME##_MASK)
-#define EGA_MAKE_READ(_NAME, x) \
-    (((((uint32_t) (x)) - (_NAME##_ZERO << _NAME##_SHIFT)) & _NAME##_MASK) >> _NAME##_SHIFT)
+#if 1
+#    define EGA_MAKE_WRITE(_NAME, x) \
+        ((((uint32_t) (x)) << _NAME##_SHIFT) & _NAME##_MASK)
+#    define EGA_MAKE_READ(_NAME, x) \
+        ((((uint32_t) (x)) & _NAME##_MASK) >> _NAME##_SHIFT)
+#else
+#    define EGA_MAKE_WRITE(_NAME, x) \
+        (((((uint32_t) (x)) + _NAME##_ZERO) << _NAME##_SHIFT) & _NAME##_MASK)
+#    define EGA_MAKE_READ(_NAME, x) \
+        (((((uint32_t) (x)) - (_NAME##_ZERO << _NAME##_SHIFT)) & _NAME##_MASK) >> _NAME##_SHIFT)
+#endif
 
 //
 // 03C2 W: Miscellaneous Output Register
@@ -285,7 +292,7 @@
 // W3C0 end
 #define EGA_W3C0_MASK 0x3f
 
-// AC10.0: Graphics/Alphanumeric Mode
+// AR10.0: Graphics/Alphanumeric Mode
 // When 1:
 // - Low 4 bits of attribute input are our pixel data.
 // - High 4 bits of attribute input are from raw plane 1, but ignored for this.
@@ -293,95 +300,95 @@
 // - All 8 bits of attribute input, assummed to be from raw plane 1, are attribute data.
 // - Raw plane 2 input is our character data.
 // - Those 8 bits feed a 4x 2-to-1 MUX of the background and foreground attribute data.
-#define EGA_AC10_GRAPHICS_SHIFT    0
-#define EGA_AC10_GRAPHICS_ZERO     0
-#define EGA_AC10_GRAPHICS_MASK     (((1 << 1) - 1) << 0)
-#define EGA_AC10_GRAPHICS_WRITE(x) EGA_MAKE_WRITE(EGA_AC10_GRAPHICS, x)
-#define EGA_AC10_GRAPHICS_READ(x)  EGA_MAKE_READ(EGA_AC10_GRAPHICS, x)
-#define EGA_AC10_GRAPHICS_OFF      ((0b0) << 0)
-#define EGA_AC10_GRAPHICS_ON       ((0b1) << 0)
-// AC10.1: Monochrome Display/Color Display
+#define EGA_AR10_GRAPHICS_SHIFT    0
+#define EGA_AR10_GRAPHICS_ZERO     0
+#define EGA_AR10_GRAPHICS_MASK     (((1 << 1) - 1) << 0)
+#define EGA_AR10_GRAPHICS_WRITE(x) EGA_MAKE_WRITE(EGA_AR10_GRAPHICS, x)
+#define EGA_AR10_GRAPHICS_READ(x)  EGA_MAKE_READ(EGA_AR10_GRAPHICS, x)
+#define EGA_AR10_GRAPHICS_OFF      ((0b0) << 0)
+#define EGA_AR10_GRAPHICS_ON       ((0b1) << 0)
+// AR10.1: Monochrome Display/Color Display
 // This affects text-mode attributes and graphics-mode blinking.
-#define EGA_AC10_MONOATTR_SHIFT    1
-#define EGA_AC10_MONOATTR_ZERO     0
-#define EGA_AC10_MONOATTR_MASK     (((1 << 1) - 1) << 1)
-#define EGA_AC10_MONOATTR_WRITE(x) EGA_MAKE_WRITE(EGA_AC10_MONOATTR, x)
-#define EGA_AC10_MONOATTR_READ(x)  EGA_MAKE_READ(EGA_AC10_MONOATTR, x)
-#define EGA_AC10_MONOATTR_OFF      ((0b0) << 1)
-#define EGA_AC10_MONOATTR_ON       ((0b1) << 1)
-// AC10.2: Enable Line Graphics Character Codes
+#define EGA_AR10_MONOATTR_SHIFT    1
+#define EGA_AR10_MONOATTR_ZERO     0
+#define EGA_AR10_MONOATTR_MASK     (((1 << 1) - 1) << 1)
+#define EGA_AR10_MONOATTR_WRITE(x) EGA_MAKE_WRITE(EGA_AR10_MONOATTR, x)
+#define EGA_AR10_MONOATTR_READ(x)  EGA_MAKE_READ(EGA_AR10_MONOATTR, x)
+#define EGA_AR10_MONOATTR_OFF      ((0b0) << 1)
+#define EGA_AR10_MONOATTR_ON       ((0b1) << 1)
+// AR10.2: Enable Line Graphics Character Codes
 // Used for 9-dot text mode.
 // When 1, if raw plane 0 data is from 0xC0 to 0xDF, the 8th dot is duplicated into the 9th dot.
-#define EGA_AC10_9DOTLINES_SHIFT    2
-#define EGA_AC10_9DOTLINES_ZERO     0
-#define EGA_AC10_9DOTLINES_MASK     (((1 << 1) - 1) << 2)
-#define EGA_AC10_9DOTLINES_WRITE(x) EGA_MAKE_WRITE(EGA_AC10_9DOTLINES, x)
-#define EGA_AC10_9DOTLINES_READ(x)  EGA_MAKE_READ(EGA_AC10_9DOTLINES, x)
-#define EGA_AC10_9DOTLINES_OFF      ((0b0) << 2)
-#define EGA_AC10_9DOTLINES_ON       ((0b1) << 2)
-// AC10.3: Enable Blink/Select Background Intensity
-#define EGA_AC10_ATTR7_SHIFT       3
-#define EGA_AC10_ATTR7_ZERO        0
-#define EGA_AC10_ATTR7_MASK        (((1 << 1) - 1) << 3)
-#define EGA_AC10_ATTR7_WRITE(x)    EGA_MAKE_WRITE(EGA_AC10_ATTR7, x)
-#define EGA_AC10_ATTR7_READ(x)     EGA_MAKE_READ(EGA_AC10_ATTR7, x)
-#define EGA_AC10_ATTR7_BGINTENSITY ((0b0) << 3)
-#define EGA_AC10_ATTR7_BLINK       ((0b1) << 3)
-// AC10 end
-#define EGA_AC10_MASK 0x0f
+#define EGA_AR10_9DOTLINES_SHIFT    2
+#define EGA_AR10_9DOTLINES_ZERO     0
+#define EGA_AR10_9DOTLINES_MASK     (((1 << 1) - 1) << 2)
+#define EGA_AR10_9DOTLINES_WRITE(x) EGA_MAKE_WRITE(EGA_AR10_9DOTLINES, x)
+#define EGA_AR10_9DOTLINES_READ(x)  EGA_MAKE_READ(EGA_AR10_9DOTLINES, x)
+#define EGA_AR10_9DOTLINES_OFF      ((0b0) << 2)
+#define EGA_AR10_9DOTLINES_ON       ((0b1) << 2)
+// AR10.3: Enable Blink/Select Background Intensity
+#define EGA_AR10_ATTR7_SHIFT       3
+#define EGA_AR10_ATTR7_ZERO        0
+#define EGA_AR10_ATTR7_MASK        (((1 << 1) - 1) << 3)
+#define EGA_AR10_ATTR7_WRITE(x)    EGA_MAKE_WRITE(EGA_AR10_ATTR7, x)
+#define EGA_AR10_ATTR7_READ(x)     EGA_MAKE_READ(EGA_AR10_ATTR7, x)
+#define EGA_AR10_ATTR7_BGINTENSITY ((0b0) << 3)
+#define EGA_AR10_ATTR7_BLINK       ((0b1) << 3)
+// AR10 end
+#define EGA_AR10_MASK 0x0f
 
-// AC11.0-5: Overscan Color
-#define EGA_AC11_BORDER_SHIFT    0
-#define EGA_AC11_BORDER_ZERO     0
-#define EGA_AC11_BORDER_MASK     (((1 << 6) - 1) << 0)
-#define EGA_AC11_BORDER_WRITE(x) EGA_MAKE_WRITE(EGA_AC11_BORDER, x)
-#define EGA_AC11_BORDER_READ(x)  EGA_MAKE_READ(EGA_AC11_BORDER, x)
-// AC11 end
-#define EGA_AC11_MASK 0x3f
+// AR11.0-5: Overscan Color
+#define EGA_AR11_BORDER_SHIFT    0
+#define EGA_AR11_BORDER_ZERO     0
+#define EGA_AR11_BORDER_MASK     (((1 << 6) - 1) << 0)
+#define EGA_AR11_BORDER_WRITE(x) EGA_MAKE_WRITE(EGA_AR11_BORDER, x)
+#define EGA_AR11_BORDER_READ(x)  EGA_MAKE_READ(EGA_AR11_BORDER, x)
+// AR11 end
+#define EGA_AR11_MASK 0x3f
 
-// AC12.0-3: Enable Color Plane
-#define EGA_AC12_PLANEMASK_SHIFT    0
-#define EGA_AC12_PLANEMASK_ZERO     0
-#define EGA_AC12_PLANEMASK_MASK     (((1 << 4) - 1) << 0)
-#define EGA_AC12_PLANEMASK_WRITE(x) EGA_MAKE_WRITE(EGA_AC12_PLANEMASK, x)
-#define EGA_AC12_PLANEMASK_READ(x)  EGA_MAKE_READ(EGA_AC12_PLANEMASK, x)
-// AC12.4-5: Video Status MUX
+// AR12.0-3: Enable Color Plane
+#define EGA_AR12_PLANEMASK_SHIFT    0
+#define EGA_AR12_PLANEMASK_ZERO     0
+#define EGA_AR12_PLANEMASK_MASK     (((1 << 4) - 1) << 0)
+#define EGA_AR12_PLANEMASK_WRITE(x) EGA_MAKE_WRITE(EGA_AR12_PLANEMASK, x)
+#define EGA_AR12_PLANEMASK_READ(x)  EGA_MAKE_READ(EGA_AR12_PLANEMASK, x)
+// AR12.4-5: Video Status MUX
 // Determines the sources of the values of 3BA/3DA.4-5.
-#define EGA_AC12_DIAGMUX_SHIFT    4
-#define EGA_AC12_DIAGMUX_ZERO     0
-#define EGA_AC12_DIAGMUX_MASK     (((1 << 2) - 1) << 4)
-#define EGA_AC12_DIAGMUX_WRITE(x) EGA_MAKE_WRITE(EGA_AC12_DIAGMUX, x)
-#define EGA_AC12_DIAGMUX_READ(x)  EGA_MAKE_READ(EGA_AC12_DIAGMUX, x)
-#define EGA_AC12_DIAGMUX_PRPB     ((0b00) << 4)
-#define EGA_AC12_DIAGMUX_SBPG     ((0b01) << 4)
-#define EGA_AC12_DIAGMUX_SRSG     ((0b10) << 4)
-// AC12 end
-#define EGA_AC12_MASK 0x3f
+#define EGA_AR12_DIAGMUX_SHIFT    4
+#define EGA_AR12_DIAGMUX_ZERO     0
+#define EGA_AR12_DIAGMUX_MASK     (((1 << 2) - 1) << 4)
+#define EGA_AR12_DIAGMUX_WRITE(x) EGA_MAKE_WRITE(EGA_AR12_DIAGMUX, x)
+#define EGA_AR12_DIAGMUX_READ(x)  EGA_MAKE_READ(EGA_AR12_DIAGMUX, x)
+#define EGA_AR12_DIAGMUX_PRPB     ((0b00) << 4)
+#define EGA_AR12_DIAGMUX_SBPG     ((0b01) << 4)
+#define EGA_AR12_DIAGMUX_SRSG     ((0b10) << 4)
+// AR12 end
+#define EGA_AR12_MASK 0x3f
 
 // These are for "Horizontal Pel Panning".
 // Effectively this is equivalent to:
 // - 4 8-bit SIPO shift registers
-// - All shift register outputs go to their own 8-to-1 MUX (AC13.0-2)
-// - Each 8-to-1 MUX goes to 1 input of a 2-to-1 MUX (AC13.3)
+// - All shift register outputs go to their own 8-to-1 MUX (AR13.0-2)
+// - Each 8-to-1 MUX goes to 1 input of a 2-to-1 MUX (AR13.3)
 // - The other 2-to-1 MUX input is the inputs to the shift registers
 // - The 2-to-1 MUX outputs form the resulting colour palette index.
 //
-// AC13.0-2: Horizontal pel panning shift register output select
-#define EGA_AC13_DELAY_SHIFT    0
-#define EGA_AC13_DELAY_ZERO     -1
-#define EGA_AC13_DELAY_MASK     (((1 << 3) - 1) << 0)
-#define EGA_AC13_DELAY_WRITE(x) EGA_MAKE_WRITE(EGA_AC13_DELAY, x)
-#define EGA_AC13_DELAY_READ(x)  EGA_MAKE_READ(EGA_AC13_DELAY, x)
-// AC13.3: Bypass horizontal pel panning shift registers
-#define EGA_AC13_BYPASS_SHIFT    3
-#define EGA_AC13_BYPASS_ZERO     0
-#define EGA_AC13_BYPASS_MASK     (((1 << 1) - 1) << 3)
-#define EGA_AC13_BYPASS_WRITE(x) EGA_MAKE_WRITE(EGA_AC13_BYPASS, x)
-#define EGA_AC13_BYPASS_READ(x)  EGA_MAKE_READ(EGA_AC13_BYPASS, x)
-#define EGA_AC13_BYPASS_OFF      ((0b0) << 3)
-#define EGA_AC13_BYPASS_ON       ((0b1) << 3)
-// AC13 end
-#define EGA_AC13_MASK 0x0f
+// AR13.0-2: Horizontal pel panning shift register output select
+#define EGA_AR13_DELAY_SHIFT    0
+#define EGA_AR13_DELAY_ZERO     -1
+#define EGA_AR13_DELAY_MASK     (((1 << 3) - 1) << 0)
+#define EGA_AR13_DELAY_WRITE(x) EGA_MAKE_WRITE(EGA_AR13_DELAY, x)
+#define EGA_AR13_DELAY_READ(x)  EGA_MAKE_READ(EGA_AR13_DELAY, x)
+// AR13.3: Bypass horizontal pel panning shift registers
+#define EGA_AR13_BYPASS_SHIFT    3
+#define EGA_AR13_BYPASS_ZERO     0
+#define EGA_AR13_BYPASS_MASK     (((1 << 1) - 1) << 3)
+#define EGA_AR13_BYPASS_WRITE(x) EGA_MAKE_WRITE(EGA_AR13_BYPASS, x)
+#define EGA_AR13_BYPASS_READ(x)  EGA_MAKE_READ(EGA_AR13_BYPASS, x)
+#define EGA_AR13_BYPASS_OFF      ((0b0) << 3)
+#define EGA_AR13_BYPASS_ON       ((0b1) << 3)
+// AR13 end
+#define EGA_AR13_MASK 0x0f
 
 //
 // 03C4 and 03C5 W: Sequencer registers

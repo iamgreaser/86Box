@@ -9,15 +9,15 @@
 !boardprefix EGA
 // Helpers
 #if 1
-#define EGA_MAKE_WRITE(_NAME, x) \
-    ((((uint32_t) (x)) << _NAME##_SHIFT) & _NAME##_MASK)
-#define EGA_MAKE_READ(_NAME, x) \
-    ((((uint32_t) (x)) & _NAME##_MASK) >> _NAME##_SHIFT)
+#    define EGA_MAKE_WRITE(_NAME, x) \
+        ((((uint32_t) (x)) << _NAME##_SHIFT) & _NAME##_MASK)
+#    define EGA_MAKE_READ(_NAME, x) \
+        ((((uint32_t) (x)) & _NAME##_MASK) >> _NAME##_SHIFT)
 #else
-#define EGA_MAKE_WRITE(_NAME, x) \
-    (((((uint32_t) (x)) + _NAME##_ZERO) << _NAME##_SHIFT) & _NAME##_MASK)
-#define EGA_MAKE_READ(_NAME, x) \
-    (((((uint32_t) (x)) - (_NAME##_ZERO << _NAME##_SHIFT)) & _NAME##_MASK) >> _NAME##_SHIFT)
+#    define EGA_MAKE_WRITE(_NAME, x) \
+        (((((uint32_t) (x)) + _NAME##_ZERO) << _NAME##_SHIFT) & _NAME##_MASK)
+#    define EGA_MAKE_READ(_NAME, x) \
+        (((((uint32_t) (x)) - (_NAME##_ZERO << _NAME##_SHIFT)) & _NAME##_MASK) >> _NAME##_SHIFT)
 #endif
 
 //
@@ -172,8 +172,8 @@
 
 !endreg W3C0
 
-!startreg AC10
-// AC10.0: Graphics/Alphanumeric Mode
+!startreg AR10
+// AR10.0: Graphics/Alphanumeric Mode
 // When 1:
 // - Low 4 bits of attribute input are our pixel data.
 // - High 4 bits of attribute input are from raw plane 1, but ignored for this.
@@ -182,44 +182,44 @@
 // - Raw plane 2 input is our character data.
 // - Those 8 bits feed a 4x 2-to-1 MUX of the background and foreground attribute data.
 !field GRAPHICS 0 1 0 OFF=0b0 ON=0b1
-// AC10.1: Monochrome Display/Color Display
+// AR10.1: Monochrome Display/Color Display
 // This affects text-mode attributes and graphics-mode blinking.
 !field MONOATTR 1 1 0 OFF=0b0 ON=0b1
-// AC10.2: Enable Line Graphics Character Codes
+// AR10.2: Enable Line Graphics Character Codes
 // Used for 9-dot text mode.
 // When 1, if raw plane 0 data is from 0xC0 to 0xDF, the 8th dot is duplicated into the 9th dot.
 !field 9DOTLINES 2 1 0 OFF=0b0 ON=0b1
-// AC10.3: Enable Blink/Select Background Intensity
+// AR10.3: Enable Blink/Select Background Intensity
 !field ATTR7 3 1 0 BGINTENSITY=0b0 BLINK=0b1
-!endreg AC10
+!endreg AR10
 
-!startreg AC11
-// AC11.0-5: Overscan Color
+!startreg AR11
+// AR11.0-5: Overscan Color
 !field BORDER 0 6 0
-!endreg AC11
+!endreg AR11
 
-!startreg AC12
-// AC12.0-3: Enable Color Plane
+!startreg AR12
+// AR12.0-3: Enable Color Plane
 !field PLANEMASK 0 4 0
-// AC12.4-5: Video Status MUX
+// AR12.4-5: Video Status MUX
 // Determines the sources of the values of 3BA/3DA.4-5.
 !field DIAGMUX 4 2 0 PRPB=0b00 SBPG=0b01 SRSG=0b10
-!endreg AC12
+!endreg AR12
 
-!startreg AC13
+!startreg AR13
 // These are for "Horizontal Pel Panning".
 // Effectively this is equivalent to:
 // - 4 8-bit SIPO shift registers
-// - All shift register outputs go to their own 8-to-1 MUX (AC13.0-2)
-// - Each 8-to-1 MUX goes to 1 input of a 2-to-1 MUX (AC13.3)
+// - All shift register outputs go to their own 8-to-1 MUX (AR13.0-2)
+// - Each 8-to-1 MUX goes to 1 input of a 2-to-1 MUX (AR13.3)
 // - The other 2-to-1 MUX input is the inputs to the shift registers
 // - The 2-to-1 MUX outputs form the resulting colour palette index.
 //
-// AC13.0-2: Horizontal pel panning shift register output select
+// AR13.0-2: Horizontal pel panning shift register output select
 !field DELAY 0 3 -1
-// AC13.3: Bypass horizontal pel panning shift registers
+// AR13.3: Bypass horizontal pel panning shift registers
 !field BYPASS 3 1 0 OFF=0b0 ON=0b1
-!endreg AC13
+!endreg AR13
 
 //
 // 03C4 and 03C5 W: Sequencer registers

@@ -312,11 +312,10 @@ ega_tick_frame(void *priv)
     // Refire after 1 frame
     uint32_t htotal       = ega->cr.htotal + 2;
     uint32_t vtotal       = ega->cr.vtotal;
-    uint32_t hdisp        = ega->cr.hdispend;
+    uint32_t hdisp        = ega->cr.hdispend + 1;
     uint32_t vdisp        = ega->cr.vdispend + 1;
     uint32_t htotal_chars = htotal;
     uint32_t hdisp_chars  = hdisp;
-    uint32_t offset       = ega->cr.offset * 2;
 
     uint32_t hblankbeg = ega->cr.hblankbeg;
     uint32_t hsyncbeg  = ega->cr.hsyncbeg;
@@ -342,7 +341,7 @@ ega_tick_frame(void *priv)
 
     // Apply multipliers
     uint32_t char_width = 1;
-    uint32_t vdivide = ega->cr.vdivide;
+    uint32_t vdivide    = ega->cr.vdivide;
     if (vdivide == 0) {
         vdivide = 1;
     }
@@ -384,7 +383,7 @@ ega_tick_frame(void *priv)
     uint32_t pal[1 << 6];
     for (int32_t i = 0; i < (1 << 6); i++) {
         uint8_t v = (uint8_t) i;
-        if (false) {
+        if ((EGA_W3C2_POLARITY_READ(ega->misc_out_3c2) & 0b10) == 0b00) {
             // CGA monitor mapping
             pal[i] = makecol32(
                 (((v >> 2) & 0x1) * 0xAA) | (((v >> 4) & 0x1) * 0x55),
@@ -399,51 +398,91 @@ ega_tick_frame(void *priv)
         }
     }
 
-    uint32_t y = 0;
-    uint32_t ymemaddr = 0;
+    uint32_t y         = 0;
+    uint32_t ymemaddr  = 0;
     uint32_t ymemdelta = ega->cr.offset * 2;
-    uint32_t memy = ega->cr.vfinescroll & 0x1F;
+    uint32_t memy      = ega->cr.vfinescroll & 0x1F;
     for (uint32_t py = 0; py < ysize; py++) {
         if (y < vdisp) {
             for (uint32_t x = 0; x < htotal_chars; x++) {
                 if (x < hdisp_chars) {
-                    uint32_t vaddr = ymemaddr + x;
+                    uint32_t vaddr = ymemaddr;
+                    vaddr += x;
 
                     // Odd/Even mode
-                    // TODO: Read this from the CRTC --GM
-                    vaddr = (vaddr << 1) | ((vaddr >> 15) & 0b1);
+                    if (ega->cr.addrshift == 1) {
+                        vaddr = (vaddr << 1) | ((ymemaddr >> ega->cr.wrapbit) & 0b1);
+                    }
+
+                    // CGA + Hercules compat modes
+                    vaddr ^= (vaddr ^ (memy << 13)) & ((0b11 ^ ega->cr.a13_bits_from_scanline) << 13);
 
                     uint32_t data = ega->vram_buf[vaddr];
 
                     // Remap text mode
-                    // TODO: Actually treat this how the EGA treats it instead of remapping text to graphics --GM
-                    uint8_t bg       = (data >> 12) & 0x0F;
-                    uint8_t fg       = (data >> 8) & 0x0F;
-                    uint8_t ch       = (data >> 0) & 0xFF;
-                    uint8_t fontline = (uint8_t) (ega->vram_buf[(((uint32_t) ch) << 5) | (memy & 0x1F)] >> 16);
-                    // if (memy == 0 && ch != 0x20) printf("ch %02X fg %01X bg %01X\n", ch, fg, bg);
+                    uint8_t ch = (data >> 0) & 0xFF;
+                    // FIXME: Split the remapped address between SR04.0 and GR06.0.0 --GM
+                    if ((ega->gr.gr06_misc[0] & EGA_GR06_0_GRAPHICS_MASK) == EGA_GR06_0_GRAPHICS_OFF) {
+                        data = (data & 0xFFFF) | (ega->vram_buf[(((uint32_t) ch) << 5) | (memy & 0x1F)] & ~0xFFFF);
+                    }
 
-                    uint32_t mask_base = 0;
-                    uint32_t mask_xor  = 0;
-                    for (uint32_t i = 0; i < 4; i++) {
-                        if (((bg >> i) & 0b1) != 0) {
-                            mask_base |= (0xFF << (i * 8));
-                        }
-                        if (((fg >> i) & 0b1) != 0) {
-                            mask_xor |= (0xFF << (i * 8));
+                    uint8_t  bg        = (data >> 12) & 0x0F;
+                    uint8_t  raw_fg    = (data >> 8) & 0x0F;
+                    uint32_t fontline  = (data >> 16) & 0xFF;
+                    if ((ega->ar.ar10_mode & EGA_AR10_9DOTLINES_MASK) == EGA_AR10_9DOTLINES_ON) {
+                        if ((ch & 0xE0) == 0xC0 && (fontline & 0x01) != 0b0) {
+                            fontline |= 0xFFFFFF00;
                         }
                     }
-                    mask_xor ^= mask_base;
 
-                    data = mask_base ^ ((0x01010101 * (uint32_t) fontline) & mask_xor);
+                    // Remap 2x2-semichunky mode to planes
+                    if ((ega->gr.gr05_mode & EGA_GR05_SHIFTMODE_MASK) == EGA_GR05_SHIFTMODE_2X2) {
+                        uint32_t indata = data;
+                        data = 0;
+                        for (uint32_t sx = 0; sx < 8; sx++) {
+                            for (uint32_t i = 0; i < 4; i++) {
+                                if (((indata >> ((i>>1)*16 + ((sx*2)^0x8) + (i&0b01))) & 0b1) != 0) {
+                                    data |= (1 << (i*8 + sx));
+                                }
+                            }
+                        }
+                    }
 
                     for (uint32_t sx = 0; sx < char_width; sx++) {
                         uint8_t c = 0;
-                        for (uint32_t i = 0; i < 4; i++) {
-                            if (((data >> (((sx >> xrshift) ^ 0b111) + (8 * i))) & 0b1) != 0) {
-                                c |= (1 << i);
+                        uint8_t fg = 0;
+
+                        // Handle GR06 graphics flag
+                        if ((ega->gr.gr06_misc[0] & EGA_GR06_0_GRAPHICS_MASK) == EGA_GR06_0_GRAPHICS_OFF) {
+                            fg = raw_fg;
+                        } else {
+                            for (uint32_t i = 0; i < 4; i++) {
+                                if (((data >> (((sx >> xrshift) ^ 0b111) + (8 * i))) & 0b1) != 0) {
+                                    fg |= (1 << i);
+                                }
                             }
                         }
+
+                        // Handle AR10 graphics flag
+                        if ((ega->ar.ar10_mode & EGA_AR10_GRAPHICS_MASK) == EGA_AR10_GRAPHICS_ON) {
+                            // Take graphics as-is
+                            // TODO: Ensure we handle 9-dot shift correctly --GM
+                            for (uint32_t i = 0; i < 4; i++) {
+                                if (((data >> (((sx >> xrshift) ^ 0b111) + (8 * i))) & 0b1) != 0) {
+                                    c |= (1 << i);
+                                }
+                            }
+                        } else {
+                            // Text mode shift
+                            if ((fontline >> (((sx >> xrshift) ^ 0b111)) & 0b1) != 0) {
+                                c = fg;
+                            } else {
+                                c = bg;
+                            }
+                        }
+
+                        c &= ega->ar.ar12_plane_enable;
+
                         buffer32->line[y][(x * char_width) + sx] = pal[ega->ar.pal[c]];
                     }
                 } else {
@@ -482,8 +521,8 @@ ega_tick_frame(void *priv)
             }
         }
 
-        if ((py & (vdivide-1)) == 0) {
-            //printf("%4u = %2u / %2u %05X %05X\n", y, memy, ega->cr.vnextcharidx, ymemaddr, ymemdelta);
+        if ((py & (vdivide - 1)) == 0) {
+            // printf("%4u = %2u / %2u %05X %05X\n", y, memy, ega->cr.vnextcharidx, ymemaddr, ymemdelta);
             y += 1;
             if (memy == ega->cr.vnextcharidx) {
                 memy = 0;
@@ -1174,7 +1213,7 @@ ega_io_out(uint16_t addr, uint8_t val, void *priv)
 
                 case 0x09: // Maximum Scan Line (AFFECTS OUTPUT)
                     ega_update_output(ega);
-                    ega->cr.vnextcharidx = ((EGA_CR09_CHARHEIGHT_READ(val)) - 1) & 0x1F;
+                    ega->cr.vnextcharidx = (EGA_CR09_CHARHEIGHT_READ(val)) & 0x1F;
                     break;
 
                 case 0x0A: // Cursor Start (AFFECTS OUTPUT)
