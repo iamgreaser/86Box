@@ -285,19 +285,215 @@
 // W3C0 end
 #define EGA_W3C0_MASK 0x3f
 
+// AC10.0: Graphics/Alphanumeric Mode
+// When 1:
+// - Low 4 bits of attribute input are our pixel data.
+// - High 4 bits of attribute input are from raw plane 1, but ignored for this.
+// When 0:
+// - All 8 bits of attribute input, assummed to be from raw plane 1, are attribute data.
+// - Raw plane 2 input is our character data.
+// - Those 8 bits feed a 4x 2-to-1 MUX of the background and foreground attribute data.
+#define EGA_AC10_GRAPHICS_SHIFT    0
+#define EGA_AC10_GRAPHICS_ZERO     0
+#define EGA_AC10_GRAPHICS_MASK     (((1 << 1) - 1) << 0)
+#define EGA_AC10_GRAPHICS_WRITE(x) EGA_MAKE_WRITE(EGA_AC10_GRAPHICS, x)
+#define EGA_AC10_GRAPHICS_READ(x)  EGA_MAKE_READ(EGA_AC10_GRAPHICS, x)
+#define EGA_AC10_GRAPHICS_OFF      ((0b0) << 0)
+#define EGA_AC10_GRAPHICS_ON       ((0b1) << 0)
+// AC10.1: Monochrome Display/Color Display
+// This affects text-mode attributes and graphics-mode blinking.
+#define EGA_AC10_MONOATTR_SHIFT    1
+#define EGA_AC10_MONOATTR_ZERO     0
+#define EGA_AC10_MONOATTR_MASK     (((1 << 1) - 1) << 1)
+#define EGA_AC10_MONOATTR_WRITE(x) EGA_MAKE_WRITE(EGA_AC10_MONOATTR, x)
+#define EGA_AC10_MONOATTR_READ(x)  EGA_MAKE_READ(EGA_AC10_MONOATTR, x)
+#define EGA_AC10_MONOATTR_OFF      ((0b0) << 1)
+#define EGA_AC10_MONOATTR_ON       ((0b1) << 1)
+// AC10.2: Enable Line Graphics Character Codes
+// Used for 9-dot text mode.
+// When 1, if raw plane 0 data is from 0xC0 to 0xDF, the 8th dot is duplicated into the 9th dot.
+#define EGA_AC10_9DOTLINES_SHIFT    2
+#define EGA_AC10_9DOTLINES_ZERO     0
+#define EGA_AC10_9DOTLINES_MASK     (((1 << 1) - 1) << 2)
+#define EGA_AC10_9DOTLINES_WRITE(x) EGA_MAKE_WRITE(EGA_AC10_9DOTLINES, x)
+#define EGA_AC10_9DOTLINES_READ(x)  EGA_MAKE_READ(EGA_AC10_9DOTLINES, x)
+#define EGA_AC10_9DOTLINES_OFF      ((0b0) << 2)
+#define EGA_AC10_9DOTLINES_ON       ((0b1) << 2)
+// AC10.3: Enable Blink/Select Background Intensity
+#define EGA_AC10_ATTR7_SHIFT       3
+#define EGA_AC10_ATTR7_ZERO        0
+#define EGA_AC10_ATTR7_MASK        (((1 << 1) - 1) << 3)
+#define EGA_AC10_ATTR7_WRITE(x)    EGA_MAKE_WRITE(EGA_AC10_ATTR7, x)
+#define EGA_AC10_ATTR7_READ(x)     EGA_MAKE_READ(EGA_AC10_ATTR7, x)
+#define EGA_AC10_ATTR7_BGINTENSITY ((0b0) << 3)
+#define EGA_AC10_ATTR7_BLINK       ((0b1) << 3)
+// AC10 end
+#define EGA_AC10_MASK 0x0f
+
+// AC11.0-5: Overscan Color
+#define EGA_AC11_BORDER_SHIFT    0
+#define EGA_AC11_BORDER_ZERO     0
+#define EGA_AC11_BORDER_MASK     (((1 << 6) - 1) << 0)
+#define EGA_AC11_BORDER_WRITE(x) EGA_MAKE_WRITE(EGA_AC11_BORDER, x)
+#define EGA_AC11_BORDER_READ(x)  EGA_MAKE_READ(EGA_AC11_BORDER, x)
+// AC11 end
+#define EGA_AC11_MASK 0x3f
+
+// AC12.0-3: Enable Color Plane
+#define EGA_AC12_PLANEMASK_SHIFT    0
+#define EGA_AC12_PLANEMASK_ZERO     0
+#define EGA_AC12_PLANEMASK_MASK     (((1 << 4) - 1) << 0)
+#define EGA_AC12_PLANEMASK_WRITE(x) EGA_MAKE_WRITE(EGA_AC12_PLANEMASK, x)
+#define EGA_AC12_PLANEMASK_READ(x)  EGA_MAKE_READ(EGA_AC12_PLANEMASK, x)
+// AC12.4-5: Video Status MUX
+// Determines the sources of the values of 3BA/3DA.4-5.
+#define EGA_AC12_DIAGMUX_SHIFT    4
+#define EGA_AC12_DIAGMUX_ZERO     0
+#define EGA_AC12_DIAGMUX_MASK     (((1 << 2) - 1) << 4)
+#define EGA_AC12_DIAGMUX_WRITE(x) EGA_MAKE_WRITE(EGA_AC12_DIAGMUX, x)
+#define EGA_AC12_DIAGMUX_READ(x)  EGA_MAKE_READ(EGA_AC12_DIAGMUX, x)
+#define EGA_AC12_DIAGMUX_PRPB     ((0b00) << 4)
+#define EGA_AC12_DIAGMUX_SBPG     ((0b01) << 4)
+#define EGA_AC12_DIAGMUX_SRSG     ((0b10) << 4)
+// AC12 end
+#define EGA_AC12_MASK 0x3f
+
+// These are for "Horizontal Pel Panning".
+// Effectively this is equivalent to:
+// - 4 8-bit SIPO shift registers
+// - All shift register outputs go to their own 8-to-1 MUX (AC13.0-2)
+// - Each 8-to-1 MUX goes to 1 input of a 2-to-1 MUX (AC13.3)
+// - The other 2-to-1 MUX input is the inputs to the shift registers
+// - The 2-to-1 MUX outputs form the resulting colour palette index.
+//
+// AC13.0-2: Horizontal pel panning shift register output select
+#define EGA_AC13_DELAY_SHIFT    0
+#define EGA_AC13_DELAY_ZERO     -1
+#define EGA_AC13_DELAY_MASK     (((1 << 3) - 1) << 0)
+#define EGA_AC13_DELAY_WRITE(x) EGA_MAKE_WRITE(EGA_AC13_DELAY, x)
+#define EGA_AC13_DELAY_READ(x)  EGA_MAKE_READ(EGA_AC13_DELAY, x)
+// AC13.3: Bypass horizontal pel panning shift registers
+#define EGA_AC13_BYPASS_SHIFT    3
+#define EGA_AC13_BYPASS_ZERO     0
+#define EGA_AC13_BYPASS_MASK     (((1 << 1) - 1) << 3)
+#define EGA_AC13_BYPASS_WRITE(x) EGA_MAKE_WRITE(EGA_AC13_BYPASS, x)
+#define EGA_AC13_BYPASS_READ(x)  EGA_MAKE_READ(EGA_AC13_BYPASS, x)
+#define EGA_AC13_BYPASS_OFF      ((0b0) << 3)
+#define EGA_AC13_BYPASS_ON       ((0b1) << 3)
+// AC13 end
+#define EGA_AC13_MASK 0x0f
+
 //
 // 03C4 and 03C5 W: Sequencer registers
 //
 
-// Alpha (provides separate A14,A15 for planes 2 and 3)
-#define EGA_SR04_ALPHA_SHIFT    0
-#define EGA_SR04_ALPHA_ZERO     0
-#define EGA_SR04_ALPHA_MASK     (((1 << 1) - 1) << 0)
-#define EGA_SR04_ALPHA_WRITE(x) EGA_MAKE_WRITE(EGA_SR04_ALPHA, x)
-#define EGA_SR04_ALPHA_READ(x)  EGA_MAKE_READ(EGA_SR04_ALPHA, x)
-#define EGA_SR04_ALPHA_OFF      ((0b0) << 0)
-#define EGA_SR04_ALPHA_ON       ((0b1) << 0)
-// Extended Memory (lets A14,A15 be nonzero)
+// SR00.0: Asynchronous Reset
+// 0 = halt, 1 = go
+// From the IBM EGA doc:
+// "Resetting the sequencer with this bit can cause data loss in the dynamic RAMs."
+#define EGA_SR00_ASYNCRST_SHIFT    0
+#define EGA_SR00_ASYNCRST_ZERO     0
+#define EGA_SR00_ASYNCRST_MASK     (((1 << 1) - 1) << 0)
+#define EGA_SR00_ASYNCRST_WRITE(x) EGA_MAKE_WRITE(EGA_SR00_ASYNCRST, x)
+#define EGA_SR00_ASYNCRST_READ(x)  EGA_MAKE_READ(EGA_SR00_ASYNCRST, x)
+#define EGA_SR00_ASYNCRST_RESET    ((0b0) << 0)
+#define EGA_SR00_ASYNCRST_NORMAL   ((0b1) << 0)
+// SR00.1: Synchronous Reset
+// 0 = halt, 1 = go
+// From the IBM EGA doc:
+// "Reset the sequencer with this bit before changing the Clocking Mode Register [(SR01)], if memory contents are to be preserved."
+#define EGA_SR00_SYNCRST_SHIFT    1
+#define EGA_SR00_SYNCRST_ZERO     0
+#define EGA_SR00_SYNCRST_MASK     (((1 << 1) - 1) << 1)
+#define EGA_SR00_SYNCRST_WRITE(x) EGA_MAKE_WRITE(EGA_SR00_SYNCRST, x)
+#define EGA_SR00_SYNCRST_READ(x)  EGA_MAKE_READ(EGA_SR00_SYNCRST, x)
+#define EGA_SR00_SYNCRST_RESET    ((0b0) << 1)
+#define EGA_SR00_SYNCRST_NORMAL   ((0b1) << 1)
+// SR00 end
+#define EGA_SR00_MASK 0x03
+
+// SR01.0: 8/9 Dot Clocks
+// Number of dot clocks per character clock.
+#define EGA_SR01_CHARCLK_SHIFT    0
+#define EGA_SR01_CHARCLK_ZERO     0
+#define EGA_SR01_CHARCLK_MASK     (((1 << 1) - 1) << 0)
+#define EGA_SR01_CHARCLK_WRITE(x) EGA_MAKE_WRITE(EGA_SR01_CHARCLK, x)
+#define EGA_SR01_CHARCLK_READ(x)  EGA_MAKE_READ(EGA_SR01_CHARCLK, x)
+#define EGA_SR01_CHARCLK_9DOT     ((0b0) << 0)
+#define EGA_SR01_CHARCLK_8DOT     ((0b1) << 0)
+// SR01.1: Bandwidth
+// Every 4 character clocks, there are 5 opportunities to access memory.
+// This field determines how many are reserved for the video card.
+// From the IBM EGA doc:
+// "All high resolution modes must provide the CRTC with 4 out of 5 memory cycles in order to refresh the display image."
+// High resolution means the dot clock isn't being divided by 2.
+#define EGA_SR01_BANDWIDTH_SHIFT       1
+#define EGA_SR01_BANDWIDTH_ZERO        0
+#define EGA_SR01_BANDWIDTH_MASK        (((1 << 1) - 1) << 1)
+#define EGA_SR01_BANDWIDTH_WRITE(x)    EGA_MAKE_WRITE(EGA_SR01_BANDWIDTH, x)
+#define EGA_SR01_BANDWIDTH_READ(x)     EGA_MAKE_READ(EGA_SR01_BANDWIDTH, x)
+#define EGA_SR01_BANDWIDTH_CPU_3_IN_5  ((0b0) << 1)
+#define EGA_SR01_BANDWIDTH_CPU_1_IN_5  ((0b1) << 1)
+#define EGA_SR01_BANDWIDTH_CRTC_4_IN_5 ((0b0) << 1)
+#define EGA_SR01_BANDWIDTH_CRTC_2_IN_5 ((0b1) << 1)
+// SR01.2: Shift Load
+// How many character clocks do we need before loading the next data into the shift registers?
+// TODO: REAL HARDWARE NEEDED: How does this behave when the number of char clocks per scanline is odd? --GM
+#define EGA_SR01_SHIFTLOAD0_SHIFT    2
+#define EGA_SR01_SHIFTLOAD0_ZERO     0
+#define EGA_SR01_SHIFTLOAD0_MASK     (((1 << 1) - 1) << 2)
+#define EGA_SR01_SHIFTLOAD0_WRITE(x) EGA_MAKE_WRITE(EGA_SR01_SHIFTLOAD0, x)
+#define EGA_SR01_SHIFTLOAD0_READ(x)  EGA_MAKE_READ(EGA_SR01_SHIFTLOAD0, x)
+#define EGA_SR01_SHIFTLOAD0_NORMAL   ((0b0) << 2)
+#define EGA_SR01_SHIFTLOAD0_DIV2     ((0b1) << 2)
+// SR01.3: Dot Clock
+// Clock divisor for generating the dot clock.
+#define EGA_SR01_DOTCLK_SHIFT    3
+#define EGA_SR01_DOTCLK_ZERO     0
+#define EGA_SR01_DOTCLK_MASK     (((1 << 1) - 1) << 3)
+#define EGA_SR01_DOTCLK_WRITE(x) EGA_MAKE_WRITE(EGA_SR01_DOTCLK, x)
+#define EGA_SR01_DOTCLK_READ(x)  EGA_MAKE_READ(EGA_SR01_DOTCLK, x)
+#define EGA_SR01_DOTCLK_NORMAL   ((0b0) << 3)
+#define EGA_SR01_DOTCLK_DIV2     ((0b1) << 3)
+// SR01 end
+#define EGA_SR01_MASK 0x0f
+
+// SR02.0-3: Map Mask
+// Setting a bit to 1 enables writes for its corresponding plane.
+#define EGA_SR02_MAPMASK_SHIFT    0
+#define EGA_SR02_MAPMASK_ZERO     0
+#define EGA_SR02_MAPMASK_MASK     (((1 << 4) - 1) << 0)
+#define EGA_SR02_MAPMASK_WRITE(x) EGA_MAKE_WRITE(EGA_SR02_MAPMASK, x)
+#define EGA_SR02_MAPMASK_READ(x)  EGA_MAKE_READ(EGA_SR02_MAPMASK, x)
+// SR02 end
+#define EGA_SR02_MASK 0x0f
+
+// SR03.0-1: Character Map Select B
+// Selects bits A14,A15 to be used for fetching the font when attr bit 3 is 1.
+#define EGA_SR03_MAPB0_SHIFT    0
+#define EGA_SR03_MAPB0_ZERO     0
+#define EGA_SR03_MAPB0_MASK     (((1 << 2) - 1) << 0)
+#define EGA_SR03_MAPB0_WRITE(x) EGA_MAKE_WRITE(EGA_SR03_MAPB0, x)
+#define EGA_SR03_MAPB0_READ(x)  EGA_MAKE_READ(EGA_SR03_MAPB0, x)
+// SR03.2-3: Character Map Select A
+// Selects bits A14,A15 to be used for fetching the font when attr bit 3 is 0.
+#define EGA_SR03_MAPA0_SHIFT    2
+#define EGA_SR03_MAPA0_ZERO     0
+#define EGA_SR03_MAPA0_MASK     (((1 << 2) - 1) << 2)
+#define EGA_SR03_MAPA0_WRITE(x) EGA_MAKE_WRITE(EGA_SR03_MAPA0, x)
+#define EGA_SR03_MAPA0_READ(x)  EGA_MAKE_READ(EGA_SR03_MAPA0, x)
+// SR03 end
+#define EGA_SR03_MASK 0x0f
+
+// SR04.0: Alpha (provides separate A14,A15 for planes 2 and 3)
+#define EGA_SR04_GRAPHICS_SHIFT    0
+#define EGA_SR04_GRAPHICS_ZERO     0
+#define EGA_SR04_GRAPHICS_MASK     (((1 << 1) - 1) << 0)
+#define EGA_SR04_GRAPHICS_WRITE(x) EGA_MAKE_WRITE(EGA_SR04_GRAPHICS, x)
+#define EGA_SR04_GRAPHICS_READ(x)  EGA_MAKE_READ(EGA_SR04_GRAPHICS, x)
+#define EGA_SR04_GRAPHICS_ON       ((0b0) << 0)
+#define EGA_SR04_GRAPHICS_OFF      ((0b1) << 0)
+// SR04.1: Extended Memory (lets A14,A15 be nonzero)
 // NOTE: On the actual IBM EGA card, these are not address pins, they're 4 chip select pins.
 #define EGA_SR04_EXTMEM_SHIFT    1
 #define EGA_SR04_EXTMEM_ZERO     0
@@ -306,7 +502,7 @@
 #define EGA_SR04_EXTMEM_READ(x)  EGA_MAKE_READ(EGA_SR04_EXTMEM, x)
 #define EGA_SR04_EXTMEM_OFF      ((0b0) << 1)
 #define EGA_SR04_EXTMEM_ON       ((0b1) << 1)
-// Odd/Even (for plane write enables)
+// SR04.2: Odd/Even (for plane write enables)
 #define EGA_SR04_ODDEVEN_SHIFT    2
 #define EGA_SR04_ODDEVEN_ZERO     0
 #define EGA_SR04_ODDEVEN_MASK     (((1 << 1) - 1) << 2)
@@ -734,7 +930,7 @@
 #define EGA_CR17_A13_MASK     (((1 << 1) - 1) << 0)
 #define EGA_CR17_A13_WRITE(x) EGA_MAKE_WRITE(EGA_CR17_A13, x)
 #define EGA_CR17_A13_READ(x)  EGA_MAKE_READ(EGA_CR17_A13, x)
-#define EGA_CR17_A13_ROW0     ((0b0, ) << 0)
+#define EGA_CR17_A13_ROW0     ((0b0) << 0)
 #define EGA_CR17_A13_NORMAL   ((0b1) << 0)
 
 // CR17.1: Select Row Scan Counter
@@ -746,7 +942,7 @@
 #define EGA_CR17_A14_MASK     (((1 << 1) - 1) << 1)
 #define EGA_CR17_A14_WRITE(x) EGA_MAKE_WRITE(EGA_CR17_A14, x)
 #define EGA_CR17_A14_READ(x)  EGA_MAKE_READ(EGA_CR17_A14, x)
-#define EGA_CR17_A14_ROW1     ((0b0, ) << 1)
+#define EGA_CR17_A14_ROW1     ((0b0) << 1)
 #define EGA_CR17_A14_NORMAL   ((0b1) << 1)
 
 // CR17.2: Horizontal Retrace Select
@@ -758,7 +954,7 @@
 #define EGA_CR17_VDIVIDE_MASK     (((1 << 1) - 1) << 2)
 #define EGA_CR17_VDIVIDE_WRITE(x) EGA_MAKE_WRITE(EGA_CR17_VDIVIDE, x)
 #define EGA_CR17_VDIVIDE_READ(x)  EGA_MAKE_READ(EGA_CR17_VDIVIDE, x)
-#define EGA_CR17_VDIVIDE_NORMAL   ((0b0, ) << 2)
+#define EGA_CR17_VDIVIDE_NORMAL   ((0b0) << 2)
 #define EGA_CR17_VDIVIDE_DIV2     ((0b1) << 2)
 
 // CR17.3: Count By Two
@@ -770,7 +966,7 @@
 #define EGA_CR17_ADDRDIVIDE0_MASK     (((1 << 1) - 1) << 3)
 #define EGA_CR17_ADDRDIVIDE0_WRITE(x) EGA_MAKE_WRITE(EGA_CR17_ADDRDIVIDE0, x)
 #define EGA_CR17_ADDRDIVIDE0_READ(x)  EGA_MAKE_READ(EGA_CR17_ADDRDIVIDE0, x)
-#define EGA_CR17_ADDRDIVIDE0_NORMAL   ((0b0, ) << 3)
+#define EGA_CR17_ADDRDIVIDE0_NORMAL   ((0b0) << 3)
 #define EGA_CR17_ADDRDIVIDE0_DIV2     ((0b1) << 3)
 
 // CR17.4: Output Control
@@ -781,7 +977,7 @@
 #define EGA_CR17_OUTCTRL_MASK         (((1 << 1) - 1) << 4)
 #define EGA_CR17_OUTCTRL_WRITE(x)     EGA_MAKE_WRITE(EGA_CR17_OUTCTRL, x)
 #define EGA_CR17_OUTCTRL_READ(x)      EGA_MAKE_READ(EGA_CR17_OUTCTRL, x)
-#define EGA_CR17_OUTCTRL_NORMAL       ((0b0, ) << 4)
+#define EGA_CR17_OUTCTRL_NORMAL       ((0b0) << 4)
 #define EGA_CR17_OUTCTRL_FLOATOUTPUTS ((0b1) << 4)
 
 // CR17.5: Address Wrap
@@ -793,7 +989,7 @@
 #define EGA_CR17_WRAPBIT_MASK     (((1 << 1) - 1) << 5)
 #define EGA_CR17_WRAPBIT_WRITE(x) EGA_MAKE_WRITE(EGA_CR17_WRAPBIT, x)
 #define EGA_CR17_WRAPBIT_READ(x)  EGA_MAKE_READ(EGA_CR17_WRAPBIT, x)
-#define EGA_CR17_WRAPBIT_A13      ((0b0, ) << 5)
+#define EGA_CR17_WRAPBIT_A13      ((0b0) << 5)
 #define EGA_CR17_WRAPBIT_A15      ((0b1) << 5)
 
 // CR17.6: Word Mode
@@ -804,7 +1000,7 @@
 #define EGA_CR17_ADDRSHIFT0_MASK     (((1 << 1) - 1) << 6)
 #define EGA_CR17_ADDRSHIFT0_WRITE(x) EGA_MAKE_WRITE(EGA_CR17_ADDRSHIFT0, x)
 #define EGA_CR17_ADDRSHIFT0_READ(x)  EGA_MAKE_READ(EGA_CR17_ADDRSHIFT0, x)
-#define EGA_CR17_ADDRSHIFT0_1        ((0b0, ) << 6)
+#define EGA_CR17_ADDRSHIFT0_1        ((0b0) << 6)
 #define EGA_CR17_ADDRSHIFT0_0        ((0b1) << 6)
 
 // CR17.7: Hardware Reset
@@ -815,7 +1011,7 @@
 #define EGA_CR17_RESET_MASK      (((1 << 1) - 1) << 7)
 #define EGA_CR17_RESET_WRITE(x)  EGA_MAKE_WRITE(EGA_CR17_RESET, x)
 #define EGA_CR17_RESET_READ(x)   EGA_MAKE_READ(EGA_CR17_RESET, x)
-#define EGA_CR17_RESET_RESETTING ((0b0, ) << 7)
+#define EGA_CR17_RESET_RESETTING ((0b0) << 7)
 #define EGA_CR17_RESET_NORMAL    ((0b1) << 7)
 // CR17 end
 #define EGA_CR17_MASK 0xff

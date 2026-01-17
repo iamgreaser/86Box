@@ -831,7 +831,7 @@ ega_io_out(uint16_t addr, uint8_t val, void *priv)
             switch (ega->sr.cpu_addr) {
                 // Map Mask
                 case 0x02:
-                    ega->sr.sr02_map_mask = val & 0x0F;
+                    ega->sr.sr02_map_mask = val & EGA_SR02_MASK;
                     break;
 
                 // Memory Mode (AFFECTS OUTPUT)
