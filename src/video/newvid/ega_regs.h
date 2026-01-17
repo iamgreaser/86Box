@@ -10,7 +10,7 @@
 #define EGA_MAKE_WRITE(_NAME, x) \
     (((((uint32_t) (x)) + _NAME##_ZERO) << _NAME##_SHIFT) & _NAME##_MASK)
 #define EGA_MAKE_READ(_NAME, x) \
-    (((((uint32_t) (x)) + (_NAME##_ZERO << _NAME##_SHIFT)) & _NAME##_MASK) >> _NAME##_SHIFT)
+    (((((uint32_t) (x)) - (_NAME##_ZERO << _NAME##_SHIFT)) & _NAME##_MASK) >> _NAME##_SHIFT)
 
 //
 // 03C2 W: Miscellaneous Output Register

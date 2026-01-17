@@ -52,7 +52,10 @@ struct ega_ar_t {
 struct ega_sr_t {
     uint8_t cpu_addr;
 
+    uint8_t sr00_reset;
+    uint8_t sr01_clocking_mode;
     uint8_t sr02_map_mask;
+    uint8_t sr03_character_map_select;
     uint8_t sr04_memory_mode;
 };
 
@@ -373,8 +376,29 @@ ega_tick_frame(void *priv)
     video_blit_memtoscreen(0, 0, xsize, ysize);
 
     // Refire after 1 frame
+    uint32_t htotal = ega->cr.htotal + 2;
+    uint32_t vtotal = ega->cr.vtotal;
+    uint32_t hdisp  = ega->cr.hdispend;
+    uint32_t vdisp  = ega->cr.vdispend + 1;
+
+    // Apply multipliers
+    htotal *= (ega->sr.sr01_clocking_mode & EGA_SR01_CHARCLK_MASK) == EGA_SR01_CHARCLK_9DOT ? 9 : 8;
+    htotal *= (ega->sr.sr01_clocking_mode & EGA_SR01_DOTCLK_MASK) == EGA_SR01_DOTCLK_DIV2 ? 2 : 1;
+    hdisp *= (ega->sr.sr01_clocking_mode & EGA_SR01_CHARCLK_MASK) == EGA_SR01_CHARCLK_9DOT ? 9 : 8;
+    hdisp *= (ega->sr.sr01_clocking_mode & EGA_SR01_DOTCLK_MASK) == EGA_SR01_DOTCLK_DIV2 ? 2 : 1;
+    vtotal *= ega->cr.vdivide;
+    vdisp *= ega->cr.vdivide;
+    // FIXME: THIS IS A KLUDGE - need to work out how to make this re-fire safely! --GM
+    if (htotal < 4) {
+        htotal = 320;
+    }
+    if (vtotal < 4) {
+        vtotal = 200;
+    }
+    // printf("total %u x %u (%u)\n", (unsigned int) htotal, (unsigned int) vtotal, EGA_W3C2_CLOCKSEL_READ(ega->misc_out_3c2));
+    // printf("disp %u x %u (%u)\n", (unsigned int) hdisp, (unsigned int) vdisp, EGA_W3C2_CLOCKSEL_READ(ega->misc_out_3c2));
     timer_on_auto(&ega->scan_timer,
-                  (1000000.0 * 912.0 * 260.0) / ega_clock_frequencies_hz[0]);
+                  (1000000.0 * (htotal * vtotal)) / ega_clock_frequencies_hz[EGA_W3C2_CLOCKSEL_READ(ega->misc_out_3c2) & 0b01]);
 }
 
 static void
@@ -866,9 +890,29 @@ ega_io_out(uint16_t addr, uint8_t val, void *priv)
         // 03C5 W: Data for Sequencer
         case 0x3C5:
             switch (ega->sr.cpu_addr) {
+                // Reset (AFFECTS OUTPUT)
+                case 0x00:
+                    ega_update_output(ega);
+                    ega->sr.sr00_reset = val & EGA_SR00_MASK;
+                    ega_update_screen_timings(ega);
+                    break;
+
+                // Clocking Mode (AFFECTS OUTPUT)
+                case 0x01:
+                    ega_update_output(ega);
+                    ega->sr.sr01_clocking_mode = val & EGA_SR01_MASK;
+                    ega_update_screen_timings(ega);
+                    break;
+
                 // Map Mask
                 case 0x02:
                     ega->sr.sr02_map_mask = val & EGA_SR02_MASK;
+                    break;
+
+                // Character Map Select (AFFECTS OUTPUT)
+                case 0x03:
+                    ega_update_output(ega);
+                    ega->sr.sr03_character_map_select = val & EGA_SR03_MASK;
                     break;
 
                 // Memory Mode (AFFECTS OUTPUT)

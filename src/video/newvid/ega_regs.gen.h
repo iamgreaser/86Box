@@ -8,10 +8,17 @@
 
 !boardprefix EGA
 // Helpers
+#if 1
+#define EGA_MAKE_WRITE(_NAME, x) \
+    ((((uint32_t) (x)) << _NAME##_SHIFT) & _NAME##_MASK)
+#define EGA_MAKE_READ(_NAME, x) \
+    ((((uint32_t) (x)) & _NAME##_MASK) >> _NAME##_SHIFT)
+#else
 #define EGA_MAKE_WRITE(_NAME, x) \
     (((((uint32_t) (x)) + _NAME##_ZERO) << _NAME##_SHIFT) & _NAME##_MASK)
 #define EGA_MAKE_READ(_NAME, x) \
-    (((((uint32_t) (x)) + (_NAME##_ZERO << _NAME##_SHIFT)) & _NAME##_MASK) >> _NAME##_SHIFT)
+    (((((uint32_t) (x)) - (_NAME##_ZERO << _NAME##_SHIFT)) & _NAME##_MASK) >> _NAME##_SHIFT)
+#endif
 
 //
 // 03C2 W: Miscellaneous Output Register
