@@ -25,6 +25,43 @@ extern "C" {
 
 static video_timings_t timing_ega = { .type = VIDEO_ISA, .write_b = 8, .write_w = 16, .write_l = 32, .read_b = 8, .read_w = 16, .read_l = 32 };
 
+// OK, this needs explanation.
+// In the real world, the monitor doesn't get physically wider when you set a wider graphics mode.
+// Now, there are two main types here based on the clock used:
+// - ~14 MHz, intended for 8-dot-wide text
+// - ~16 MHz, intended for 9-dot-wide text
+// Any mismatch is stretched or compacted horizontally as necessary.
+//
+// Suggestion:
+// - For accuracy, use monitor_type.
+// - For "pixel-perfect" screenshots, use character_clock.
+// - master_clock is somewhere in between, but it's feasible that stuff will be stretched in MDA graphics modes.
+enum class autowidth {
+    // autowidth::monitor_type:
+    // MDA monitors aim for 16 MHz.
+    // CGA and EGA monitors aim for 14 MHz.
+    // This is the most accurate type.
+    monitor_type = 0,
+
+    // autowidth::master_clock:
+    // After a blit, we check the master clock selection and use it as our natural width.
+    // As clock types 2 and 3 are not really used here, we'll ignore bit 1 and only use bit 0.
+    // So, if bit 0 is 0, assume ~14 MHz, and if bit 0 is 1, assume ~16 MHz.
+    master_clock = 1,
+
+    // autowidth::character_clock:
+    // After a blit, we check the sequencer char clock divisor and use it as our natural width.
+    character_clock = 2,
+
+    // autowidth::always_8:
+    // Assume ~14 MHz.
+    always_8 = 8,
+
+    // autowidth::always_9:
+    // Assume ~16 MHz.
+    always_9 = 9,
+};
+
 #define BIOS_IBM_PATH "roms/video/ega/ibm_6277356_ega_card_u44_27128.bin"
 
 // IMPORTANT REFERENCE: "OA - IBM Enhanced Graphics Adapter.pdf" - dated 1984-08-02.
@@ -334,7 +371,8 @@ ega_tick_frame(void *priv)
     if (vsyncend <= vsyncbeg) {
         vsyncend += 0x10;
     }
-    uint32_t vblankend = (vsyncend & ~0x1F) | ega->cr.vblankend;
+    // FIXME: Not sure exactly how this timing works but something seems wrong here! --GM
+    uint32_t vblankend = (vblankbeg & ~0x1F) | (ega->cr.vblankend & 0x1F);
     if (vblankend <= vblankbeg) {
         vblankend += 0x20;
     }
@@ -398,58 +436,88 @@ ega_tick_frame(void *priv)
         }
     }
 
-    uint32_t y         = 0;
-    uint32_t ymemaddr  = 0;
-    uint32_t ymemdelta = ega->cr.offset * 2;
-    uint32_t memy      = ega->cr.vfinescroll & 0x1F;
+    uint32_t y          = 0;
+    uint32_t ymemaddr   = 0;
+    uint32_t ymemdelta  = ega->cr.offset * 2;
+    uint32_t memy       = ega->cr.vfinescroll & 0x1F;
+    uint32_t xloadshift = ((ega->sr.sr01_clocking_mode & EGA_SR01_SHIFTLOAD0_MASK) == EGA_SR01_SHIFTLOAD0_DIV2) ? 1 : 0;
     for (uint32_t py = 0; py < ysize; py++) {
         if (y < vdisp) {
+            uint32_t xmemaddr = ymemaddr;
+            uint32_t data     = 0;
+            uint8_t  bg       = 0;
+            uint8_t  raw_fg   = 0;
+            uint32_t fontline = 0;
             for (uint32_t x = 0; x < htotal_chars; x++) {
                 if (x < hdisp_chars) {
-                    uint32_t vaddr = ymemaddr;
-                    vaddr += x;
+                    // Clock divisor for loading into the shift registers
+                    if ((x & ((1 << xloadshift) - 1)) == 0) {
+                        uint32_t vaddr = xmemaddr;
 
-                    // Odd/Even mode
-                    if (ega->cr.addrshift == 1) {
-                        vaddr = (vaddr << 1) | ((ymemaddr >> ega->cr.wrapbit) & 0b1);
-                    }
-
-                    // CGA + Hercules compat modes
-                    vaddr ^= (vaddr ^ (memy << 13)) & ((0b11 ^ ega->cr.a13_bits_from_scanline) << 13);
-
-                    uint32_t data = ega->vram_buf[vaddr];
-
-                    // Remap text mode
-                    uint8_t ch = (data >> 0) & 0xFF;
-                    // FIXME: Split the remapped address between SR04.0 and GR06.0.0 --GM
-                    if ((ega->gr.gr06_misc[0] & EGA_GR06_0_GRAPHICS_MASK) == EGA_GR06_0_GRAPHICS_OFF) {
-                        data = (data & 0xFFFF) | (ega->vram_buf[(((uint32_t) ch) << 5) | (memy & 0x1F)] & ~0xFFFF);
-                    }
-
-                    uint8_t  bg        = (data >> 12) & 0x0F;
-                    uint8_t  raw_fg    = (data >> 8) & 0x0F;
-                    uint32_t fontline  = (data >> 16) & 0xFF;
-                    if ((ega->ar.ar10_mode & EGA_AR10_9DOTLINES_MASK) == EGA_AR10_9DOTLINES_ON) {
-                        if ((ch & 0xE0) == 0xC0 && (fontline & 0x01) != 0b0) {
-                            fontline |= 0xFFFFFF00;
+                        // Odd/Even mode
+                        if (ega->cr.addrshift == 1) {
+                            vaddr = (vaddr << 1) | ((vaddr >> ega->cr.wrapbit) & 0b1);
                         }
-                    }
 
-                    // Remap 2x2-semichunky mode to planes
-                    if ((ega->gr.gr05_mode & EGA_GR05_SHIFTMODE_MASK) == EGA_GR05_SHIFTMODE_2X2) {
-                        uint32_t indata = data;
-                        data = 0;
-                        for (uint32_t sx = 0; sx < 8; sx++) {
-                            for (uint32_t i = 0; i < 4; i++) {
-                                if (((indata >> ((i>>1)*16 + ((sx*2)^0x8) + (i&0b01))) & 0b1) != 0) {
-                                    data |= (1 << (i*8 + sx));
+                        // CGA + Hercules compat modes
+                        vaddr ^= (vaddr ^ (memy << 13)) & ((0b11 ^ ega->cr.a13_bits_from_scanline) << 13);
+
+                        // 64 KB wrap
+                        if ((ega->sr.sr04_memory_mode & EGA_SR04_EXTMEM_MASK) == EGA_SR04_EXTMEM_OFF) {
+                            vaddr &= 0x3FFF;
+                        }
+
+                        data = ega->vram_buf[vaddr];
+
+                        // Remap text mode
+                        uint8_t ch = (data >> 0) & 0xFF;
+                        if ((ega->gr.gr06_misc[0] & EGA_GR06_0_GRAPHICS_MASK) == EGA_GR06_0_GRAPHICS_OFF) {
+                            uint32_t vaddr2 = (((uint32_t) ch) << 5) | (memy & 0x1F);
+
+                            // A14 and A15 are handled by the Sequencer.
+                            vaddr2 &= 0x3FFF;
+
+                            // Font selection
+                            if ((ega->sr.sr04_memory_mode & EGA_SR04_EXTMEM_MASK) == EGA_SR04_EXTMEM_ON) {
+                                if ((data & (1 << (8 + 3))) == 0) {
+                                    // Map A
+                                    vaddr2 |= EGA_SR03_MAPA0_READ(ega->sr.sr03_character_map_select) << 14;
+                                } else {
+                                    // Map B
+                                    vaddr2 |= EGA_SR03_MAPB0_READ(ega->sr.sr03_character_map_select) << 14;
+                                }
+                            }
+
+                            data = (data & 0xFFFF) | (ega->vram_buf[vaddr2] & ~0xFFFF);
+                        }
+
+                        bg       = (data >> 12) & 0x0F;
+                        raw_fg   = (data >> 8) & 0x0F;
+                        fontline = (data >> 16) & 0xFF;
+                        if ((ega->ar.ar10_mode & EGA_AR10_9DOTLINES_MASK) == EGA_AR10_9DOTLINES_ON) {
+                            if ((ch & 0xE0) == 0xC0 && (fontline & 0x01) != 0b0) {
+                                fontline |= 0xFFFFFF00;
+                            }
+                        }
+
+                        // Remap 2x2-semichunky mode to planes
+                        if ((ega->gr.gr05_mode & EGA_GR05_SHIFTMODE_MASK) == EGA_GR05_SHIFTMODE_2X2) {
+                            uint32_t indata = data;
+                            data            = 0;
+                            for (uint32_t sx = 0; sx < 8; sx++) {
+                                for (uint32_t i = 0; i < 4; i++) {
+                                    if (((indata >> ((i >> 1) * 16 + ((sx * 2) ^ 0x8) + (i & 0b01))) & 0b1) != 0) {
+                                        data |= (1 << (i * 8 + sx));
+                                    }
                                 }
                             }
                         }
+
+                        xmemaddr += 1;
                     }
 
                     for (uint32_t sx = 0; sx < char_width; sx++) {
-                        uint8_t c = 0;
+                        uint8_t c  = 0;
                         uint8_t fg = 0;
 
                         // Handle GR06 graphics flag
@@ -485,6 +553,9 @@ ega_tick_frame(void *priv)
 
                         buffer32->line[y][(x * char_width) + sx] = pal[ega->ar.pal[c]];
                     }
+
+                    data = (data >> 8) & 0x00FF00FF;
+                    data |= 0xFF00FF00;
                 } else {
                     uint32_t c;
                     if (x < hblankbeg) {
@@ -602,7 +673,10 @@ ega_cpu_addr_to_vaddr(ega_t *ega, uint32_t addr)
         }
     }
 
-    // TODO: 64 KB wrap when set up in the sequencer --GM
+    // 64 KB wrap
+    if ((ega->sr.sr04_memory_mode & EGA_SR04_EXTMEM_MASK) == EGA_SR04_EXTMEM_OFF) {
+        vaddr &= 0x3FFF;
+    }
 
     return vaddr;
 }
@@ -1372,6 +1446,24 @@ static const device_config_t ega_config[] = {
             { .description = "0x3C0", .value = 0x03c0 },
             { .description = "0x2C0", .value = 0x02c0 },
             { .description = ""                       }
+        },
+        .bios           = { { 0 } }
+    },
+    {
+        .name           = "monitor_autowidth",
+        .description    = "Natural monitor width selection",
+        .type           = CONFIG_SELECTION,
+        .default_string = NULL,
+        .default_int    = (int)autowidth::monitor_type,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = {
+            { .description = "Monitor type (MDA vs CGA, EGA)",    .value = (int)autowidth::monitor_type },
+            { .description = "Master clock frequency (W3C2.2-3)", .value = (int)autowidth::master_clock },
+            { .description = "Character clock divisor (SR01.3)",  .value = (int)autowidth::character_clock },
+            { .description = "Always 8-dot (~14 MHz)",            .value = (int)autowidth::always_8 },
+            { .description = "Always 9-dot (~16 MHz)",            .value = (int)autowidth::always_9 },
+            { .description = "" }
         },
         .bios           = { { 0 } }
     },
