@@ -406,7 +406,7 @@ ega_tick_frame(void *priv)
     // printf("total %u x %u (%u)\n", (unsigned int) htotal, (unsigned int) vtotal, EGA_W3C2_CLOCKSEL_READ(ega->misc_out_3c2));
     // printf("disp %u x %u (%u)\n", (unsigned int) hdisp, (unsigned int) vdisp, EGA_W3C2_CLOCKSEL_READ(ega->misc_out_3c2));
 
-    if (htotal != xsize || vtotal != ysize || video_force_resize_get()) {
+    if (htotal != (uint32_t)xsize || vtotal != (uint32_t)ysize || video_force_resize_get()) {
         printf("h %03X %03X %03X %03X %03X %03X\n", hdisp_chars, hblankbeg, hsyncbeg, hsyncend, hblankend, htotal_chars);
         printf("v %03X %03X %03X %03X %03X %03X\n", vdisp, vblankbeg, vsyncbeg, vsyncend, vblankend, vtotal);
         xsize = htotal;
@@ -441,7 +441,7 @@ ega_tick_frame(void *priv)
     uint32_t ymemdelta  = ega->cr.offset * 2;
     uint32_t memy       = ega->cr.vfinescroll & 0x1F;
     uint32_t xloadshift = ((ega->sr.sr01_clocking_mode & EGA_SR01_SHIFTLOAD0_MASK) == EGA_SR01_SHIFTLOAD0_DIV2) ? 1 : 0;
-    for (uint32_t py = 0; py < ysize; py++) {
+    for (uint32_t py = 0; py < (uint32_t)ysize; py++) {
         if (y < vdisp) {
             uint32_t xmemaddr = ymemaddr;
             uint32_t data     = 0;
