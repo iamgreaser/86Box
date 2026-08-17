@@ -436,11 +436,19 @@ ega_tick_frame(void *priv)
         }
     }
 
-    uint32_t y          = 0;
-    uint32_t ymemaddr   = 0;
-    uint32_t ymemdelta  = ega->cr.offset * 2;
-    uint32_t memy       = ega->cr.vfinescroll & 0x1F;
-    uint32_t xloadshift = ((ega->sr.sr01_clocking_mode & EGA_SR01_SHIFTLOAD0_MASK) == EGA_SR01_SHIFTLOAD0_DIV2) ? 1 : 0;
+    uint32_t memaddrmask;
+    if ((ega->sr.sr04_memory_mode & EGA_SR04_EXTMEM_MASK) == EGA_SR04_EXTMEM_OFF) {
+        // 64 KB wrap
+        memaddrmask = 0x3FFF;
+    } else {
+        // 256 KB wrap
+        memaddrmask = 0xFFFF;
+    }
+    uint32_t y           = 0;
+    uint32_t ymemaddr    = ega->cr.start_vaddr;
+    uint32_t ymemdelta   = ega->cr.offset * 2;
+    uint32_t memy        = ega->cr.vfinescroll & 0x1F;
+    uint32_t xloadshift  = ((ega->sr.sr01_clocking_mode & EGA_SR01_SHIFTLOAD0_MASK) == EGA_SR01_SHIFTLOAD0_DIV2) ? 1 : 0;
     for (uint32_t py = 0; py < (uint32_t)ysize; py++) {
         if (y < vdisp) {
             uint32_t xmemaddr = ymemaddr;
@@ -461,11 +469,7 @@ ega_tick_frame(void *priv)
 
                         // CGA + Hercules compat modes
                         vaddr ^= (vaddr ^ (memy << 13)) & ((0b11 ^ ega->cr.a13_bits_from_scanline) << 13);
-
-                        // 64 KB wrap
-                        if ((ega->sr.sr04_memory_mode & EGA_SR04_EXTMEM_MASK) == EGA_SR04_EXTMEM_OFF) {
-                            vaddr &= 0x3FFF;
-                        }
+                        vaddr &= memaddrmask;
 
                         data = ega->vram_buf[vaddr];
 
