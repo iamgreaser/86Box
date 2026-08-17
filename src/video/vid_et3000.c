@@ -496,8 +496,7 @@ et3000_init(const device_t *info)
     const char *fn;
     et3000_t   *dev;
 
-    dev = (et3000_t *) malloc(sizeof(et3000_t));
-    memset(dev, 0x00, sizeof(et3000_t));
+    dev = (et3000_t *) calloc(1, sizeof(et3000_t));
     dev->name = info->name;
     dev->type = info->local;
     fn        = BIOS_ROM_PATH;
@@ -524,6 +523,8 @@ et3000_init(const device_t *info)
 
     dev->svga.packed_chain4 = 1;
     dev->svga.line_compare  = et3000_line_compare;
+
+    dev->svga.adv_flags    |= FLAG_EXT_AR;
 
     return dev;
 }

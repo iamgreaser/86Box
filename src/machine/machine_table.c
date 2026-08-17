@@ -12,9 +12,9 @@
  *          Fred N. van Kempen, <decwiz@yahoo.com>
  *          Jasmine Iwanek, <jriwanek@gmail.com>
  *
- *          Copyright 2016-2025 Miran Grca.
+ *          Copyright 2016-2026 Miran Grca.
  *          Copyright 2017-2025 Fred N. van Kempen.
- *          Copyright 2025      Jasmine Iwanek.
+ *          Copyright 2025-2026 Jasmine Iwanek.
  */
 #include <stdio.h>
 #include <stdint.h>
@@ -30,43 +30,47 @@
 #include <86box/fdd.h>
 #include <86box/fdc.h>
 #include <86box/keyboard.h>
+#include <86box/nvr.h>
 #include <86box/sio.h>
 #include <86box/sound.h>
+#include <86box/snd_ac97.h>
 #include <86box/video.h>
 #include <86box/vid_cga.h>
+#include <86box/vid_mcga.h>
 #include <86box/plat_unused.h>
 #include <86box/thread.h>
 #include <86box/network.h>
 #include <86box/machine.h>
 
 const machine_filter_t machine_types[] = {
-    { "None",                             MACHINE_TYPE_NONE       },
-    { "[1979] 8088",                      MACHINE_TYPE_8088       },
-    { "[1978] 8086",                      MACHINE_TYPE_8086       },
-    { "[1982] 80286",                     MACHINE_TYPE_286        },
-    { "[1988] i386SX",                    MACHINE_TYPE_386SX      },
-    { "[1988] ALi M6117",                 MACHINE_TYPE_M6117      },
-    { "[1992] 486SLC",                    MACHINE_TYPE_486SLC     },
-    { "[1985] i386DX",                    MACHINE_TYPE_386DX      },
-    { "[1989] i386DX/i486",               MACHINE_TYPE_386DX_486  },
-    { "[1989] i486 (Socket 168 and 1)",   MACHINE_TYPE_486        },
-    { "[1992] i486 (Socket 2)",           MACHINE_TYPE_486_S2     },
-    { "[1994] i486 (Socket 3)",           MACHINE_TYPE_486_S3     },
-    { "[1994] i486 (Socket 3 PCI)",       MACHINE_TYPE_486_S3_PCI },
-    { "[1992] i486 (Miscellaneous)",      MACHINE_TYPE_486_MISC   },
-    { "[1993] Socket 4",                  MACHINE_TYPE_SOCKET4    },
-    { "[1994] Socket 4/5",                MACHINE_TYPE_SOCKET4_5  },
-    { "[1994] Socket 5",                  MACHINE_TYPE_SOCKET5    },
-    { "[1995] Socket 7 (Single Voltage)", MACHINE_TYPE_SOCKET7_3V },
-    { "[1996] Socket 7 (Dual Voltage)",   MACHINE_TYPE_SOCKET7    },
-    { "[1998] Super Socket 7",            MACHINE_TYPE_SOCKETS7   },
-    { "[1995] Socket 8",                  MACHINE_TYPE_SOCKET8    },
-    { "[1997] Slot 1",                    MACHINE_TYPE_SLOT1      },
-    { "[1998] Slot 1/2",                  MACHINE_TYPE_SLOT1_2    },
-    { "[1998] Slot 1/Socket 370",         MACHINE_TYPE_SLOT1_370  },
-    { "[1998] Slot 2",                    MACHINE_TYPE_SLOT2      },
-    { "[1998] Socket 370",                MACHINE_TYPE_SOCKET370  },
-    { "Miscellaneous",                    MACHINE_TYPE_MISC       }
+    { "None",                             MACHINE_TYPE_NONE        },
+    { "[1979] 8088",                      MACHINE_TYPE_8088        },
+    { "[1978] 8086",                      MACHINE_TYPE_8086        },
+    { "[1982] 80286",                     MACHINE_TYPE_286         },
+    { "[1988] i386SX",                    MACHINE_TYPE_386SX       },
+    { "[1997] ALi M6117",                 MACHINE_TYPE_M6117       },
+    { "[1992] 486SLC",                    MACHINE_TYPE_486SLC      },
+    { "[1985] i386DX",                    MACHINE_TYPE_386DX       },
+    { "[1989] i386DX/i486",               MACHINE_TYPE_386DX_486   },
+    { "[1989] Socket 168/1",              MACHINE_TYPE_SOCKET1     },
+    { "[1992] Socket 2",                  MACHINE_TYPE_SOCKET2     },
+    { "[1994] Socket 3",                  MACHINE_TYPE_SOCKET3     },
+    { "[1994] Socket 3 (PCI)",            MACHINE_TYPE_SOCKET3_PCI },
+    { "[1999] STMicroelectronics STPC",   MACHINE_TYPE_STPC        },
+    { "[1993] Socket 3/4",                MACHINE_TYPE_SOCKET3_4   },
+    { "[1993] Socket 4",                  MACHINE_TYPE_SOCKET4     },
+    { "[1994] Socket 4/5",                MACHINE_TYPE_SOCKET4_5   },
+    { "[1994] Socket 5",                  MACHINE_TYPE_SOCKET5     },
+    { "[1995] Socket 7 (Single Voltage)", MACHINE_TYPE_SOCKET7_3V  },
+    { "[1996] Socket 7 (Dual Voltage)",   MACHINE_TYPE_SOCKET7     },
+    { "[1998] Super Socket 7",            MACHINE_TYPE_SOCKETS7    },
+    { "[1995] Socket 8",                  MACHINE_TYPE_SOCKET8     },
+    { "[1997] Slot 1",                    MACHINE_TYPE_SLOT1       },
+    { "[1998] Slot 1/2",                  MACHINE_TYPE_SLOT1_2     },
+    { "[1998] Slot 1/Socket 370",         MACHINE_TYPE_SLOT1_370   },
+    { "[1998] Slot 2",                    MACHINE_TYPE_SLOT2       },
+    { "[1998] Socket 370",                MACHINE_TYPE_SOCKET370   },
+    { "Miscellaneous",                    MACHINE_TYPE_MISC        }
 };
 
 const machine_filter_t machine_chipsets[] = {
@@ -126,7 +130,10 @@ const machine_filter_t machine_chipsets[] = {
     { "OPTi 498",                   MACHINE_CHIPSET_OPTI_498            },
     { "OPTi 499",                   MACHINE_CHIPSET_OPTI_499            },
     { "OPTi 895/802G",              MACHINE_CHIPSET_OPTI_895_802G       },
-    { "OPTi 547/597",               MACHINE_CHIPSET_OPTI_547_597        },
+    { "OPTi 547",                   MACHINE_CHIPSET_OPTI_547            },
+    { "OPTi 571",                   MACHINE_CHIPSET_OPTI_571            },
+    { "OPTi 597",                   MACHINE_CHIPSET_OPTI_597            },
+    { "OPTi Viper",                 MACHINE_CHIPSET_OPTI_VIPER          },
     { "SARC RC2016A",               MACHINE_CHIPSET_SARC_RC2016A        },
     { "SiS 310",                    MACHINE_CHIPSET_SIS_310             },
     { "SiS 401",                    MACHINE_CHIPSET_SIS_401             },
@@ -225,16 +232,20 @@ const machine_t machines[] = {
         .default_jumpered_ecp_dma = -1,
         .kbc_device               = &kbc_pc_device,
         .kbc_params               = 0x00000000,
+        .nvr_device               = NULL,
+        .nvr_params               = 0x00000000,
+        .sio_device               = NULL,
+        .sio_params               = 0x00000000,
         .kbc_p1                   = 0xff,
         .gpio                     = 0xffffffff,
         .gpio_acpi                = 0xffffffff,
         .device                   = &ibmpc_device,
         .kbd_device               = &keyboard_pc_xt_device,
         .fdc_device               = NULL,
-        .sio_device               = NULL,
         .vid_device               = NULL,
         .snd_device               = NULL,
-        .net_device               = NULL
+        .net_device               = NULL,
+        .aliases                  = { "" }
     },
     {
         .name              = "[8088] IBM PC (1982)",
@@ -268,16 +279,20 @@ const machine_t machines[] = {
         .default_jumpered_ecp_dma = -1,
         .kbc_device               = &kbc_pc82_device,
         .kbc_params               = 0x00000000,
+        .nvr_device               = NULL,
+        .nvr_params               = 0x00000000,
+        .sio_device               = NULL,
+        .sio_params               = 0x00000000,
         .kbc_p1                   = 0xff,
         .gpio                     = 0xffffffff,
         .gpio_acpi                = 0xffffffff,
         .device                   = &ibmpc82_device,
         .kbd_device               = &keyboard_pc_xt_device,
         .fdc_device               = NULL,
-        .sio_device               = NULL,
         .vid_device               = NULL,
         .snd_device               = NULL,
-        .net_device               = NULL
+        .net_device               = NULL,
+        .aliases                  = { "" }
     },
     {
         .name              = "[8088] IBM PCjr",
@@ -311,16 +326,20 @@ const machine_t machines[] = {
         .default_jumpered_ecp_dma = -1,
         .kbc_device               = NULL, /* TODO: No specific kbd_device yet */
         .kbc_params               = 0x00000000,
+        .nvr_device               = NULL,
+        .nvr_params               = 0x00000000,
+        .sio_device               = NULL,
+        .sio_params               = 0x00000000,
         .kbc_p1                   = 0xff,
         .gpio                     = 0xffffffff,
         .gpio_acpi                = 0xffffffff,
         .device                   = NULL,
         .kbd_device               = NULL,
         .fdc_device               = &fdc_pcjr_device,
-        .sio_device               = NULL,
         .vid_device               = &pcjr_device,
         .snd_device               = NULL,
-        .net_device               = NULL
+        .net_device               = NULL,
+        .aliases                  = { "" }
     },
     {
         .name              = "[8088] IBM XT (1982)",
@@ -354,16 +373,71 @@ const machine_t machines[] = {
         .default_jumpered_ecp_dma = -1,
         .kbc_device               = &kbc_xt_device,
         .kbc_params               = 0x00000000,
+        .nvr_device               = NULL,
+        .nvr_params               = 0x00000000,
+        .sio_device               = NULL,
+        .sio_params               = 0x00000000,
         .kbc_p1                   = 0xff,
         .gpio                     = 0xffffffff,
         .gpio_acpi                = 0xffffffff,
         .device                   = &ibmxt_device,
         .kbd_device               = &keyboard_pc_xt_device,
         .fdc_device               = NULL,
-        .sio_device               = NULL,
         .vid_device               = NULL,
         .snd_device               = NULL,
-        .net_device               = NULL
+        .net_device               = NULL,
+        .aliases                  = { "" }
+    },
+    /* The IBM 3270 PC is an XT planar carrying the 3270 display adapter and
+       keyboard controller cards.  The adapter provides its own video BIOS, so
+       the planar video switches must read as neither MDA nor CGA -- the card
+       reports VIDEO_FLAG_TYPE_SPECIAL to arrange that. */
+    {
+        .name              = "[8088] IBM 3270 PC",
+        .internal_name     = "ibm3270pc",
+        .type              = MACHINE_TYPE_8088,
+        .chipset           = MACHINE_CHIPSET_DISCRETE,
+        .init              = machine_xt_ibm3270pc_init,
+        .p1_handler        = NULL,
+        .gpio_handler      = NULL,
+        .available_flag    = MACHINE_AVAILABLE,
+        .gpio_acpi_handler = NULL,
+        .cpu               = {
+            .package     = CPU_PKG_8088,
+            .block       = CPU_BLOCK_NONE,
+            .min_bus     = 0,
+            .max_bus     = 0,
+            .min_voltage = 0,
+            .max_voltage = 0,
+            .min_multi   = 0,
+            .max_multi   = 0
+        },
+        .bus_flags = MACHINE_PC,
+        .flags     = MACHINE_VIDEO_FIXED,
+        .ram       = {
+            .min  = 64,
+            .max  = 640,
+            .step = 64
+        },
+        .nvrmask                  = 0,
+        .jumpered_ecp_dma         = 0,
+        .default_jumpered_ecp_dma = -1,
+        .kbc_device               = &kbc_xt_device,
+        .kbc_params               = 0x00000000,
+        .nvr_device               = NULL,
+        .nvr_params               = 0x00000000,
+        .sio_device               = NULL,
+        .sio_params               = 0x00000000,
+        .kbc_p1                   = 0xff,
+        .gpio                     = 0xffffffff,
+        .gpio_acpi                = 0xffffffff,
+        .device                   = NULL,
+        .kbd_device               = &keyboard_pc_xt_device,
+        .fdc_device               = NULL,
+        .vid_device               = &ibm3270pc_vid_device,
+        .snd_device               = NULL,
+        .net_device               = NULL,
+        .aliases                  = { "IBM 5271", "" }
     },
     {
         .name              = "[8088] IBM XT (1986)",
@@ -397,16 +471,20 @@ const machine_t machines[] = {
         .default_jumpered_ecp_dma = -1,
         .kbc_device               = &kbc_xt86_device,
         .kbc_params               = 0x00000000,
+        .nvr_device               = NULL,
+        .nvr_params               = 0x00000000,
+        .sio_device               = NULL,
+        .sio_params               = 0x00000000,
         .kbc_p1                   = 0xff,
         .gpio                     = 0xffffffff,
         .gpio_acpi                = 0xffffffff,
         .device                   = &ibmxt86_device,
         .kbd_device               = &keyboard_pc_xt_device,
         .fdc_device               = NULL,
-        .sio_device               = NULL,
         .vid_device               = NULL,
         .snd_device               = NULL,
-        .net_device               = NULL
+        .net_device               = NULL,
+        .aliases                  = { "" }
     },
     {
         .name              = "[8088] American XT Computer",
@@ -440,16 +518,20 @@ const machine_t machines[] = {
         .default_jumpered_ecp_dma = -1,
         .kbc_device               = &kbc_xtclone_device,
         .kbc_params               = 0x00000000,
+        .nvr_device               = NULL,
+        .nvr_params               = 0x00000000,
+        .sio_device               = NULL,
+        .sio_params               = 0x00000000,
         .kbc_p1                   = 0xff,
         .gpio                     = 0xffffffff,
         .gpio_acpi                = 0xffffffff,
         .device                   = NULL,
         .kbd_device               = &keyboard_pc_xt_device,
         .fdc_device               = NULL,
-        .sio_device               = NULL,
         .vid_device               = NULL,
         .snd_device               = NULL,
-        .net_device               = NULL
+        .net_device               = NULL,
+        .aliases                  = { "" }
     },
     {
         .name              = "[8088] AMI XT clone",
@@ -483,16 +565,20 @@ const machine_t machines[] = {
         .default_jumpered_ecp_dma = -1,
         .kbc_device               = &kbc_xtclone_device,
         .kbc_params               = 0x00000000,
+        .nvr_device               = NULL,
+        .nvr_params               = 0x00000000,
+        .sio_device               = NULL,
+        .sio_params               = 0x00000000,
         .kbc_p1                   = 0xff,
         .gpio                     = 0xffffffff,
         .gpio_acpi                = 0xffffffff,
         .device                   = NULL,
         .kbd_device               = &keyboard_pc_xt_device,
         .fdc_device               = NULL,
-        .sio_device               = NULL,
         .vid_device               = NULL,
         .snd_device               = NULL,
-        .net_device               = NULL
+        .net_device               = NULL,
+        .aliases                  = { "" }
     },
     {
         .name              = "[8088] Atari PC 3",
@@ -526,16 +612,20 @@ const machine_t machines[] = {
         .default_jumpered_ecp_dma = -1,
         .kbc_device               = &kbc_xtclone_device,
         .kbc_params               = 0x00000000,
+        .nvr_device               = NULL,
+        .nvr_params               = 0x00000000,
+        .sio_device               = NULL,
+        .sio_params               = 0x00000000,
         .kbc_p1                   = 0xff,
         .gpio                     = 0xffffffff,
         .gpio_acpi                = 0xffffffff,
         .device                   = NULL,
         .kbd_device               = &keyboard_pc_xt_device,
         .fdc_device               = NULL,
-        .sio_device               = NULL,
         .vid_device               = NULL,
         .snd_device               = NULL,
-        .net_device               = NULL
+        .net_device               = NULL,
+        .aliases                  = { "" }
     },
     {
         .name              = "[8088] Bondwell BW230",
@@ -569,19 +659,23 @@ const machine_t machines[] = {
         .default_jumpered_ecp_dma = -1,
         .kbc_device               = &kbc_xtclone_device,
         .kbc_params               = 0x00000000,
+        .nvr_device               = NULL,
+        .nvr_params               = 0x00000000,
+        .sio_device               = NULL,
+        .sio_params               = 0x00000000,
         .kbc_p1                   = 0xff,
         .gpio                     = 0xffffffff,
         .gpio_acpi                = 0xffffffff,
         .device                   = NULL,
         .kbd_device               = &keyboard_pc_xt_device,
         .fdc_device               = NULL,
-        .sio_device               = NULL,
         .vid_device               = NULL,
         .snd_device               = NULL,
-        .net_device               = NULL
+        .net_device               = NULL,
+        .aliases                  = { "" }
     },
     {
-        .name              = "[8088] Columbia Data Products MPC-1600",
+        .name              = "[8088] CDP MPC-1600",
         .internal_name     = "mpc1600",
         .type              = MACHINE_TYPE_8088,
         .chipset           = MACHINE_CHIPSET_DISCRETE,
@@ -612,16 +706,20 @@ const machine_t machines[] = {
         .default_jumpered_ecp_dma = -1,
         .kbc_device               = &kbc_pc82_device,
         .kbc_params               = 0x00000000,
+        .nvr_device               = NULL,
+        .nvr_params               = 0x00000000,
+        .sio_device               = NULL,
+        .sio_params               = 0x00000000,
         .kbc_p1                   = 0xff,
         .gpio                     = 0xffffffff,
         .gpio_acpi                = 0xffffffff,
         .device                   = NULL,
         .kbd_device               = &keyboard_pc_xt_device,
         .fdc_device               = NULL,
-        .sio_device               = NULL,
         .vid_device               = NULL,
         .snd_device               = NULL,
-        .net_device               = NULL
+        .net_device               = NULL,
+        .aliases                  = { "Columbia Data Products MPC-1600", "" }
     },
     {
         .name              = "[8088] Compaq Portable",
@@ -655,16 +753,20 @@ const machine_t machines[] = {
         .default_jumpered_ecp_dma = -1,
         .kbc_device               = &kbc_xt_compaq_device,
         .kbc_params               = 0x00000000,
+        .nvr_device               = NULL,
+        .nvr_params               = 0x00000000,
+        .sio_device               = NULL,
+        .sio_params               = 0x00000000,
         .kbc_p1                   = 0xff,
         .gpio                     = 0xffffffff,
         .gpio_acpi                = 0xffffffff,
         .device                   = NULL,
         .kbd_device               = NULL,
         .fdc_device               = NULL,
-        .sio_device               = NULL,
         .vid_device               = NULL,
         .snd_device               = NULL,
-        .net_device               = NULL
+        .net_device               = NULL,
+        .aliases                  = { "Compaq Portable Plus", "" }
     },
     {
         .name              = "[8088] DTK PIM-TB10-Z",
@@ -698,16 +800,20 @@ const machine_t machines[] = {
         .default_jumpered_ecp_dma = -1,
         .kbc_device               = &kbc_xtclone_device,
         .kbc_params               = 0x00000000,
+        .nvr_device               = NULL,
+        .nvr_params               = 0x00000000,
+        .sio_device               = NULL,
+        .sio_params               = 0x00000000,
         .kbc_p1                   = 0xff,
         .gpio                     = 0xffffffff,
         .gpio_acpi                = 0xffffffff,
         .device                   = &dtk_device,
         .kbd_device               = &keyboard_pc_xt_device,
         .fdc_device               = NULL,
-        .sio_device               = NULL,
         .vid_device               = NULL,
         .snd_device               = NULL,
-        .net_device               = NULL
+        .net_device               = NULL,
+        .aliases                  = { "" }
     },
     {
         .name              = "[8088] Eagle PC Spirit",
@@ -741,16 +847,20 @@ const machine_t machines[] = {
         .default_jumpered_ecp_dma = -1,
         .kbc_device               = &kbc_pc82_device,
         .kbc_params               = 0x00000000,
+        .nvr_device               = NULL,
+        .nvr_params               = 0x00000000,
+        .sio_device               = NULL,
+        .sio_params               = 0x00000000,
         .kbc_p1                   = 0xff,
         .gpio                     = 0xffffffff,
         .gpio_acpi                = 0xffffffff,
         .device                   = NULL,
         .kbd_device               = &keyboard_pc_xt_device,
         .fdc_device               = NULL,
-        .sio_device               = NULL,
         .vid_device               = NULL,
         .snd_device               = NULL,
-        .net_device               = NULL
+        .net_device               = NULL,
+        .aliases                  = { "" }
     },
     {
         .name              = "[8088] Generic XT clone",
@@ -784,16 +894,20 @@ const machine_t machines[] = {
         .default_jumpered_ecp_dma = -1,
         .kbc_device               = &kbc_xt_device,
         .kbc_params               = 0x00000000,
+        .nvr_device               = NULL,
+        .nvr_params               = 0x00000000,
+        .sio_device               = NULL,
+        .sio_params               = 0x00000000,
         .kbc_p1                   = 0xff,
         .gpio                     = 0xffffffff,
         .gpio_acpi                = 0xffffffff,
         .device                   = NULL,
         .kbd_device               = &keyboard_pc_xt_device,
         .fdc_device               = NULL,
-        .sio_device               = NULL,
         .vid_device               = NULL,
         .snd_device               = NULL,
-        .net_device               = NULL
+        .net_device               = NULL,
+        .aliases                  = { "" }
     },
     {
         .name              = "[8088] GLaBIOS",
@@ -827,16 +941,20 @@ const machine_t machines[] = {
         .default_jumpered_ecp_dma = -1,
         .kbc_device               = &kbc_xt_device,
         .kbc_params               = 0x00000000,
+        .nvr_device               = NULL,
+        .nvr_params               = 0x00000000,
+        .sio_device               = NULL,
+        .sio_params               = 0x00000000,
         .kbc_p1                   = 0xff,
         .gpio                     = 0xffffffff,
         .gpio_acpi                = 0xffffffff,
         .device                   = NULL,
         .kbd_device               = &keyboard_pc_xt_device,
         .fdc_device               = NULL,
-        .sio_device               = NULL,
         .vid_device               = NULL,
         .snd_device               = NULL,
-        .net_device               = NULL
+        .net_device               = NULL,
+        .aliases                  = { "" }
     },
     {
         .name              = "[8088] Hyosung Topstar 88T",
@@ -870,16 +988,20 @@ const machine_t machines[] = {
         .default_jumpered_ecp_dma = -1,
         .kbc_device               = &kbc_xtclone_device,
         .kbc_params               = 0x00000000,
+        .nvr_device               = NULL,
+        .nvr_params               = 0x00000000,
+        .sio_device               = NULL,
+        .sio_params               = 0x00000000,
         .kbc_p1                   = 0xff,
         .gpio                     = 0xffffffff,
         .gpio_acpi                = 0xffffffff,
         .device                   = NULL,
         .kbd_device               = &keyboard_pc_xt_device,
         .fdc_device               = &fdc_xt_device,
-        .sio_device               = NULL,
         .vid_device               = NULL,
         .snd_device               = NULL,
-        .net_device               = NULL
+        .net_device               = NULL,
+        .aliases                  = { "" }
     },
     {
         .name              = "[8088] Hyundai SUPER-16T",
@@ -913,16 +1035,20 @@ const machine_t machines[] = {
         .default_jumpered_ecp_dma = -1,
         .kbc_device               = &kbc_xtclone_device,
         .kbc_params               = 0x00000000,
+        .nvr_device               = NULL,
+        .nvr_params               = 0x00000000,
+        .sio_device               = NULL,
+        .sio_params               = 0x00000000,
         .kbc_p1                   = 0xff,
         .gpio                     = 0xffffffff,
         .gpio_acpi                = 0xffffffff,
         .device                   = NULL,
         .kbd_device               = &keyboard_pc_xt_device,
         .fdc_device               = &fdc_xt_device,
-        .sio_device               = NULL,
         .vid_device               = NULL,
         .snd_device               = NULL,
-        .net_device               = NULL
+        .net_device               = NULL,
+        .aliases                  = { "" }
     },
     {
         .name              = "[8088] Hyundai SUPER-16TE",
@@ -956,16 +1082,20 @@ const machine_t machines[] = {
         .default_jumpered_ecp_dma = -1,
         .kbc_device               = &kbc_xtclone_device,
         .kbc_params               = 0x00000000,
+        .nvr_device               = NULL,
+        .nvr_params               = 0x00000000,
+        .sio_device               = NULL,
+        .sio_params               = 0x00000000,
         .kbc_p1                   = 0xff,
         .gpio                     = 0xffffffff,
         .gpio_acpi                = 0xffffffff,
         .device                   = NULL,
         .kbd_device               = &keyboard_pc_xt_device,
         .fdc_device               = &fdc_xt_device,
-        .sio_device               = NULL,
         .vid_device               = NULL,
         .snd_device               = NULL,
-        .net_device               = NULL
+        .net_device               = NULL,
+        .aliases                  = { "" }
     },
     {
         .name              = "[8088] Juko ST",
@@ -990,25 +1120,29 @@ const machine_t machines[] = {
         .bus_flags = MACHINE_PC,
         .flags     = MACHINE_FLAGS_NONE,
         .ram       = {
-            .min  = 64,
-            .max  = 640,
-            .step = 64
+            .min  = 512,  /* Juko ST supports only 3 values: 512, 640, 1024 */
+            .max  = 1024,
+            .step = 128
         },
         .nvrmask                  = 0,
         .jumpered_ecp_dma         = 0,
         .default_jumpered_ecp_dma = -1,
         .kbc_device               = &kbc_xtclone_device,
         .kbc_params               = 0x00000000,
+        .nvr_device               = NULL,
+        .nvr_params               = 0x00000000,
+        .sio_device               = NULL,
+        .sio_params               = 0x00000000,
         .kbc_p1                   = 0xff,
         .gpio                     = 0xffffffff,
         .gpio_acpi                = 0xffffffff,
         .device                   = &jukopc_device,
         .kbd_device               = &keyboard_pc_xt_device,
         .fdc_device               = NULL,
-        .sio_device               = NULL,
         .vid_device               = NULL,
         .snd_device               = NULL,
-        .net_device               = NULL
+        .net_device               = NULL,
+        .aliases                  = { "" }
     },
     {
         .name              = "[8088] Kaypro PC",
@@ -1042,62 +1176,23 @@ const machine_t machines[] = {
         .default_jumpered_ecp_dma = -1,
         .kbc_device               = &kbc_xtclone_device,
         .kbc_params               = 0x00000000,
+        .nvr_device               = NULL,
+        .nvr_params               = 0x00000000,
+        .sio_device               = NULL,
+        .sio_params               = 0x00000000,
         .kbc_p1                   = 0xff,
         .gpio                     = 0xffffffff,
         .gpio_acpi                = 0xffffffff,
         .device                   = NULL,
         .kbd_device               = &keyboard_pc_xt_device,
         .fdc_device               = NULL,
-        .sio_device               = NULL,
         .vid_device               = NULL,
         .snd_device               = NULL,
-        .net_device               = NULL
+        .net_device               = NULL,
+        .aliases                  = { "" }
     },
     {
-        .name              = "[8088] Micoms XL-7 Turbo/Pravetz-16ES",
-        .internal_name     = "mxl7t",
-        .type              = MACHINE_TYPE_8088,
-        .chipset           = MACHINE_CHIPSET_DISCRETE,
-        .init              = machine_xt_micoms_xl7turbo_init,
-        .p1_handler        = NULL,
-        .gpio_handler      = NULL,
-        .available_flag    = MACHINE_AVAILABLE,
-        .gpio_acpi_handler = NULL,
-        .cpu               = {
-            .package     = CPU_PKG_8088,
-            .block       = CPU_BLOCK_NONE,
-            .min_bus     = 0,
-            .max_bus     = 0,
-            .min_voltage = 0,
-            .max_voltage = 0,
-            .min_multi   = 0,
-            .max_multi   = 0
-        },
-        .bus_flags = MACHINE_PC,
-        .flags     = MACHINE_FLAGS_NONE,
-        .ram       = {
-            .min  = 64,
-            .max  = 640,
-            .step = 64
-        },
-        .nvrmask                  = 0,
-        .jumpered_ecp_dma         = 0,
-        .default_jumpered_ecp_dma = -1,
-        .kbc_device               = &kbc_xt_device,
-        .kbc_params               = 0x00000000,
-        .kbc_p1                   = 0xff,
-        .gpio                     = 0xffffffff,
-        .gpio_acpi                = 0xffffffff,
-        .device                   = NULL,
-        .kbd_device               = &keyboard_pc_xt_device,
-        .fdc_device               = NULL,
-        .sio_device               = NULL,
-        .vid_device               = NULL,
-        .snd_device               = NULL,
-        .net_device               = NULL
-    },
-    {
-        .name              = "[8088] Multitech PC-500 / Franklin PC 8000",
+        .name              = "[8088] Multitech PC-500",
         .internal_name     = "pc500",
         .type              = MACHINE_TYPE_8088,
         .chipset           = MACHINE_CHIPSET_DISCRETE,
@@ -1128,19 +1223,23 @@ const machine_t machines[] = {
         .default_jumpered_ecp_dma = -1,
         .kbc_device               = &kbc_pc82_device,
         .kbc_params               = 0x00000000,
+        .nvr_device               = NULL,
+        .nvr_params               = 0x00000000,
+        .sio_device               = NULL,
+        .sio_params               = 0x00000000,
         .kbc_p1                   = 0xff,
         .gpio                     = 0xffffffff,
         .gpio_acpi                = 0xffffffff,
         .device                   = &pc500_device,
         .kbd_device               = &keyboard_pc_xt_device,
         .fdc_device               = NULL,
-        .sio_device               = NULL,
         .vid_device               = NULL,
         .snd_device               = NULL,
-        .net_device               = NULL
+        .net_device               = NULL,
+        .aliases                  = { "Franklin PC 8000", "" }
     },
     {
-        .name              = "[8088] Multitech PC-500 plus",
+        .name              = "[8088] Multitech PC-500+",
         .internal_name     = "pc500plus",
         .type              = MACHINE_TYPE_8088,
         .chipset           = MACHINE_CHIPSET_DISCRETE,
@@ -1171,19 +1270,23 @@ const machine_t machines[] = {
         .default_jumpered_ecp_dma = -1,
         .kbc_device               = &kbc_xtclone_device,
         .kbc_params               = 0x00000000,
+        .nvr_device               = NULL,
+        .nvr_params               = 0x00000000,
+        .sio_device               = NULL,
+        .sio_params               = 0x00000000,
         .kbc_p1                   = 0xff,
         .gpio                     = 0xffffffff,
         .gpio_acpi                = 0xffffffff,
         .device                   = &pc500plus_device,
         .kbd_device               = &keyboard_pc_xt_device,
         .fdc_device               = NULL,
-        .sio_device               = NULL,
         .vid_device               = NULL,
         .snd_device               = NULL,
-        .net_device               = NULL
+        .net_device               = NULL,
+        .aliases                  = { "" }
     },
     {
-        .name              = "[8088] Multitech PC-700 / Siemens SICOMP PC 16 05",
+        .name              = "[8088] Multitech PC-700",
         .internal_name     = "pc700",
         .type              = MACHINE_TYPE_8088,
         .chipset           = MACHINE_CHIPSET_DISCRETE,
@@ -1214,16 +1317,20 @@ const machine_t machines[] = {
         .default_jumpered_ecp_dma = -1,
         .kbc_device               = &kbc_pc82_device,
         .kbc_params               = 0x00000000,
+        .nvr_device               = NULL,
+        .nvr_params               = 0x00000000,
+        .sio_device               = NULL,
+        .sio_params               = 0x00000000,
         .kbc_p1                   = 0xff,
         .gpio                     = 0xffffffff,
         .gpio_acpi                = 0xffffffff,
         .device                   = &pc700_device,
         .kbd_device               = &keyboard_pc_xt_device,
         .fdc_device               = NULL,
-        .sio_device               = NULL,
         .vid_device               = NULL,
         .snd_device               = NULL,
-        .net_device               = NULL
+        .net_device               = NULL,
+        .aliases                  = { "Siemens SICOMP PC 16 05", "" }
     },
     {
         .name              = "[8088] NCR PC4i",
@@ -1257,16 +1364,20 @@ const machine_t machines[] = {
         .default_jumpered_ecp_dma = -1,
         .kbc_device               = &kbc_xtclone_device,
         .kbc_params               = 0x00000000,
+        .nvr_device               = NULL,
+        .nvr_params               = 0x00000000,
+        .sio_device               = NULL,
+        .sio_params               = 0x00000000,
         .kbc_p1                   = 0xff,
         .gpio                     = 0xffffffff,
         .gpio_acpi                = 0xffffffff,
         .device                   = NULL,
         .kbd_device               = &keyboard_pc_xt_device,
         .fdc_device               = NULL,
-        .sio_device               = NULL,
         .vid_device               = NULL,
         .snd_device               = NULL,
-        .net_device               = NULL
+        .net_device               = NULL,
+        .aliases                  = { "" }
     },
     {
         .name              = "[8088] Olivetti M19",
@@ -1300,16 +1411,20 @@ const machine_t machines[] = {
         .default_jumpered_ecp_dma = -1,
         .kbc_device               = &kbc_xt_olivetti_device,
         .kbc_params               = 0x00000000,
+        .nvr_device               = NULL,
+        .nvr_params               = 0x00000000,
+        .sio_device               = NULL,
+        .sio_params               = 0x00000000,
         .kbc_p1                   = 0xff,
         .gpio                     = 0xffffffff,
         .gpio_acpi                = 0xffffffff,
         .device                   = NULL,
         .kbd_device               = NULL,
         .fdc_device               = NULL,
-        .sio_device               = NULL,
         .vid_device               = &m19_vid_device,
         .snd_device               = NULL,
-        .net_device               = NULL
+        .net_device               = NULL,
+        .aliases                  = { "" }
     },
     {
         .name              = "[8088] OpenXT",
@@ -1343,16 +1458,20 @@ const machine_t machines[] = {
         .default_jumpered_ecp_dma = -1,
         .kbc_device               = &kbc_xtclone_device,
         .kbc_params               = 0x00000000,
+        .nvr_device               = NULL,
+        .nvr_params               = 0x00000000,
+        .sio_device               = NULL,
+        .sio_params               = 0x00000000,
         .kbc_p1                   = 0xff,
         .gpio                     = 0xffffffff,
         .gpio_acpi                = 0xffffffff,
         .device                   = NULL,
         .kbd_device               = &keyboard_pc_xt_device,
         .fdc_device               = NULL,
-        .sio_device               = NULL,
         .vid_device               = NULL,
         .snd_device               = NULL,
-        .net_device               = NULL
+        .net_device               = NULL,
+        .aliases                  = { "" }
     },
     {
         .name              = "[8088] Philips P3105/NMS9100",
@@ -1386,16 +1505,20 @@ const machine_t machines[] = {
         .default_jumpered_ecp_dma = -1,
         .kbc_device               = &kbc_pc_device,
         .kbc_params               = 0x00000000,
+        .nvr_device               = NULL,
+        .nvr_params               = 0x00000000,
+        .sio_device               = NULL,
+        .sio_params               = 0x00000000,
         .kbc_p1                   = 0xff,
         .gpio                     = 0xffffffff,
         .gpio_acpi                = 0xffffffff,
         .device                   = NULL,
         .kbd_device               = &keyboard_pc_xt_device,
         .fdc_device               = NULL,
-        .sio_device               = NULL,
         .vid_device               = NULL,
         .snd_device               = NULL,
-        .net_device               = NULL
+        .net_device               = NULL,
+        .aliases                  = { "" }
     },
     {
         .name              = "[8088] Phoenix XT clone",
@@ -1429,19 +1552,23 @@ const machine_t machines[] = {
         .default_jumpered_ecp_dma = -1,
         .kbc_device               = &kbc_xtclone_device,
         .kbc_params               = 0x00000000,
+        .nvr_device               = NULL,
+        .nvr_params               = 0x00000000,
+        .sio_device               = NULL,
+        .sio_params               = 0x00000000,
         .kbc_p1                   = 0xff,
         .gpio                     = 0xffffffff,
         .gpio_acpi                = 0xffffffff,
         .device                   = NULL,
         .kbd_device               = &keyboard_pc_xt_device,
         .fdc_device               = NULL,
-        .sio_device               = NULL,
         .vid_device               = NULL,
         .snd_device               = NULL,
-        .net_device               = NULL
+        .net_device               = NULL,
+        .aliases                  = { "" }
     },
     {
-        .name              = "[8088] Pravetz 16 / IMKO-4",
+        .name              = "[8088] Pravetz 16",
         .internal_name     = "pravetz16",
         .type              = MACHINE_TYPE_8088,
         .chipset           = MACHINE_CHIPSET_DISCRETE,
@@ -1472,19 +1599,70 @@ const machine_t machines[] = {
         .default_jumpered_ecp_dma = -1,
         .kbc_device               = &kbc_pravetz_device,
         .kbc_params               = 0x00000000,
+        .nvr_device               = NULL,
+        .nvr_params               = 0x00000000,
+        .sio_device               = NULL,
+        .sio_params               = 0x00000000,
         .kbc_p1                   = 0xff,
         .gpio                     = 0xffffffff,
         .gpio_acpi                = 0xffffffff,
         .device                   = NULL,
         .kbd_device               = &keyboard_pc_xt_device,
         .fdc_device               = NULL,
-        .sio_device               = NULL,
         .vid_device               = NULL,
         .snd_device               = NULL,
-        .net_device               = NULL
+        .net_device               = NULL,
+        .aliases                  = { "IMKO-4", "" }
     },
     {
-        .name              = "[8088] Pravetz 16S / CPU12 Plus",
+        .name              = "[8088] Pravetz-16ES",
+        .internal_name     = "mxl7t",
+        .type              = MACHINE_TYPE_8088,
+        .chipset           = MACHINE_CHIPSET_DISCRETE,
+        .init              = machine_xt_mxl7t_init,
+        .p1_handler        = NULL,
+        .gpio_handler      = NULL,
+        .available_flag    = MACHINE_AVAILABLE,
+        .gpio_acpi_handler = NULL,
+        .cpu               = {
+            .package     = CPU_PKG_8088,
+            .block       = CPU_BLOCK_NONE,
+            .min_bus     = 0,
+            .max_bus     = 0,
+            .min_voltage = 0,
+            .max_voltage = 0,
+            .min_multi   = 0,
+            .max_multi   = 0
+        },
+        .bus_flags = MACHINE_PC,
+        .flags     = MACHINE_FLAGS_NONE,
+        .ram       = {
+            .min  = 64,
+            .max  = 640,
+            .step = 64
+        },
+        .nvrmask                  = 0,
+        .jumpered_ecp_dma         = 0,
+        .default_jumpered_ecp_dma = -1,
+        .kbc_device               = &kbc_xt_device,
+        .kbc_params               = 0x00000000,
+        .nvr_device               = NULL,
+        .nvr_params               = 0x00000000,
+        .sio_device               = NULL,
+        .sio_params               = 0x00000000,
+        .kbc_p1                   = 0xff,
+        .gpio                     = 0xffffffff,
+        .gpio_acpi                = 0xffffffff,
+        .device                   = NULL,
+        .kbd_device               = &keyboard_pc_xt_device,
+        .fdc_device               = NULL,
+        .vid_device               = NULL,
+        .snd_device               = NULL,
+        .net_device               = NULL,
+        .aliases                  = { "Micoms XL-7 Turbo", "" }
+    },
+    {
+        .name              = "[8088] Pravetz 16S",
         .internal_name     = "pravetz16s",
         .type              = MACHINE_TYPE_8088,
         .chipset           = MACHINE_CHIPSET_DISCRETE,
@@ -1515,19 +1693,23 @@ const machine_t machines[] = {
         .default_jumpered_ecp_dma = -1,
         .kbc_device               = &kbc_xt_device,
         .kbc_params               = 0x00000000,
+        .nvr_device               = NULL,
+        .nvr_params               = 0x00000000,
+        .sio_device               = NULL,
+        .sio_params               = 0x00000000,
         .kbc_p1                   = 0xff,
         .gpio                     = 0xffffffff,
         .gpio_acpi                = 0xffffffff,
         .device                   = NULL,
         .kbd_device               = &keyboard_pc_xt_device,
         .fdc_device               = NULL,
-        .sio_device               = NULL,
         .vid_device               = NULL,
         .snd_device               = NULL,
-        .net_device               = NULL
+        .net_device               = NULL,
+        .aliases                  = { "CPU12 Plus", "" }
     },
     {
-        .name              = "[8088] Samsung SPC-3000V/Packard Bell PB500/PB8810",
+        .name              = "[8088] Samsung SPC-3000V",
         .internal_name     = "pb8810",
         .type              = MACHINE_TYPE_8088,
         .chipset           = MACHINE_CHIPSET_DISCRETE,
@@ -1558,16 +1740,20 @@ const machine_t machines[] = {
         .default_jumpered_ecp_dma = -1,
         .kbc_device               = &kbc_xtclone_device,
         .kbc_params               = 0x00000000,
+        .nvr_device               = NULL,
+        .nvr_params               = 0x00000000,
+        .sio_device               = NULL,
+        .sio_params               = 0x00000000,
         .kbc_p1                   = 0xff,
         .gpio                     = 0xffffffff,
         .gpio_acpi                = 0xffffffff,
         .device                   = NULL,
         .kbd_device               = &keyboard_pc_xt_device,
         .fdc_device               = NULL,
-        .sio_device               = NULL,
         .vid_device               = NULL,
         .snd_device               = NULL,
-        .net_device               = NULL
+        .net_device               = NULL,
+        .aliases                  = { "Packard Bell PB500", "Packard Bell PB8810", "" }
     },
     {
         .name              = "[8088] Sanyo SX-16",
@@ -1601,16 +1787,20 @@ const machine_t machines[] = {
         .default_jumpered_ecp_dma = -1,
         .kbc_device               = &kbc_xtclone_device,
         .kbc_params               = 0x00000000,
+        .nvr_device               = NULL,
+        .nvr_params               = 0x00000000,
+        .sio_device               = NULL,
+        .sio_params               = 0x00000000,
         .kbc_p1                   = 0xff,
         .gpio                     = 0xffffffff,
         .gpio_acpi                = 0xffffffff,
         .device                   = NULL,
         .kbd_device               = &keyboard_pc_xt_device,
         .fdc_device               = &fdc_xt_device,
-        .sio_device               = NULL,
         .vid_device               = NULL,
         .snd_device               = NULL,
-        .net_device               = NULL
+        .net_device               = NULL,
+        .aliases                  = { "" }
     },
     {
         .name              = "[8088] Schneider EuroPC",
@@ -1644,19 +1834,23 @@ const machine_t machines[] = {
         .default_jumpered_ecp_dma = -1,
         .kbc_device               = &kbc_xt_device,
         .kbc_params               = 0x00000000,
+        .nvr_device               = NULL,
+        .nvr_params               = 0x00000000,
+        .sio_device               = NULL,
+        .sio_params               = 0x00000000,
         .kbc_p1                   = 0xff,
         .gpio                     = 0xffffffff,
         .gpio_acpi                = 0xffffffff,
-        .device                   = NULL,
+        .device                   = &europc_device,
         .kbd_device               = NULL,
         .fdc_device               = NULL,
-        .sio_device               = NULL,
         .vid_device               = NULL,
         .snd_device               = NULL,
-        .net_device               = NULL
+        .net_device               = NULL,
+        .aliases                  = { "" }
     },
     {
-        .name              = "[8088] Super PC/Turbo XT",
+        .name              = "[8088] Super PC",
         .internal_name     = "pcxt",
         .type              = MACHINE_TYPE_8088,
         .chipset           = MACHINE_CHIPSET_DISCRETE,
@@ -1687,16 +1881,20 @@ const machine_t machines[] = {
         .default_jumpered_ecp_dma = -1,
         .kbc_device               = &kbc_xtclone_device,
         .kbc_params               = 0x00000000,
+        .nvr_device               = NULL,
+        .nvr_params               = 0x00000000,
+        .sio_device               = NULL,
+        .sio_params               = 0x00000000,
         .kbc_p1                   = 0xff,
         .gpio                     = 0xffffffff,
         .gpio_acpi                = 0xffffffff,
         .device                   = NULL,
         .kbd_device               = &keyboard_pc_xt_device,
         .fdc_device               = NULL,
-        .sio_device               = NULL,
         .vid_device               = NULL,
         .snd_device               = NULL,
-        .net_device               = NULL
+        .net_device               = NULL,
+        .aliases                  = { "Turbo XT", "" }
     },
     {
         .name              = "[8088] Tandy 1000 SX",
@@ -1730,16 +1928,20 @@ const machine_t machines[] = {
         .default_jumpered_ecp_dma = -1,
         .kbc_device               = &kbc_tandy_device,
         .kbc_params               = 0x00000000,
+        .nvr_device               = NULL,
+        .nvr_params               = 0x00000000,
+        .sio_device               = NULL,
+        .sio_params               = 0x00000000,
         .kbc_p1                   = 0xff,
         .gpio                     = 0xffffffff,
         .gpio_acpi                = 0xffffffff,
         .device                   = NULL,
         .kbd_device               = NULL,
         .fdc_device               = NULL,
-        .sio_device               = NULL,
         .vid_device               = &tandy_1000_video_device,
         .snd_device               = NULL,
-        .net_device               = NULL
+        .net_device               = NULL,
+        .aliases                  = { "" }
     },
     {
         .name              = "[8088] Tandy 1000 HX",
@@ -1773,16 +1975,20 @@ const machine_t machines[] = {
         .default_jumpered_ecp_dma = -1,
         .kbc_device               = &kbc_tandy_device,
         .kbc_params               = 0x00000000,
+        .nvr_device               = NULL,
+        .nvr_params               = 0x00000000,
+        .sio_device               = NULL,
+        .sio_params               = 0x00000000,
         .kbc_p1                   = 0xff,
         .gpio                     = 0xffffffff,
         .gpio_acpi                = 0xffffffff,
         .device                   = NULL,
         .kbd_device               = NULL,
         .fdc_device               = NULL,
-        .sio_device               = NULL,
         .vid_device               = &tandy_1000hx_video_device,
         .snd_device               = NULL,
-        .net_device               = NULL
+        .net_device               = NULL,
+        .aliases                  = { "" }
     },
     {
         .name              = "[8088] Thomson TO16",
@@ -1816,16 +2022,20 @@ const machine_t machines[] = {
         .default_jumpered_ecp_dma = -1,
         .kbc_device               = &kbc_xtclone_device,
         .kbc_params               = 0x00000000,
+        .nvr_device               = NULL,
+        .nvr_params               = 0x00000000,
+        .sio_device               = NULL,
+        .sio_params               = 0x00000000,
         .kbc_p1                   = 0xff,
         .gpio                     = 0xffffffff,
         .gpio_acpi                = 0xffffffff,
         .device                   = &to16_device,
         .kbd_device               = &keyboard_pc_xt_device,
         .fdc_device               = NULL,
-        .sio_device               = NULL,
         .vid_device               = NULL,
         .snd_device               = NULL,
-        .net_device               = NULL
+        .net_device               = NULL,
+        .aliases                  = { "" }
     },
     {
         .name              = "[8088] Toshiba T1000",
@@ -1859,16 +2069,20 @@ const machine_t machines[] = {
         .default_jumpered_ecp_dma = -1,
         .kbc_device               = &kbc_xt_t1x00_device,
         .kbc_params               = 0x00000000,
+        .nvr_device               = NULL,
+        .nvr_params               = 0x00000000,
+        .sio_device               = NULL,
+        .sio_params               = 0x00000000,
         .kbc_p1                   = 0xff,
         .gpio                     = 0xffffffff,
         .gpio_acpi                = 0xffffffff,
         .device                   = NULL,
         .kbd_device               = NULL,
         .fdc_device               = NULL,
-        .sio_device               = NULL,
         .vid_device               = &t1000_video_device,
         .snd_device               = NULL,
-        .net_device               = NULL
+        .net_device               = NULL,
+        .aliases                  = { "" }
     },
     {
         .name              = "[8088] Vendex HeadStart Turbo 888-XT",
@@ -1902,16 +2116,20 @@ const machine_t machines[] = {
         .default_jumpered_ecp_dma = -1,
         .kbc_device               = &kbc_xtclone_device,
         .kbc_params               = 0x00000000,
+        .nvr_device               = NULL,
+        .nvr_params               = 0x00000000,
+        .sio_device               = NULL,
+        .sio_params               = 0x00000000,
         .kbc_p1                   = 0xff,
         .gpio                     = 0xffffffff,
         .gpio_acpi                = 0xffffffff,
         .device                   = &vendex_device,
         .kbd_device               = &keyboard_pc_xt_device,
         .fdc_device               = &fdc_xt_device,
-        .sio_device               = NULL,
         .vid_device               = NULL,
         .snd_device               = NULL,
-        .net_device               = NULL
+        .net_device               = NULL,
+        .aliases                  = { "" }
     },
     {
         .name              = "[8088] VTech Laser Turbo XT",
@@ -1945,16 +2163,20 @@ const machine_t machines[] = {
         .default_jumpered_ecp_dma = -1,
         .kbc_device               = &kbc_xt_device,
         .kbc_params               = 0x00000000,
+        .nvr_device               = NULL,
+        .nvr_params               = 0x00000000,
+        .sio_device               = NULL,
+        .sio_params               = 0x00000000,
         .kbc_p1                   = 0xff,
         .gpio                     = 0xffffffff,
         .gpio_acpi                = 0xffffffff,
         .device                   = &laserxt_device,
         .kbd_device               = &keyboard_pc_xt_device,
         .fdc_device               = NULL,
-        .sio_device               = NULL,
         .vid_device               = NULL,
         .snd_device               = NULL,
-        .net_device               = NULL
+        .net_device               = NULL,
+        .aliases                  = { "" }
     },
     /* Has a standard PS/2 KBC (so, use IBM PS/2 Type 1). */
     {
@@ -1988,16 +2210,20 @@ const machine_t machines[] = {
         .jumpered_ecp_dma         = 0,
         .default_jumpered_ecp_dma = -1,
         .kbc_device               = &kbc_at_device,
+        .nvr_device               = &nvr_at_device,
+        .nvr_params               = NVR_AT,
+        .sio_device               = NULL,
+        .sio_params               = 0x00000000,
         .kbc_p1                   = 0x00400cf0,
         .gpio                     = 0xffffffff,
         .gpio_acpi                = 0xffffffff,
         .device                   = &xi8088_device,
         .kbd_device               = NULL,
         .fdc_device               = NULL,
-        .sio_device               = NULL,
         .vid_device               = NULL,
         .snd_device               = NULL,
-        .net_device               = NULL
+        .net_device               = NULL,
+        .aliases                  = { "" }
     },
     {
         .name              = "[8088] Z-NIX PC-1600",
@@ -2031,19 +2257,23 @@ const machine_t machines[] = {
         .default_jumpered_ecp_dma = -1,
         .kbc_device               = &kbc_xtclone_device,
         .kbc_params               = 0x00000000,
+        .nvr_device               = NULL,
+        .nvr_params               = 0x00000000,
+        .sio_device               = NULL,
+        .sio_params               = 0x00000000,
         .kbc_p1                   = 0xff,
         .gpio                     = 0xffffffff,
         .gpio_acpi                = 0xffffffff,
         .device                   = NULL,
         .kbd_device               = &keyboard_pc_xt_device,
         .fdc_device               = NULL,
-        .sio_device               = NULL,
         .vid_device               = NULL,
         .snd_device               = NULL,
-        .net_device               = NULL
+        .net_device               = NULL,
+        .aliases                  = { "" }
     },
     {
-        .name              = "[8088] Zenith Data Systems Z-151/152/161",
+        .name              = "[8088] Zenith Data Systems Z-151",
         .internal_name     = "zdsz151",
         .type              = MACHINE_TYPE_8088,
         .chipset           = MACHINE_CHIPSET_DISCRETE,
@@ -2055,15 +2285,15 @@ const machine_t machines[] = {
         .cpu               = {
             .package     = CPU_PKG_8088,
             .block       = CPU_BLOCK_NONE,
-            .min_bus     = 0,
-            .max_bus     = 0,
+            .min_bus     = 4772728,
+            .max_bus     = 4772728,
             .min_voltage = 0,
             .max_voltage = 0,
             .min_multi   = 0,
             .max_multi   = 0
         },
         .bus_flags = MACHINE_PC,
-        .flags     = MACHINE_FLAGS_NONE,
+        .flags     = MACHINE_ZENITH,
         .ram       = {
             .min  = 128,
             .max  = 640,
@@ -2074,16 +2304,20 @@ const machine_t machines[] = {
         .default_jumpered_ecp_dma = -1,
         .kbc_device               = &kbc_xt_zenith_device,
         .kbc_params               = 0x00000000,
+        .nvr_device               = NULL,
+        .nvr_params               = 0x00000000,
+        .sio_device               = NULL,
+        .sio_params               = 0x00000000,
         .kbc_p1                   = 0xff,
         .gpio                     = 0xffffffff,
         .gpio_acpi                = 0xffffffff,
         .device                   = NULL,
         .kbd_device               = &keyboard_pc_xt_device,
         .fdc_device               = NULL,
-        .sio_device               = NULL,
         .vid_device               = NULL,
         .snd_device               = NULL,
-        .net_device               = NULL
+        .net_device               = NULL,
+        .aliases                  = { "Zenith Data Systems Z-152", "Zenith Data Systems Z-161", "" }
     },
     {
         .name              = "[8088] Zenith Data Systems Z-159",
@@ -2106,7 +2340,7 @@ const machine_t machines[] = {
             .max_multi   = 0
         },
         .bus_flags = MACHINE_PC,
-        .flags     = MACHINE_FLAGS_NONE,
+        .flags     = MACHINE_ZENITH,
         .ram       = {
             .min  = 128,
             .max  = 640,
@@ -2117,19 +2351,23 @@ const machine_t machines[] = {
         .default_jumpered_ecp_dma = -1,
         .kbc_device               = &kbc_xt_zenith_device,
         .kbc_params               = 0x00000000,
+        .nvr_device               = NULL,
+        .nvr_params               = 0x00000000,
+        .sio_device               = NULL,
+        .sio_params               = 0x00000000,
         .kbc_p1                   = 0xff,
         .gpio                     = 0xffffffff,
         .gpio_acpi                = 0xffffffff,
         .device                   = NULL,
         .kbd_device               = &keyboard_pc_xt_device,
         .fdc_device               = NULL,
-        .sio_device               = NULL,
         .vid_device               = NULL,
         .snd_device               = NULL,
-        .net_device               = NULL
+        .net_device               = NULL,
+        .aliases                  = { "" }
     },
     {
-        .name              = "[8088] Zenith Data Systems SupersPort (Z-184)",
+        .name              = "[8088] Zenith Data Systems Z-184",
         .internal_name     = "zdsupers",
         .type              = MACHINE_TYPE_8088,
         .chipset           = MACHINE_CHIPSET_DISCRETE,
@@ -2141,15 +2379,15 @@ const machine_t machines[] = {
         .cpu               = {
             .package     = CPU_PKG_8088,
             .block       = CPU_BLOCK_NONE,
-            .min_bus     = 0,
-            .max_bus     = 0,
+            .min_bus     = 4772728,
+            .max_bus     = 8000000,
             .min_voltage = 0,
             .max_voltage = 0,
             .min_multi   = 0,
             .max_multi   = 0
         },
         .bus_flags = MACHINE_PC,
-        .flags     = MACHINE_VIDEO_FIXED,
+        .flags     = MACHINE_ZENITH | MACHINE_VIDEO_FIXED,
         .ram       = {
             .min  = 128,
             .max  = 640,
@@ -2160,16 +2398,20 @@ const machine_t machines[] = {
         .default_jumpered_ecp_dma = -1,
         .kbc_device               = &kbc_xt_zenith_device,
         .kbc_params               = 0x00000000,
+        .nvr_device               = NULL,
+        .nvr_params               = 0x00000000,
+        .sio_device               = NULL,
+        .sio_params               = 0x00000000,
         .kbc_p1                   = 0xff,
         .gpio                     = 0xffffffff,
         .gpio_acpi                = 0xffffffff,
         .device                   = NULL,
         .kbd_device               = &keyboard_pc_xt_device,
         .fdc_device               = NULL,
-        .sio_device               = NULL,
-        .vid_device               = &cga_device,
+        .vid_device               = &v6355d_device,
         .snd_device               = NULL,
-        .net_device               = NULL
+        .net_device               = NULL,
+        .aliases                  = { "Zenith Data Systems SupersPort", "" }
     },
     {
         .name              = "[GC100A] Philips P3120",
@@ -2203,16 +2445,20 @@ const machine_t machines[] = {
         .default_jumpered_ecp_dma = -1,
         .kbc_device               = &kbc_pc_device,
         .kbc_params               = 0x00000000,
+        .nvr_device               = NULL,
+        .nvr_params               = 0x00000000,
+        .sio_device               = NULL,
+        .sio_params               = 0x00000000,
         .kbc_p1                   = 0xff,
         .gpio                     = 0xffffffff,
         .gpio_acpi                = 0xffffffff,
         .device                   = NULL,
         .kbd_device               = &keyboard_pc_xt_device,
         .fdc_device               = NULL,
-        .sio_device               = NULL,
         .vid_device               = NULL,
         .snd_device               = NULL,
-        .net_device               = NULL
+        .net_device               = NULL,
+        .aliases                  = { "" }
     },
     {
         .name              = "[V20] PC-XT",
@@ -2246,16 +2492,20 @@ const machine_t machines[] = {
         .default_jumpered_ecp_dma = -1,
         .kbc_device               = &kbc_xtclone_device,
         .kbc_params               = 0x00000000,
+        .nvr_device               = NULL,
+        .nvr_params               = 0x00000000,
+        .sio_device               = NULL,
+        .sio_params               = 0x00000000,
         .kbc_p1                   = 0xff,
         .gpio                     = 0xffffffff,
         .gpio_acpi                = 0xffffffff,
         .device                   = NULL,
         .kbd_device               = &keyboard_pc_xt_device,
         .fdc_device               = NULL,
-        .sio_device               = NULL,
         .vid_device               = NULL,
         .snd_device               = NULL,
-        .net_device               = NULL
+        .net_device               = NULL,
+        .aliases                  = { "" }
     },
     {
         .name              = "[V20] Tulip PC Compact 2",
@@ -2280,25 +2530,29 @@ const machine_t machines[] = {
         .bus_flags = MACHINE_PC,
         .flags     = MACHINE_FLAGS_NONE,
         .ram       = {
-            .min  = 64,
+            .min  = 640,
             .max  = 640,
-            .step = 64
+            .step = 640
         },
         .nvrmask                  = 63,
         .jumpered_ecp_dma         = 0,
         .default_jumpered_ecp_dma = -1,
         .kbc_device               = &kbc_xtclone_device,
         .kbc_params               = 0x00000000,
+        .nvr_device               = &nvr_at_device,
+        .nvr_params               = NVR_AT_ZERO_DEFAULT,
+        .sio_device               = NULL,
+        .sio_params               = 0x00000000,
         .kbc_p1                   = 0xff,
         .gpio                     = 0xffffffff,
         .gpio_acpi                = 0xffffffff,
         .device                   = NULL,
         .kbd_device               = &keyboard_pc_xt_device,
         .fdc_device               = NULL,
-        .sio_device               = NULL,
         .vid_device               = NULL,
         .snd_device               = NULL,
-        .net_device               = NULL
+        .net_device               = NULL,
+        .aliases                  = { "Tulip TC8", "" }
     },
 
     /* 8086 Machines */
@@ -2334,16 +2588,20 @@ const machine_t machines[] = {
         .default_jumpered_ecp_dma = -1,
         .kbc_device               = NULL /* TODO: No specific kbd_device yet */,
         .kbc_params               = 0x00000000,
+        .nvr_device               = &nvr_at_device,
+        .nvr_params               = NVR_AMSTRAD,
+        .sio_device               = NULL,
+        .sio_params               = 0x00000000,
         .kbc_p1                   = 0xff,
         .gpio                     = 0xffffffff,
         .gpio_acpi                = 0xffffffff,
         .device                   = NULL,
         .kbd_device               = NULL,
         .fdc_device               = NULL,
-        .sio_device               = NULL,
         .vid_device               = &vid_1512_device,
         .snd_device               = NULL,
-        .net_device               = NULL
+        .net_device               = NULL,
+        .aliases                  = { "" }
     },
     {
         .name              = "[8086] Amstrad PC1640",
@@ -2377,16 +2635,20 @@ const machine_t machines[] = {
         .default_jumpered_ecp_dma = -1,
         .kbc_device               = NULL /* TODO: No specific kbd_device yet */,
         .kbc_params               = 0x00000000,
+        .nvr_device               = &nvr_at_device,
+        .nvr_params               = NVR_AMSTRAD,
+        .sio_device               = NULL,
+        .sio_params               = 0x00000000,
         .kbc_p1                   = 0xff,
         .gpio                     = 0xffffffff,
         .gpio_acpi                = 0xffffffff,
         .device                   = NULL,
         .kbd_device               = NULL,
         .fdc_device               = NULL,
-        .sio_device               = NULL,
         .vid_device               = &vid_1640_device,
         .snd_device               = NULL,
-        .net_device               = NULL
+        .net_device               = NULL,
+        .aliases                  = { "" }
     },
     {
         .name              = "[8086] Amstrad PC2086",
@@ -2420,16 +2682,20 @@ const machine_t machines[] = {
         .default_jumpered_ecp_dma = -1,
         .kbc_device               = NULL /* TODO: No specific kbd_device yet */,
         .kbc_params               = 0x00000000,
+        .nvr_device               = &nvr_at_device,
+        .nvr_params               = NVR_AMSTRAD,
+        .sio_device               = NULL,
+        .sio_params               = 0x00000000,
         .kbc_p1                   = 0xff,
         .gpio                     = 0xffffffff,
         .gpio_acpi                = 0xffffffff,
         .device                   = NULL,
         .kbd_device               = NULL,
         .fdc_device               = NULL,
-        .sio_device               = NULL,
         .vid_device               = &vid_pc2086_device,
         .snd_device               = NULL,
-        .net_device               = NULL
+        .net_device               = NULL,
+        .aliases                  = { "" }
     },
     {
         .name              = "[8086] Amstrad PC3086",
@@ -2463,16 +2729,20 @@ const machine_t machines[] = {
         .default_jumpered_ecp_dma = -1,
         .kbc_device               = NULL /* TODO: No specific kbd_device yet */,
         .kbc_params               = 0x00000000,
+        .nvr_device               = &nvr_at_device,
+        .nvr_params               = NVR_AMSTRAD,
+        .sio_device               = NULL,
+        .sio_params               = 0x00000000,
         .kbc_p1                   = 0xff,
         .gpio                     = 0xffffffff,
         .gpio_acpi                = 0xffffffff,
         .device                   = NULL,
         .kbd_device               = NULL,
         .fdc_device               = NULL,
-        .sio_device               = NULL,
         .vid_device               = &vid_pc3086_device,
         .snd_device               = NULL,
-        .net_device               = NULL
+        .net_device               = NULL,
+        .aliases                  = { "" }
     },
     {
         .name              = "[8086] Amstrad PC5086",
@@ -2506,16 +2776,20 @@ const machine_t machines[] = {
         .default_jumpered_ecp_dma = -1,
         .kbc_device               = &kbc_xt_device,
         .kbc_params               = 0x00000000,
+        .nvr_device               = &nvr_at_device,
+        .nvr_params               = NVR_AT_ZERO_DEFAULT,
+        .sio_device               = NULL,
+        .sio_params               = 0x00000000,
         .kbc_p1                   = 0xff,
         .gpio                     = 0xffffffff,
         .gpio_acpi                = 0xffffffff,
         .device                   = &f82c710_pc5086_device,
         .kbd_device               = NULL,
         .fdc_device               = NULL,
-        .sio_device               = NULL,
         .vid_device               = NULL,
         .snd_device               = NULL,
-        .net_device               = NULL
+        .net_device               = NULL,
+        .aliases                  = { "" }
     },
     {
         .name              = "[8086] Amstrad PC20(0)",
@@ -2549,16 +2823,20 @@ const machine_t machines[] = {
         .default_jumpered_ecp_dma = -1,
         .kbc_device               = NULL /* TODO: No specific kbd_device yet */,
         .kbc_params               = 0x00000000,
+        .nvr_device               = &nvr_at_device,
+        .nvr_params               = NVR_AMSTRAD_NO_NMI,
+        .sio_device               = NULL,
+        .sio_params               = 0x00000000,
         .kbc_p1                   = 0xff,
         .gpio                     = 0xffffffff,
         .gpio_acpi                = 0xffffffff,
         .device                   = NULL,
         .kbd_device               = NULL,
         .fdc_device               = NULL,
-        .sio_device               = NULL,
         .vid_device               = &vid_200_device,
         .snd_device               = NULL,
-        .net_device               = NULL
+        .net_device               = NULL,
+        .aliases                  = { "" }
     },
     {
         .name              = "[8086] Amstrad PPC512/640",
@@ -2592,16 +2870,20 @@ const machine_t machines[] = {
         .default_jumpered_ecp_dma = -1,
         .kbc_device               = NULL /* TODO: No specific kbd_device yet */,
         .kbc_params               = 0x00000000,
+        .nvr_device               = &nvr_at_device,
+        .nvr_params               = NVR_AMSTRAD_NO_NMI,
+        .sio_device               = NULL,
+        .sio_params               = 0x00000000,
         .kbc_p1                   = 0xff,
         .gpio                     = 0xffffffff,
         .gpio_acpi                = 0xffffffff,
         .device                   = NULL,
         .kbd_device               = NULL,
         .fdc_device               = NULL,
-        .sio_device               = NULL,
         .vid_device               = &vid_ppc512_device,
         .snd_device               = NULL,
-        .net_device               = NULL
+        .net_device               = NULL,
+        .aliases                  = { "" }
     },
     {
         .name              = "[8086] Compaq Deskpro",
@@ -2635,16 +2917,20 @@ const machine_t machines[] = {
         .default_jumpered_ecp_dma = -1,
         .kbc_device               = &kbc_xt_compaq_device,
         .kbc_params               = 0x00000000,
+        .nvr_device               = NULL,
+        .nvr_params               = 0x00000000,
+        .sio_device               = NULL,
+        .sio_params               = 0x00000000,
         .kbc_p1                   = 0xff,
         .gpio                     = 0xffffffff,
         .gpio_acpi                = 0xffffffff,
         .device                   = NULL,
         .kbd_device               = &keyboard_pc_xt_device,
         .fdc_device               = NULL,
-        .sio_device               = NULL,
         .vid_device               = NULL,
         .snd_device               = NULL,
-        .net_device               = NULL
+        .net_device               = NULL,
+        .aliases                  = { "" }
     },
     {
         .name              = "[8086] Epson Equity LT",
@@ -2678,16 +2964,163 @@ const machine_t machines[] = {
         .default_jumpered_ecp_dma = -1,
         .kbc_device               = &kbc_xt_device,
         .kbc_params               = 0x00000000,
+        .nvr_device               = &nvr_at_device,
+        .nvr_params               = NVR_ELT,
+        .sio_device               = NULL,
+        .sio_params               = 0x00000000,
         .kbc_p1                   = 0xff,
         .gpio                     = 0xffffffff,
         .gpio_acpi                = 0xffffffff,
         .device                   = NULL,
         .kbd_device               = &keyboard_pc_xt_device,
         .fdc_device               = NULL,
-        .sio_device               = NULL,
         .vid_device               = NULL, /* Discrete onboard video card? */
         .snd_device               = NULL,
-        .net_device               = NULL
+        .net_device               = NULL,
+        .aliases                  = { "" }
+    },
+    {
+        .name              = "[8086] IBM Multistation 5550",
+        .internal_name     = "ibm5550",
+        .type              = MACHINE_TYPE_8086,
+        .chipset           = MACHINE_CHIPSET_DISCRETE,
+        .init              = machine_xt_ibm5550_init,
+        .p1_handler        = NULL,
+        .gpio_handler      = NULL,
+        .available_flag    = MACHINE_AVAILABLE,
+        .gpio_acpi_handler = NULL,
+        .cpu               = {
+            .package     = CPU_PKG_8086,
+            .block       = CPU_BLOCK_NONE,
+            .min_bus     = 0,
+            .max_bus     = 0,
+            .min_voltage = 0,
+            .max_voltage = 0,
+            .min_multi   = 0,
+            .max_multi   = 0
+        },
+        .bus_flags = MACHINE_PC,
+        .flags     = MACHINE_VIDEO_FIXED | MACHINE_FDC | MACHINE_KEYBOARD | MACHINE_MOUSE,
+        .ram       = {
+            .min  = 256,
+            .max  = 640,
+            .step = 128
+        },
+        .nvrmask                  = 15,
+        .jumpered_ecp_dma         = 0,
+        .default_jumpered_ecp_dma = -1,
+        .kbc_device               = NULL,
+        .kbc_params               = 0x00000000,
+        .nvr_device               = NULL,
+        .nvr_params               = 0x00000000,
+        .sio_device               = NULL,
+        .sio_params               = 0x00000000,
+        .kbc_p1                   = 0xff,
+        .gpio                     = 0xffffffff,
+        .gpio_acpi                = 0xffffffff,
+        .device                   = &ibm5550_device,
+        .kbd_device               = NULL,
+        .fdc_device               = NULL,
+        .vid_device               = NULL,
+        .snd_device               = NULL,
+        .net_device               = NULL,
+        .aliases                  = { "" }
+    },
+    /* Type 8525-004, original 8 MHz 8086 color model with integrated MCGA. */
+    {
+        .name              = "[8086] IBM PS/2 model 25 (color)",
+        .internal_name     = "ibmps2_m25",
+        .type              = MACHINE_TYPE_8086,
+        .chipset           = MACHINE_CHIPSET_PROPRIETARY,
+        .init              = machine_ps2_8086_init,
+        .p1_handler        = machine_ps2_isa_p1_handler,
+        .gpio_handler      = NULL,
+        .available_flag    = MACHINE_AVAILABLE,
+        .gpio_acpi_handler = NULL,
+        .cpu               = {
+            .package     = CPU_PKG_8086,
+            .block       = CPU_BLOCK_NONE,
+            .min_bus     = 8000000,
+            .max_bus     = 8000000,
+            .min_voltage = 0,
+            .max_voltage = 0,
+            .min_multi   = 0,
+            .max_multi   = 0
+        },
+        .bus_flags = MACHINE_PC | MACHINE_BUS_PS2,
+        .flags     = MACHINE_XTA | MACHINE_VIDEO,
+        .ram       = {
+            .min  = 512,
+            .max  = 640,
+            .step = 128
+        },
+        .nvrmask                  = 0,
+        .jumpered_ecp_dma         = 0,
+        .default_jumpered_ecp_dma = -1,
+        .kbc_device               = &kbc_ps2_m25_device,
+        .kbc_params               = 0x00000000,
+        .nvr_device               = NULL,
+        .nvr_params               = 0x00000000,
+        .sio_device               = NULL,
+        .sio_params               = 0x00000000,
+        .kbc_p1                   = 0x000004f0,
+        .gpio                     = 0xffffffff,
+        .gpio_acpi                = 0xffffffff,
+        .device                   = &ps2_m25_device,
+        .kbd_device               = NULL,
+        .fdc_device               = NULL,
+        .vid_device               = &mcga_device,
+        .snd_device               = NULL,
+        .net_device               = NULL,
+        .aliases                  = { "" }
+    },
+    /* Type 8530-002/8530-021, original 8 MHz 8086 with integrated MCGA and an RTC. */
+    {
+        .name              = "[8086] IBM PS/2 model 30",
+        .internal_name     = "ibmps2_m30",
+        .type              = MACHINE_TYPE_8086,
+        .chipset           = MACHINE_CHIPSET_PROPRIETARY,
+        .init              = machine_ps2_8086_init,
+        .p1_handler        = machine_ps2_isa_p1_handler,
+        .gpio_handler      = NULL,
+        .available_flag    = MACHINE_AVAILABLE,
+        .gpio_acpi_handler = NULL,
+        .cpu               = {
+            .package     = CPU_PKG_8086,
+            .block       = CPU_BLOCK_NONE,
+            .min_bus     = 8000000,
+            .max_bus     = 8000000,
+            .min_voltage = 0,
+            .max_voltage = 0,
+            .min_multi   = 0,
+            .max_multi   = 0
+        },
+        .bus_flags = MACHINE_PC | MACHINE_BUS_PS2,
+        .flags     = MACHINE_XTA | MACHINE_VIDEO,
+        .ram       = {
+            .min  = 640,
+            .max  = 640,
+            .step = 640
+        },
+        .nvrmask                  = 0,
+        .jumpered_ecp_dma         = 0,
+        .default_jumpered_ecp_dma = -1,
+        .kbc_device               = &kbc_ps2_m25_device,
+        .kbc_params               = 0x00000000,
+        .nvr_device               = NULL,
+        .nvr_params               = 0x00000000,
+        .sio_device               = NULL,
+        .sio_params               = 0x00000000,
+        .kbc_p1                   = 0x000004f0,
+        .gpio                     = 0xffffffff,
+        .gpio_acpi                = 0xffffffff,
+        .device                   = &ps2_m30_device,
+        .kbd_device               = NULL,
+        .fdc_device               = NULL,
+        .vid_device               = &mcga_device,
+        .snd_device               = NULL,
+        .net_device               = NULL,
+        .aliases                  = { "" }
     },
     {
         .name              = "[8086] Mazovia 1016",
@@ -2720,19 +3153,23 @@ const machine_t machines[] = {
         .jumpered_ecp_dma         = 0,
         .default_jumpered_ecp_dma = -1,
         .kbc_device               = &kbc_xtclone_device,
+        .nvr_device               = NULL,
+        .nvr_params               = 0x00000000,
+        .sio_device               = NULL,
+        .sio_params               = 0x00000000,
         .kbc_p1                   = 0xff,
         .gpio                     = 0xffffffff,
         .gpio_acpi                = 0xffffffff,
         .device                   = NULL,
         .kbd_device               = &keyboard_pc_xt_device,
         .fdc_device               = NULL,
-        .sio_device               = NULL,
         .vid_device               = NULL,
         .snd_device               = NULL,
-        .net_device               = NULL
+        .net_device               = NULL,
+        .aliases                  = { "" }
     },
     {
-        .name              = "[8086] Olivetti M21/24/24SP/AT&T PC 6300",
+        .name              = "[8086] Olivetti M24",
         .internal_name     = "m24",
         .type              = MACHINE_TYPE_8086,
         .chipset           = MACHINE_CHIPSET_PROPRIETARY,
@@ -2763,20 +3200,24 @@ const machine_t machines[] = {
         .default_jumpered_ecp_dma = -1,
         .kbc_device               = NULL /* TODO: No specific kbd_device yet */,
         .kbc_params               = 0x00000000,
+        .nvr_device               = NULL,
+        .nvr_params               = 0x00000000,
+        .sio_device               = NULL,
+        .sio_params               = 0x00000000,
         .kbc_p1                   = 0xff,
         .gpio                     = 0xffffffff,
         .gpio_acpi                = 0xffffffff,
         .device                   = NULL,
         .kbd_device               = NULL,
         .fdc_device               = NULL,
-        .sio_device               = NULL,
         .vid_device               = &ogc_m24_device,
         .snd_device               = NULL,
-        .net_device               = NULL
+        .net_device               = NULL,
+        .aliases                  = { "Olivetti M21", "Olivetti M24SP", "AT&T PC 6300", "" }
     },
     /* Has Olivetti KBC firmware. */
     {
-        .name              = "[8086] Olivetti M240/AT&T PC 6300 WGS",
+        .name              = "[8086] Olivetti M240",
         .internal_name     = "m240",
         .type              = MACHINE_TYPE_8086,
         .chipset           = MACHINE_CHIPSET_PROPRIETARY,
@@ -2807,16 +3248,20 @@ const machine_t machines[] = {
         .default_jumpered_ecp_dma = -1,
         .kbc_device               = NULL /* TODO: No specific kbd_device yet */,
         .kbc_params               = 0x00000000,
+        .nvr_device               = NULL,
+        .nvr_params               = 0x00000000,
+        .sio_device               = NULL,
+        .sio_params               = 0x00000000,
         .kbc_p1                   = 0xff,
         .gpio                     = 0xffffffff,
         .gpio_acpi                = 0xffffffff,
         .device                   = NULL,
         .kbd_device               = NULL,
         .fdc_device               = NULL,
-        .sio_device               = NULL,
         .vid_device               = NULL,
         .snd_device               = NULL,
-        .net_device               = NULL
+        .net_device               = NULL,
+        .aliases                  = { "AT&T PC 6300 WGS", "" }
     },
     {
         .name              = "[8086] Schetmash Iskra-3104",
@@ -2850,16 +3295,20 @@ const machine_t machines[] = {
         .default_jumpered_ecp_dma = -1,
         .kbc_device               = &kbc_xtclone_device,
         .kbc_params               = 0x00000000,
+        .nvr_device               = NULL,
+        .nvr_params               = 0x00000000,
+        .sio_device               = NULL,
+        .sio_params               = 0x00000000,
         .kbc_p1                   = 0xff,
         .gpio                     = 0xffffffff,
         .gpio_acpi                = 0xffffffff,
         .device                   = NULL,
         .kbd_device               = &keyboard_pc_xt_device,
         .fdc_device               = NULL,
-        .sio_device               = NULL,
         .vid_device               = NULL,
         .snd_device               = NULL,
-        .net_device               = NULL
+        .net_device               = NULL,
+        .aliases                  = { "" }
     },
     {
         .name              = "[8086] Tandy 1000 SL/2",
@@ -2893,16 +3342,20 @@ const machine_t machines[] = {
         .default_jumpered_ecp_dma = -1,
         .kbc_device               = NULL /* TODO: No specific kbd_device yet */,
         .kbc_params               = 0x00000000,
+        .nvr_device               = NULL,
+        .nvr_params               = 0x00000000,
+        .sio_device               = NULL,
+        .sio_params               = 0x00000000,
         .kbc_p1                   = 0xff,
         .gpio                     = 0xffffffff,
         .gpio_acpi                = 0xffffffff,
         .device                   = NULL,
         .kbd_device               = NULL,
         .fdc_device               = NULL,
-        .sio_device               = NULL,
         .vid_device               = &tandy_1000sl_video_device,
         .snd_device               = NULL,
-        .net_device               = NULL
+        .net_device               = NULL,
+        .aliases                  = { "" }
     },
     {
         .name              = "[8086] Toshiba T1200",
@@ -2936,16 +3389,20 @@ const machine_t machines[] = {
         .default_jumpered_ecp_dma = -1,
         .kbc_device               = &kbc_xt_t1x00_device,
         .kbc_params               = 0x00000000,
+        .nvr_device               = NULL,
+        .nvr_params               = 0x00000000,
+        .sio_device               = NULL,
+        .sio_params               = 0x00000000,
         .kbc_p1                   = 0xff,
         .gpio                     = 0xffffffff,
         .gpio_acpi                = 0xffffffff,
         .device                   = NULL,
         .kbd_device               = NULL,
         .fdc_device               = NULL,
-        .sio_device               = NULL,
         .vid_device               = &t1200_video_device,
         .snd_device               = NULL,
-        .net_device               = NULL
+        .net_device               = NULL,
+        .aliases                  = { "" }
     },
     {
         .name              = "[8086] Victor V86P",
@@ -2979,16 +3436,20 @@ const machine_t machines[] = {
         .default_jumpered_ecp_dma = -1,
         .kbc_device               = &kbc_xt_device,
         .kbc_params               = 0x00000000,
+        .nvr_device               = NULL,
+        .nvr_params               = 0x00000000,
+        .sio_device               = NULL,
+        .sio_params               = 0x00000000,
         .kbc_p1                   = 0xff,
         .gpio                     = 0xffffffff,
         .gpio_acpi                = 0xffffffff,
-        .device                   = NULL,
+        .device                   = &v86p_device,
         .kbd_device               = NULL,
         .fdc_device               = NULL,
-        .sio_device               = NULL,
         .vid_device               = NULL,
         .snd_device               = NULL,
-        .net_device               = NULL
+        .net_device               = NULL,
+        .aliases                  = { "" }
     },
     {
         .name              = "[8086] VTech Laser XT3",
@@ -3022,16 +3483,20 @@ const machine_t machines[] = {
         .default_jumpered_ecp_dma = -1,
         .kbc_device               = &kbc_xt_lxt3_device,
         .kbc_params               = 0x00000000,
+        .nvr_device               = NULL,
+        .nvr_params               = 0x00000000,
+        .sio_device               = NULL,
+        .sio_params               = 0x00000000,
         .kbc_p1                   = 0xff,
         .gpio                     = 0xffffffff,
         .gpio_acpi                = 0xffffffff,
         .device                   = &lxt3_device,
         .kbd_device               = &keyboard_pc_xt_device,
         .fdc_device               = NULL,
-        .sio_device               = NULL,
         .vid_device               = NULL,
         .snd_device               = NULL,
-        .net_device               = NULL
+        .net_device               = NULL,
+        .aliases                  = { "" }
     },
 
     /* 286 AT machines */
@@ -3068,16 +3533,20 @@ const machine_t machines[] = {
         .default_jumpered_ecp_dma = -1,
         .kbc_device               = &kbc_at_device,
         .kbc_params               = 0x00000000,
+        .nvr_device               = &nvr_at_device,
+        .nvr_params               = NVR_AT,
+        .sio_device               = NULL,
+        .sio_params               = 0x00000000,
         .kbc_p1                   = 0x000004f0,
         .gpio                     = 0xffffffff,
         .gpio_acpi                = 0xffffffff,
         .device                   = &ibmat_device,
         .kbd_device               = NULL,
         .fdc_device               = NULL,
-        .sio_device               = NULL,
         .vid_device               = NULL,
         .snd_device               = NULL,
-        .net_device               = NULL
+        .net_device               = NULL,
+        .aliases                  = { "" }
     },
     /* Has IBM PS/2 Type 1 KBC firmware. */
     {
@@ -3103,25 +3572,29 @@ const machine_t machines[] = {
         .bus_flags = MACHINE_PS2,
         .flags     = MACHINE_XTA | MACHINE_VIDEO_FIXED,
         .ram       = {
-            .min  = 512,
-            .max  = 15360,
-            .step = 512
+            .min  = 256,
+            .max  = 2560,
+            .step = 128
         },
         .nvrmask                  = 63,
         .jumpered_ecp_dma         = 0,
         .default_jumpered_ecp_dma = -1,
         .kbc_device               = &kbc_at_device,
         .kbc_params               = 0x00000000,
+        .nvr_device               = &nvr_at_device,
+        .nvr_params               = NVR_PS,
+        .sio_device               = NULL,
+        .sio_params               = 0x00000000,
         .kbc_p1                   = 0x000004f0,
         .gpio                     = 0xffffffff,
         .gpio_acpi                = 0xffffffff,
         .device                   = &ps1_2011_device,
         .kbd_device               = NULL,
         .fdc_device               = NULL,
-        .sio_device               = NULL,
         .vid_device               = NULL,
         .snd_device               = NULL,
-        .net_device               = NULL
+        .net_device               = NULL,
+        .aliases                  = { "" }
     },
     /* Has IBM PS/2 Type 1 KBC firmware. */
     {
@@ -3130,7 +3603,7 @@ const machine_t machines[] = {
         .type              = MACHINE_TYPE_286,
         .chipset           = MACHINE_CHIPSET_PROPRIETARY,
         .init              = machine_ps2_m30_286_init,
-        .p1_handler        = machine_generic_p1_handler,
+        .p1_handler        = machine_ps2_isa_p1_handler,
         .gpio_handler      = NULL,
         .available_flag    = MACHINE_AVAILABLE,
         .gpio_acpi_handler = NULL,
@@ -3138,7 +3611,7 @@ const machine_t machines[] = {
             .package     = CPU_PKG_286 | CPU_PKG_486SLC_IBM,
             .block       = CPU_BLOCK_NONE,
             .min_bus     = 10000000,
-            .max_bus     = 0,
+            .max_bus     = 10000000,
             .min_voltage = 0,
             .max_voltage = 0,
             .min_multi   = 0,
@@ -3147,29 +3620,33 @@ const machine_t machines[] = {
         .bus_flags = MACHINE_PS2,
         .flags     = MACHINE_XTA | MACHINE_VIDEO_FIXED,
         .ram       = {
-            .min  = 512,
+            .min  = 256,
             .max  = 4096,
-            .step = 512
+            .step = 128
         },
         .nvrmask                  = 127,
         .jumpered_ecp_dma         = 0,
         .default_jumpered_ecp_dma = -1,
         .kbc_device               = &kbc_at_device,
         .kbc_params               = 0x00000000,
+        .nvr_device               = &nvr_at_device,
+        .nvr_params               = NVR_PS,
+        .sio_device               = NULL,
+        .sio_params               = 0x00000000,
         .kbc_p1                   = 0x00000cf0,
         .gpio                     = 0xffffffff,
         .gpio_acpi                = 0xffffffff,
-        .device                   = NULL,
+        .device                   = &ps2_m30_286_device,
         .kbd_device               = NULL,
         .fdc_device               = NULL,
-        .sio_device               = NULL,
         .vid_device               = NULL,
         .snd_device               = NULL,
-        .net_device               = NULL
+        .net_device               = NULL,
+        .aliases                  = { "IBM PS/2 model 25-386", "" }
     },
     /* Has IBM AT KBC firmware. */
     {
-        .name              = "[ISA] IBM XT Model 286",
+        .name              = "[ISA] IBM XT model 286",
         .internal_name     = "ibmxt286",
         .type              = MACHINE_TYPE_286,
         .chipset           = MACHINE_CHIPSET_DISCRETE,
@@ -3200,21 +3677,25 @@ const machine_t machines[] = {
         .default_jumpered_ecp_dma = -1,
         .kbc_device               = &kbc_at_device,
         .kbc_params               = 0x00000000,
+        .nvr_device               = &nvr_at_device,
+        .nvr_params               = NVR_AT,
+        .sio_device               = NULL,
+        .sio_params               = 0x00000000,
         .kbc_p1                   = 0x000004f0,
         .gpio                     = 0xffffffff,
         .gpio_acpi                = 0xffffffff,
         .device                   = &ibmxt286_device,
         .kbd_device               = NULL,
         .fdc_device               = NULL,
-        .sio_device               = NULL,
         .vid_device               = NULL,
         .snd_device               = NULL,
-        .net_device               = NULL
+        .net_device               = NULL,
+        .aliases                  = { "" }
     },
     /* Uses Commodore (CBM) KBC firmware, to be implemented as identical to the
        IBM AT KBC firmware unless evidence emerges of any proprietary commands. */
     {
-        .name              = "[ISA] Commodore PC 30 III",
+        .name              = "[ISA] Commodore PC-30 III",
         .internal_name     = "cmdpc30",
         .type              = MACHINE_TYPE_286,
         .chipset           = MACHINE_CHIPSET_PROPRIETARY, /* Machine has chipset: Faraday FE3400B */
@@ -3226,7 +3707,7 @@ const machine_t machines[] = {
         .cpu               = {
             .package     = CPU_PKG_286,
             .block       = CPU_BLOCK_NONE,
-            .min_bus     = 6000000,
+            .min_bus     = 10000000,
             .max_bus     = 12500000,
             .min_voltage = 0,
             .max_voltage = 0,
@@ -3236,25 +3717,29 @@ const machine_t machines[] = {
         .bus_flags = MACHINE_AT,
         .flags     = MACHINE_FLAGS_NONE,
         .ram       = {
-            .min  = 640,
-            .max  = 14912,
-            .step = 64
+            .min  = 384, /* gets stuck at POST code 00 with less */
+            .max  = 1024,
+            .step = 128
         },
         .nvrmask                  = 127,
         .jumpered_ecp_dma         = 0,
         .default_jumpered_ecp_dma = -1,
         .kbc_device               = &kbc_at_device,
         .kbc_params               = 0x00000000,
+        .nvr_device               = &nvr_at_device,
+        .nvr_params               = NVR_AT,
+        .sio_device               = NULL,
+        .sio_params               = 0x00000000,
         .kbc_p1                   = 0x000004f0,
         .gpio                     = 0xffffffff,
         .gpio_acpi                = 0xffffffff,
         .device                   = NULL,
         .kbd_device               = NULL,
         .fdc_device               = NULL,
-        .sio_device               = NULL,
         .vid_device               = NULL,
         .snd_device               = NULL,
-        .net_device               = NULL
+        .net_device               = NULL,
+        .aliases                  = { "Commodore Colt286", "" }
     },
     /* Uses Compaq KBC firmware. */
     {
@@ -3271,7 +3756,7 @@ const machine_t machines[] = {
             .package     = CPU_PKG_286,
             .block       = CPU_BLOCK_NONE,
             .min_bus     = 6000000,
-            .max_bus     = 16000000,
+            .max_bus     = 8000000,
             .min_voltage = 0,
             .max_voltage = 0,
             .min_multi   = 0,
@@ -3280,8 +3765,8 @@ const machine_t machines[] = {
         .bus_flags = MACHINE_AT,
         .flags     = MACHINE_KEYBOARD,
         .ram       = {
-            .min  = 640,
-            .max  = 16384,
+            .min  = 256,
+            .max  = 640,
             .step = 128
         },
         .nvrmask                  = 127,
@@ -3289,16 +3774,20 @@ const machine_t machines[] = {
         .default_jumpered_ecp_dma = -1,
         .kbc_device               = &kbc_at_device,
         .kbc_params               = 0x00000000,
+        .nvr_device               = &nvr_at_device,
+        .nvr_params               = NVR_AT,
+        .sio_device               = NULL,
+        .sio_params               = 0x00000000,
         .kbc_p1                   = 0x000004f0,
         .gpio                     = 0xffffffff,
         .gpio_acpi                = 0xffffffff,
         .device                   = NULL,
         .kbd_device               = NULL,
         .fdc_device               = NULL,
-        .sio_device               = NULL,
         .vid_device               = NULL,
         .snd_device               = NULL,
-        .net_device               = NULL
+        .net_device               = NULL,
+        .aliases                  = { "" }
     },
     /* Uses Compaq KBC firmware. */
     {
@@ -3314,8 +3803,8 @@ const machine_t machines[] = {
         .cpu               = {
             .package     = CPU_PKG_286,
             .block       = CPU_BLOCK_NONE,
-            .min_bus     = 6000000,
-            .max_bus     = 16000000,
+            .min_bus     = 8000000,
+            .max_bus     = 12500000,
             .min_voltage = 0,
             .max_voltage = 0,
             .min_multi   = 0,
@@ -3324,8 +3813,8 @@ const machine_t machines[] = {
         .bus_flags = MACHINE_AT,
         .flags     = MACHINE_IDE | MACHINE_VIDEO | MACHINE_KEYBOARD,
         .ram       = {
-            .min  = 640,
-            .max  = 16384,
+            .min  = 256,
+            .max  = 6784,
             .step = 128
         },
         .nvrmask                  = 127,
@@ -3333,19 +3822,72 @@ const machine_t machines[] = {
         .default_jumpered_ecp_dma = -1,
         .kbc_device               = &kbc_at_device,
         .kbc_params               = 0x00000000,
+        .nvr_device               = &nvr_at_device,
+        .nvr_params               = NVR_AT,
+        .sio_device               = NULL,
+        .sio_params               = 0x00000000,
         .kbc_p1                   = 0x000004f0,
         .gpio                     = 0xffffffff,
         .gpio_acpi                = 0xffffffff,
         .device                   = NULL,
         .kbd_device               = NULL,
         .fdc_device               = NULL,
-        .sio_device               = NULL,
         .vid_device               = &compaq_plasma_device,
         .snd_device               = NULL,
-        .net_device               = NULL
+        .net_device               = NULL,
+        .aliases                  = { "" }
+    },
+    /* Has IBM AT KBC firmware. Early AMIBIOS (Access Methods) that requires disk-based BIOS setup. */
+    {
+        .name              = "[ISA] Flying Triumph FT-286",
+        .internal_name     = "ft286",
+        .type              = MACHINE_TYPE_286,
+        .chipset           = MACHINE_CHIPSET_DISCRETE,
+        .init              = machine_at_ft286_init,
+        .p1_handler        = machine_generic_p1_handler,
+        .gpio_handler      = NULL,
+        .available_flag    = MACHINE_AVAILABLE,
+        .gpio_acpi_handler = NULL,
+        .cpu               = {
+            .package     = CPU_PKG_286,
+            .block       = CPU_BLOCK_NONE,
+            .min_bus     = 8000000, /* the computer-retro.de listing mentions an 8 MHz 286 */
+            .max_bus     = 0,
+            .min_voltage = 0,
+            .max_voltage = 0,
+            .min_multi   = 0,
+            .max_multi   = 0
+        },
+        .bus_flags = MACHINE_AT,
+        .flags     = MACHINE_FLAGS_NONE,
+        .ram       = {
+            .min  = 256,
+            .max  = 1024, /* the same listing also mentions 1 MB RAM, which is likely the maximum
+                             as the board in the picture clearly has all of its memory banks full */
+            .step = 128
+        },
+        .nvrmask                  = 63,
+        .jumpered_ecp_dma         = 0,
+        .default_jumpered_ecp_dma = -1,
+        .kbc_device               = &kbc_at_device,
+        .kbc_params               = 0x00000000,
+        .nvr_device               = &nvr_at_device,
+        .nvr_params               = NVR_AT,
+        .sio_device               = NULL,
+        .sio_params               = 0x00000000,
+        .kbc_p1                   = 0x000004f0,
+        .gpio                     = 0xffffffff,
+        .gpio_acpi                = 0xffffffff,
+        .device                   = NULL,
+        .kbd_device               = NULL,
+        .fdc_device               = NULL,
+        .vid_device               = NULL,
+        .snd_device               = NULL,
+        .net_device               = NULL,
+        .aliases                  = { "FTC FT-286", "Access Methods AT clone", "" }
     },
     {
-        .name              = "[ISA] GRiD GRiDcase 1520",
+        .name              = "[ISA] GRiD GRiDCASE 1520",
         .internal_name     = "grid1520",
         .type              = MACHINE_TYPE_286,
         .chipset           = MACHINE_CHIPSET_PROPRIETARY, /* Machine has chipset: Faraday FE3400B */
@@ -3365,31 +3907,35 @@ const machine_t machines[] = {
             .max_multi   = 0
         },
         .bus_flags = MACHINE_AT,
-        .flags     = MACHINE_IDE /*| MACHINE_VIDEO_FIXED*/ | MACHINE_KEYBOARD,
+        .flags     = MACHINE_IDE /* | MACHINE_VIDEO_FIXED */ | MACHINE_KEYBOARD,
         .ram       = {
-            .min  = 1024,
+            .min  = 256,
             .max  = 8192,
-            .step = 1024
+            .step = 128
         },
         .nvrmask                  = 127,
         .jumpered_ecp_dma         = 0,
         .default_jumpered_ecp_dma = -1,
         .kbc_device               = &kbc_at_device,
         .kbc_params               = 0x00000000,
+        .nvr_device               = &nvr_at_device,
+        .nvr_params               = NVR_AT,
+        .sio_device               = NULL,
+        .sio_params               = 0x00000000,
         .kbc_p1                   = 0x000004f0,
         .gpio                     = 0xffffffff,
         .gpio_acpi                = 0xffffffff,
         .device                   = NULL,
         .kbd_device               = NULL,
         .fdc_device               = NULL,
-        .sio_device               = NULL,
         .vid_device               = NULL,
         .snd_device               = NULL,
-        .net_device               = NULL
+        .net_device               = NULL,
+        .aliases                  = { "" }
     },
     /* Has IBM AT KBC firmware. */
     {
-        .name              = "[ISA] Multitech PC-900 / Commodore PC 40 / NBI 4200",
+        .name              = "[ISA] Multitech PC-900",
         .internal_name     = "pc900",
         .type              = MACHINE_TYPE_286,
         .chipset           = MACHINE_CHIPSET_DISCRETE,
@@ -3420,16 +3966,20 @@ const machine_t machines[] = {
         .default_jumpered_ecp_dma = -1,
         .kbc_device               = &kbc_at_device,
         .kbc_params               = 0x00000000,
+        .nvr_device               = &nvr_at_device,
+        .nvr_params               = NVR_AT,
+        .sio_device               = NULL,
+        .sio_params               = 0x00000000,
         .kbc_p1                   = 0x000004f0,
         .gpio                     = 0xffffffff,
         .gpio_acpi                = 0xffffffff,
         .device                   = &pc900_device,
         .kbd_device               = NULL,
         .fdc_device               = NULL,
-        .sio_device               = NULL,
         .vid_device               = NULL,
         .snd_device               = NULL,
-        .net_device               = NULL
+        .net_device               = NULL,
+        .aliases                  = { "Commodore PC 40", "Commodore PC-900-II", "NBI 4200", "" }
     },
     /* Has IBM AT KBC firmware. */
     {
@@ -3455,7 +4005,7 @@ const machine_t machines[] = {
         .bus_flags = MACHINE_AT,
         .flags     = MACHINE_IDE,
         .ram       = {
-            .min  = 512,
+            .min  = 256,
             .max  = 16384,
             .step = 128
         },
@@ -3464,20 +4014,24 @@ const machine_t machines[] = {
         .default_jumpered_ecp_dma = -1,
         .kbc_device               = &kbc_at_device,
         .kbc_params               = 0x00000000,
+        .nvr_device               = &nvr_at_device,
+        .nvr_params               = NVR_AT,
+        .sio_device               = NULL,
+        .sio_params               = 0x00000000,
         .kbc_p1                   = 0x000004f0,
         .gpio                     = 0xffffffff,
         .gpio_acpi                = 0xffffffff,
         .device                   = NULL,
         .kbd_device               = NULL,
         .fdc_device               = NULL,
-        .sio_device               = NULL,
         .vid_device               = NULL,
         .snd_device               = NULL,
-        .net_device               = NULL
+        .net_device               = NULL,
+        .aliases                  = { "" }
     },
     /* Has IBM AT KBC firmware. */
     {
-        .name              = "[ISA] NCR PC8/810/710/3390/3392",
+        .name              = "[ISA] NCR PC8",
         .internal_name     = "pc8",
         .type              = MACHINE_TYPE_286,
         .chipset           = MACHINE_CHIPSET_DISCRETE,
@@ -3489,8 +4043,8 @@ const machine_t machines[] = {
         .cpu               = {
             .package     = CPU_PKG_286,
             .block       = CPU_BLOCK_NONE,
-            .min_bus     = 0,
-            .max_bus     = 0,
+            .min_bus     = 6000000,
+            .max_bus     = 8000000,
             .min_voltage = 0,
             .max_voltage = 0,
             .min_multi   = 0,
@@ -3499,8 +4053,9 @@ const machine_t machines[] = {
         .bus_flags = MACHINE_AT,
         .flags     = MACHINE_FLAGS_NONE,
         .ram       = {
-            .min  = 512,
-            .max  = 16384,
+            .min  = 256,
+            .max  = 640, /* produces POST errors with more than this amount, more memory can
+                            still be added by using the Generic PC/AT Memory Expansion card */
             .step = 128
         },
         .nvrmask                  = 127,
@@ -3508,20 +4063,24 @@ const machine_t machines[] = {
         .default_jumpered_ecp_dma = -1,
         .kbc_device               = &kbc_at_device,
         .kbc_params               = KBC_VEN_NCR,
+        .nvr_device               = &nvr_at_device,
+        .nvr_params               = NVR_AT,
+        .sio_device               = NULL,
+        .sio_params               = 0x00000000,
         .kbc_p1                   = 0x000004df,
         .gpio                     = 0xffffffff,
         .gpio_acpi                = 0xffffffff,
         .device                   = NULL,
         .kbd_device               = NULL,
         .fdc_device               = NULL,
-        .sio_device               = NULL,
         .vid_device               = NULL,
         .snd_device               = NULL,
-        .net_device               = NULL
+        .net_device               = NULL,
+        .aliases                  = { "NCR 810", "NCR 710", "NCR 3390", "NCR 3392", "" }
     },
     /* Has Olivetti KBC firmware. */
     {
-        .name              = "[ISA] Olivetti M290/AT&T 6286 WGS",
+        .name              = "[ISA] Olivetti M290 (1984)",
         .internal_name     = "m290",
         .type              = MACHINE_TYPE_286,
         .chipset           = MACHINE_CHIPSET_PROPRIETARY, /* Yes, it's M290 with 98/86 gate array, not M290-30 with VLSI TOPCAT chipset. */
@@ -3533,8 +4092,8 @@ const machine_t machines[] = {
         .cpu               = {
             .package     = CPU_PKG_286,
             .block       = CPU_BLOCK_NONE,
-            .min_bus     = 0,
-            .max_bus     = 0,
+            .min_bus     = 12500000,
+            .max_bus     = 12500000,
             .min_voltage = 0,
             .max_voltage = 0,
             .min_multi   = 0,
@@ -3543,8 +4102,8 @@ const machine_t machines[] = {
         .bus_flags = MACHINE_AT,
         .flags     = MACHINE_FLAGS_NONE,
         .ram       = {
-            .min  = 1024,
-            .max  = 16384,
+            .min  = 256,
+            .max  = 2048,
             .step = 128
         },
         .nvrmask                  = 127,
@@ -3552,16 +4111,20 @@ const machine_t machines[] = {
         .default_jumpered_ecp_dma = -1,
         .kbc_device               = &kbc_at_device,
         .kbc_params               = KBC_VEN_OLIVETTI,
+        .nvr_device               = &nvr_at_device,
+        .nvr_params               = NVR_AT_ZERO_DEFAULT,
+        .sio_device               = NULL,
+        .sio_params               = 0x00000000,
         .kbc_p1                   = 0x000004f0,
         .gpio                     = 0xffffffff,
         .gpio_acpi                = 0xffffffff,
         .device                   = NULL,
         .kbd_device               = NULL,
         .fdc_device               = NULL,
-        .sio_device               = NULL,
         .vid_device               = NULL,
         .snd_device               = NULL,
-        .net_device               = NULL
+        .net_device               = NULL,
+        .aliases                  = { "AT&T 6286 WGS", "" }
     },
     /* Has IBM AT KBC firmware. */
     /* To configure the BIOS, use PB_2330a_diag.IMA from MS-DOS 3.30 Packard Bell OEM, GSETUP might work too*/
@@ -3578,8 +4141,8 @@ const machine_t machines[] = {
         .cpu               = {
             .package     = CPU_PKG_286,
             .block       = CPU_BLOCK_NONE,
-            .min_bus     = 0,
-            .max_bus     = 0,
+            .min_bus     = 10000000,
+            .max_bus     = 12500000,
             .min_voltage = 0,
             .max_voltage = 0,
             .min_multi   = 0,
@@ -3597,16 +4160,20 @@ const machine_t machines[] = {
         .default_jumpered_ecp_dma = -1,
         .kbc_device               = &kbc_at_device,
         .kbc_params               = 0x00000000,
+        .nvr_device               = &nvr_at_device,
+        .nvr_params               = NVR_AT,
+        .sio_device               = NULL,
+        .sio_params               = 0x00000000,
         .kbc_p1                   = 0x000004f0,
         .gpio                     = 0xffffffff,
         .gpio_acpi                = 0xffffffff,
         .device                   = NULL,
         .kbd_device               = NULL,
         .fdc_device               = NULL,
-        .sio_device               = NULL,
         .vid_device               = NULL,
         .snd_device               = NULL,
-        .net_device               = NULL
+        .net_device               = NULL,
+        .aliases                  = { "Packard Bell IS/VT286", "" }
     },
     /* Has IBM AT KBC firmware. */
     {
@@ -3633,7 +4200,7 @@ const machine_t machines[] = {
         .flags     = MACHINE_FLAGS_NONE,
         .ram       = {
             .min  = 256,
-            .max  = 1024, /* assumed; more can be added via memory expansions */
+            .max  = 16384,
             .step = 128
         },
         .nvrmask                  = 63,
@@ -3641,16 +4208,20 @@ const machine_t machines[] = {
         .default_jumpered_ecp_dma = -1,
         .kbc_device               = &kbc_at_device,
         .kbc_params               = 0x00000000,
+        .nvr_device               = &nvr_at_device,
+        .nvr_params               = NVR_AT,
+        .sio_device               = NULL,
+        .sio_params               = 0x00000000,
         .kbc_p1                   = 0x000004f0,
         .gpio                     = 0xffffffff,
         .gpio_acpi                = 0xffffffff,
         .device                   = NULL,
         .kbd_device               = NULL,
         .fdc_device               = NULL,
-        .sio_device               = NULL,
         .vid_device               = NULL,
         .snd_device               = NULL,
-        .net_device               = NULL
+        .net_device               = NULL,
+        .aliases                  = { "" }
     },
     /* Has Quadtel KBC firmware. */
     {
@@ -3677,7 +4248,7 @@ const machine_t machines[] = {
         .flags     = MACHINE_FLAGS_NONE,
         .ram       = {
             .min  = 256,
-            .max  = 1024, /* assumed; more can be added via memory expansions */
+            .max  = 16384,
             .step = 128
         },
         .nvrmask                  = 63,
@@ -3685,16 +4256,20 @@ const machine_t machines[] = {
         .default_jumpered_ecp_dma = -1,
         .kbc_device               = &kbc_at_device,
         .kbc_params               = KBC_VEN_QUADTEL,
+        .nvr_device               = &nvr_at_device,
+        .nvr_params               = NVR_AT,
+        .sio_device               = NULL,
+        .sio_params               = 0x00000000,
         .kbc_p1                   = 0x000004f0,
         .gpio                     = 0xffffffff,
         .gpio_acpi                = 0xffffffff,
         .device                   = NULL,
         .kbd_device               = NULL,
         .fdc_device               = NULL,
-        .sio_device               = NULL,
         .vid_device               = NULL,
         .snd_device               = NULL,
-        .net_device               = NULL
+        .net_device               = NULL,
+        .aliases                  = { "" }
     },
     /* Has unknown KBC firmware. */
     {
@@ -3710,8 +4285,8 @@ const machine_t machines[] = {
         .cpu               = {
             .package     = CPU_PKG_286,
             .block       = CPU_BLOCK_NONE,
-            .min_bus     = 0,
-            .max_bus     = 12000000,
+            .min_bus     = 8000000,
+            .max_bus     = 12500000,
             .min_voltage = 0,
             .max_voltage = 0,
             .min_multi   = 0,
@@ -3720,8 +4295,8 @@ const machine_t machines[] = {
         .bus_flags = MACHINE_AT,
         .flags     = MACHINE_IDE,
         .ram       = {
-            .min  = 512,
-            .max  = 16384,
+            .min  = 256,
+            .max  = 1024,
             .step = 128
         },
         .nvrmask                  = 127,
@@ -3729,16 +4304,20 @@ const machine_t machines[] = {
         .default_jumpered_ecp_dma = -1,
         .kbc_device               = &kbc_at_device,
         .kbc_params               = 0x00000000,
+        .nvr_device               = &nvr_at_device,
+        .nvr_params               = NVR_AT,
+        .sio_device               = NULL,
+        .sio_params               = 0x00000000,
         .kbc_p1                   = 0x000004f0,
         .gpio                     = 0xffffffff,
         .gpio_acpi                = 0xffffffff,
         .device                   = NULL,
         .kbd_device               = NULL,
         .fdc_device               = NULL,
-        .sio_device               = NULL,
         .vid_device               = NULL,
         .snd_device               = NULL,
-        .net_device               = NULL
+        .net_device               = NULL,
+        .aliases                  = { "" }
     },
     /* Has unknown KBC firmware. */
     {
@@ -3754,8 +4333,8 @@ const machine_t machines[] = {
         .cpu               = {
             .package     = CPU_PKG_286,
             .block       = CPU_BLOCK_NONE,
-            .min_bus     = 0,
-            .max_bus     = 0,
+            .min_bus     = 8000000,
+            .max_bus     = 12500000,
             .min_voltage = 0,
             .max_voltage = 0,
             .min_multi   = 0,
@@ -3764,7 +4343,7 @@ const machine_t machines[] = {
         .bus_flags = MACHINE_AT,
         .flags     = MACHINE_IDE,
         .ram       = {
-            .min  = 512,
+            .min  = 256,
             .max  = 16384,
             .step = 128
         },
@@ -3774,16 +4353,20 @@ const machine_t machines[] = {
         .kbc_device               = &kbc_at_device,
         /* The version number is a guess - we have no probe of this machine's controller. */
         .kbc_params               = KBC_VEN_PHOENIX | 0x00010500,
+        .nvr_device               = &nvr_at_device,
+        .nvr_params               = NVR_AT,
+        .sio_device               = NULL,
+        .sio_params               = 0x00000000,
         .kbc_p1                   = 0x000004f0,
         .gpio                     = 0xffffffff,
         .gpio_acpi                = 0xffffffff,
         .device                   = NULL,
         .kbd_device               = NULL,
         .fdc_device               = NULL,
-        .sio_device               = NULL,
         .vid_device               = NULL,
         .snd_device               = NULL,
-        .net_device               = NULL
+        .net_device               = NULL,
+        .aliases                  = { "" }
     },
     /* This has a Siemens proprietary KBC which is completely undocumented. */
     {
@@ -3799,7 +4382,7 @@ const machine_t machines[] = {
         .cpu               = {
             .package     = CPU_PKG_286,
             .block       = CPU_BLOCK_NONE,
-            .min_bus     = 6000000,
+            .min_bus     = 12500000,
             .max_bus     = 12500000,
             .min_voltage = 0,
             .max_voltage = 0,
@@ -3810,7 +4393,7 @@ const machine_t machines[] = {
         .flags     = MACHINE_FLAGS_NONE,
         .ram       = {
             .min  = 256,
-            .max  = 15872,
+            .max  = 16384,
             .step = 128
         },
         .nvrmask                  = 63,
@@ -3818,16 +4401,20 @@ const machine_t machines[] = {
         .default_jumpered_ecp_dma = -1,
         .kbc_device               = &kbc_at_device,
         .kbc_params               = KBC_VEN_SIEMENS,
+        .nvr_device               = &nvr_at_device,
+        .nvr_params               = NVR_AT,
+        .sio_device               = NULL,
+        .sio_params               = 0x00000000,
         .kbc_p1                   = 0x000004f0,
         .gpio                     = 0xffffffff,
         .gpio_acpi                = 0xffffffff,
         .device                   = NULL,
         .kbd_device               = NULL,
         .fdc_device               = NULL,
-        .sio_device               = NULL,
         .vid_device               = NULL,
         .snd_device               = NULL,
-        .net_device               = NULL
+        .net_device               = NULL,
+        .aliases                  = { "" }
     },
     /* This has Toshiba's proprietary KBC, which is already implemented. */
     {
@@ -3843,8 +4430,8 @@ const machine_t machines[] = {
         .cpu               = {
             .package     = CPU_PKG_286,
             .block       = CPU_BLOCK_NONE,
-            .min_bus     = 0,
-            .max_bus     = 0,
+            .min_bus     = 12500000,
+            .max_bus     = 12500000,
             .min_voltage = 0,
             .max_voltage = 0,
             .min_multi   = 0,
@@ -3862,18 +4449,22 @@ const machine_t machines[] = {
         .default_jumpered_ecp_dma = -1,
         .kbc_device               = &kbc_at_device,
         .kbc_params               = KBC_VEN_TOSHIBA,
+        .nvr_device               = &nvr_at_device,
+        .nvr_params               = NVR_AT,
+        .sio_device               = NULL,
+        .sio_params               = 0x00000000,
         .kbc_p1                   = 0x0000bfff,
         .gpio                     = 0xffffffff,
         .gpio_acpi                = 0xffffffff,
         .device                   = NULL,
         .kbd_device               = NULL,
         .fdc_device               = NULL,
-        .sio_device               = NULL,
         .vid_device               = NULL,
         .snd_device               = NULL,
-        .net_device               = NULL
+        .net_device               = NULL,
+        .aliases                  = { "" }
     },
-    /* AMI BIOS for a chipset-less machine, most likely has AMI 'F' KBC firmware. */
+    /* AMIBIOS for a chipset-less machine, most likely has AMI 'F' KBC firmware. */
     {
         .name              = "[ISA] Trangg Bow Unknown 286",
         .internal_name     = "ibmatami",
@@ -3898,7 +4489,7 @@ const machine_t machines[] = {
         .flags     = MACHINE_FLAGS_NONE,
         .ram       = {
             .min  = 256,
-            .max  = 1024, /* assumed; more can be added via memory expansions */
+            .max  = 16384,
             .step = 128
         },
         .nvrmask                  = 63,
@@ -3906,15 +4497,19 @@ const machine_t machines[] = {
         .default_jumpered_ecp_dma = -1,
         .kbc_device               = &kbc_at_device,
         .kbc_params               = KBC_VEN_AMI | 0x00003800,
+        .nvr_device               = &nvr_at_device,
+        .nvr_params               = NVR_AT,
+        .sio_device               = NULL,
+        .sio_params               = 0x00000000,
         .kbc_p1                   = 0x000004f0,
         .gpio                     = 0xffffffff,
         .gpio_acpi                = 0xffffffff,
         .device                   = NULL,
         .fdc_device               = NULL,
-        .sio_device               = NULL,
         .vid_device               = NULL,
         .snd_device               = NULL,
-        .net_device               = NULL
+        .net_device               = NULL,
+        .aliases                  = { "" }
     },
     /* No proper pictures of the KBC exist, though it seems to have the IBM AT KBC
        firmware. */
@@ -3932,7 +4527,7 @@ const machine_t machines[] = {
             .package     = CPU_PKG_286,
             .block       = CPU_BLOCK_NONE,
             .min_bus     = 6000000,
-            .max_bus     = 12000000,
+            .max_bus     = 12500000,
             .min_voltage = 0,
             .max_voltage = 0,
             .min_multi   = 0,
@@ -3941,8 +4536,8 @@ const machine_t machines[] = {
         .bus_flags = MACHINE_AT,
         .flags     = MACHINE_FLAGS_NONE,
         .ram       = {
-            .min  = 640,
-            .max  = 16384,
+            .min  = 640, /* gets stuck at POST code 0A with less */
+            .max  = 14336, /* does not POST at all with 16 MB */
             .step = 128
         },
         .nvrmask                  = 127,
@@ -3950,18 +4545,70 @@ const machine_t machines[] = {
         .default_jumpered_ecp_dma = -1,
         .kbc_device               = &kbc_at_device,
         .kbc_params               = 0x00000000,
+        .nvr_device               = &nvr_at_device,
+        .nvr_params               = NVR_AT,
+        .sio_device               = NULL,
+        .sio_params               = 0x00000000,
         .kbc_p1                   = 0x000004f0,
         .gpio                     = 0xffffffff,
         .gpio_acpi                = 0xffffffff,
         .device                   = NULL,
         .kbd_device               = NULL,
         .fdc_device               = NULL,
-        .sio_device               = NULL,
         .vid_device               = NULL,
         .snd_device               = NULL,
-        .net_device               = NULL
+        .net_device               = NULL,
+        .aliases                  = { "" }
     },
-    /* has an Award-branded KBC controller */
+    /* Early AMIBIOS (Access Methods) that requires disk-based BIOS setup. */
+    {
+        .name              = "[C&T PC/AT] Flying Triumph BABY-286",
+        .internal_name     = "ftbaby286",
+        .type              = MACHINE_TYPE_286,
+        .chipset           = MACHINE_CHIPSET_CT_AT,
+        .init              = machine_at_ftbaby286_init,
+        .p1_handler        = machine_generic_p1_handler,
+        .gpio_handler      = NULL,
+        .available_flag    = MACHINE_AVAILABLE,
+        .gpio_acpi_handler = NULL,
+        .cpu               = {
+            .package     = CPU_PKG_286,
+            .block       = CPU_BLOCK_NONE,
+            .min_bus     = 6000000,
+            .max_bus     = 12500000,
+            .min_voltage = 0,
+            .max_voltage = 0,
+            .min_multi   = 0,
+            .max_multi   = 0
+        },
+        .bus_flags = MACHINE_AT,
+        .flags     = MACHINE_FLAGS_NONE,
+        .ram       = {
+            .min  = 256,
+            .max  = 1024,
+            .step = 128
+        },
+        .nvrmask                  = 127,
+        .jumpered_ecp_dma         = 0,
+        .default_jumpered_ecp_dma = -1,
+        .kbc_device               = &kbc_at_device,
+        .kbc_params               = 0x00000000,
+        .nvr_device               = &nvr_at_device,
+        .nvr_params               = NVR_AT,
+        .sio_device               = NULL,
+        .sio_params               = 0x00000000,
+        .kbc_p1                   = 0x000004f0,
+        .gpio                     = 0xffffffff,
+        .gpio_acpi                = 0xffffffff,
+        .device                   = NULL,
+        .kbd_device               = NULL,
+        .fdc_device               = NULL,
+        .vid_device               = NULL,
+        .snd_device               = NULL,
+        .net_device               = NULL,
+        .aliases                  = { "FTC BABY-286 VER 8.0", "Access Methods 286 clone", "" }
+    },
+    /* Has an Award-branded KBC controller. */
     {
         .name              = "[C&T PC/AT] Hyundai Super-286C",
         .internal_name     = "super286c",
@@ -3975,8 +4622,8 @@ const machine_t machines[] = {
         .cpu               = {
             .package     = CPU_PKG_286,
             .block       = CPU_BLOCK_NONE,
-            .min_bus     = 0,
-            .max_bus     = 0,
+            .min_bus     = 10000000,
+            .max_bus     = 10000000,
             .min_voltage = 0,
             .max_voltage = 0,
             .min_multi   = 0,
@@ -3985,7 +4632,7 @@ const machine_t machines[] = {
         .bus_flags = MACHINE_AT,
         .flags     = MACHINE_FLAGS_NONE,
         .ram       = {
-            .min  = 512,
+            .min  = 256,
             .max  = 1024,
             .step = 128
         },
@@ -3994,20 +4641,24 @@ const machine_t machines[] = {
         .default_jumpered_ecp_dma = -1,
         .kbc_device               = &kbc_at_device,
         .kbc_params               = KBC_VEN_AWARD | 0x00424600,
+        .nvr_device               = &nvr_at_device,
+        .nvr_params               = NVR_AT,
+        .sio_device               = NULL,
+        .sio_params               = 0x00000000,
         .kbc_p1                   = 0x000004f0,
         .gpio                     = 0xffffffff,
         .gpio_acpi                = 0xffffffff,
         .device                   = NULL,
         .fdc_device               = NULL,
-        .sio_device               = NULL,
         .vid_device               = NULL,
         .snd_device               = NULL,
-        .net_device               = NULL
+        .net_device               = NULL,
+        .aliases                  = { "" }
     },
     /* No proper pictures of the KBC exist, though it seems to have the IBM AT KBC
        firmware. */
     {
-        .name              = "[C&T PC/AT] PC's Limited (Dell) 28608L/AT122",
+        .name              = "[C&T PC/AT] PC's Limited 28608L",
         .internal_name     = "at122",
         .type              = MACHINE_TYPE_286,
         .chipset           = MACHINE_CHIPSET_CT_AT,
@@ -4019,8 +4670,8 @@ const machine_t machines[] = {
         .cpu               = {
             .package     = CPU_PKG_286,
             .block       = CPU_BLOCK_NONE,
-            .min_bus     = 6000000,
-            .max_bus     = 12000000,
+            .min_bus     = 10000000,
+            .max_bus     = 10000000,
             .min_voltage = 0,
             .max_voltage = 0,
             .min_multi   = 0,
@@ -4029,8 +4680,8 @@ const machine_t machines[] = {
         .bus_flags = MACHINE_AT,
         .flags     = MACHINE_FLAGS_NONE,
         .ram       = {
-            .min  = 640,
-            .max  = 16384,
+            .min  = 256,
+            .max  = 1024,
             .step = 128
         },
         .nvrmask                  = 127,
@@ -4038,16 +4689,20 @@ const machine_t machines[] = {
         .default_jumpered_ecp_dma = -1,
         .kbc_device               = &kbc_at_device,
         .kbc_params               = 0x00000000,
+        .nvr_device               = &nvr_at_device,
+        .nvr_params               = NVR_AT,
+        .sio_device               = NULL,
+        .sio_params               = 0x00000000,
         .kbc_p1                   = 0x000004f0,
         .gpio                     = 0xffffffff,
         .gpio_acpi                = 0xffffffff,
         .device                   = NULL,
         .kbd_device               = NULL,
         .fdc_device               = NULL,
-        .sio_device               = NULL,
         .vid_device               = NULL,
         .snd_device               = NULL,
-        .net_device               = NULL
+        .net_device               = NULL,
+        .aliases                  = { "Dell 28608L", "AT122", "" }
     },
     /* No proper pictures of the KBC exist, though it seems to have the IBM AT KBC
        firmware. */
@@ -4064,8 +4719,8 @@ const machine_t machines[] = {
         .cpu               = {
             .package     = CPU_PKG_286,
             .block       = CPU_BLOCK_NONE,
-            .min_bus     = 6000000,
-            .max_bus     = 12000000,
+            .min_bus     = 10000000,
+            .max_bus     = 10000000,
             .min_voltage = 0,
             .max_voltage = 0,
             .min_multi   = 0,
@@ -4074,8 +4729,8 @@ const machine_t machines[] = {
         .bus_flags = MACHINE_AT,
         .flags     = MACHINE_FLAGS_NONE,
         .ram       = {
-            .min  = 640,
-            .max  = 16384,
+            .min  = 256,
+            .max  = 1024, /* assumed */
             .step = 128
         },
         .nvrmask                  = 127,
@@ -4083,16 +4738,20 @@ const machine_t machines[] = {
         .default_jumpered_ecp_dma = -1,
         .kbc_device               = &kbc_at_device,
         .kbc_params               = 0x00000000,
+        .nvr_device               = &nvr_at_device,
+        .nvr_params               = NVR_AT,
+        .sio_device               = NULL,
+        .sio_params               = 0x00000000,
         .kbc_p1                   = 0x000004f0,
         .gpio                     = 0xffffffff,
         .gpio_acpi                = 0xffffffff,
         .device                   = NULL,
         .kbd_device               = NULL,
         .fdc_device               = NULL,
-        .sio_device               = NULL,
         .vid_device               = NULL,
         .snd_device               = NULL,
-        .net_device               = NULL
+        .net_device               = NULL,
+        .aliases                  = { "" }
     },
     /* Has Chips & Technologies KBC firmware. */
     {
@@ -4108,7 +4767,7 @@ const machine_t machines[] = {
         .cpu               = {
             .package     = CPU_PKG_286,
             .block       = CPU_BLOCK_NONE,
-            .min_bus     = 6000000,
+            .min_bus     = 8000000,
             .max_bus     = 14000000,
             .min_voltage = 0,
             .max_voltage = 0,
@@ -4118,7 +4777,7 @@ const machine_t machines[] = {
         .bus_flags = MACHINE_AT,
         .flags     = MACHINE_FLAGS_NONE,
         .ram       = {
-            .min  = 512,
+            .min  = 256,
             .max  = 1024,
             .step = 128
         },
@@ -4127,16 +4786,20 @@ const machine_t machines[] = {
         .default_jumpered_ecp_dma = -1,
         .kbc_device               = &kbc_at_device,
         .kbc_params               = KBC_VEN_CHIPS | 0x0000a600,
+        .nvr_device               = &nvr_at_device,
+        .nvr_params               = NVR_AT,
+        .sio_device               = NULL,
+        .sio_params               = 0x00000000,
         .kbc_p1                   = 0x000004f0,
         .gpio                     = 0xffffffff,
         .gpio_acpi                = 0xffffffff,
         .device                   = NULL,
         .kbd_device               = NULL,
         .fdc_device               = NULL,
-        .sio_device               = NULL,
         .vid_device               = NULL,
         .snd_device               = NULL,
-        .net_device               = NULL
+        .net_device               = NULL,
+        .aliases                  = { "" }
     },
     /* Has Quadtel KBC firmware. */
     {
@@ -4162,29 +4825,33 @@ const machine_t machines[] = {
         .bus_flags = MACHINE_AT,
         .flags     = MACHINE_SOFTFLOAT_ONLY,
         .ram       = {
-            .min  = 512,
-            .max  = 16384,
-            .step = 128
+            .min  = 256,
+            .max  = 8192,
+            .step = 256
         },
         .nvrmask                  = 127,
         .jumpered_ecp_dma         = 0,
         .default_jumpered_ecp_dma = -1,
         .kbc_device               = &kbc_at_device,
         .kbc_params               = KBC_VEN_QUADTEL,
+        .nvr_device               = &nvr_at_device,
+        .nvr_params               = NVR_AT,
+        .sio_device               = NULL,
+        .sio_params               = 0x00000000,
         .kbc_p1                   = 0x000004f0,
         .gpio                     = 0xffffffff,
         .gpio_acpi                = 0xffffffff,
         .device                   = NULL,
         .kbd_device               = NULL,
         .fdc_device               = NULL,
-        .sio_device               = NULL,
         .vid_device               = NULL,
         .snd_device               = NULL,
-        .net_device               = NULL
+        .net_device               = NULL,
+        .aliases                  = { "" }
     },
     /* Has AMI 'B' KBC firmware. */
     {
-        .name              = "[GC103] TriGem 286M",
+        .name              = "[GC103] TriGem VULCAN-II",
         .internal_name     = "tg286m",
         .type              = MACHINE_TYPE_286,
         .chipset           = MACHINE_CHIPSET_GC103,
@@ -4196,8 +4863,8 @@ const machine_t machines[] = {
         .cpu               = {
             .package     = CPU_PKG_286,
             .block       = CPU_BLOCK_NONE,
-            .min_bus     = 0,
-            .max_bus     = 0,
+            .min_bus     = 16000000,
+            .max_bus     = 16000000,
             .min_voltage = 0,
             .max_voltage = 0,
             .min_multi   = 0,
@@ -4206,25 +4873,29 @@ const machine_t machines[] = {
         .bus_flags = MACHINE_AT,
         .flags     = MACHINE_IDE,
         .ram       = {
-            .min  = 512,
+            .min  = 256,
             .max  = 8192,
-            .step = 128
+            .step = 256
         },
         .nvrmask                  = 127,
         .jumpered_ecp_dma         = 0,
         .default_jumpered_ecp_dma = -1,
         .kbc_device               = &kbc_at_device,
         .kbc_params               = KBC_VEN_AMI | 0x00004200,
+        .nvr_device               = &nvr_at_device,
+        .nvr_params               = NVR_AT,
+        .sio_device               = NULL,
+        .sio_params               = 0x00000000,
         .kbc_p1                   = 0x000004f0,
         .gpio                     = 0xffffffff,
         .gpio_acpi                = 0xffffffff,
         .device                   = NULL,
         .kbd_device               = NULL,
         .fdc_device               = NULL,
-        .sio_device               = NULL,
         .vid_device               = NULL,
         .snd_device               = NULL,
-        .net_device               = NULL
+        .net_device               = NULL,
+        .aliases                  = { "TriGem TG-286M", "" }
     },
     /* Has Phoenix MultiKey/42 KBC firmware. */
     {
@@ -4240,8 +4911,8 @@ const machine_t machines[] = {
         .cpu               = {
             .package     = CPU_PKG_286,
             .block       = CPU_BLOCK_NONE,
-            .min_bus     = 0,
-            .max_bus     = 0,
+            .min_bus     = 12500000,
+            .max_bus     = 16000000,
             .min_voltage = 0,
             .max_voltage = 0,
             .min_multi   = 0,
@@ -4250,7 +4921,7 @@ const machine_t machines[] = {
         .bus_flags = MACHINE_AT,
         .flags     = MACHINE_FLAGS_NONE,
         .ram       = {
-            .min  = 512,
+            .min  = 256,
             .max  = 8192,
             .step = 128
         },
@@ -4260,19 +4931,23 @@ const machine_t machines[] = {
         .kbc_device               = &kbc_at_device,
         /* The version number is a guess - we have no probe of this machine's controller. */
         .kbc_params               = KBC_VEN_PHOENIX | 0x00010500,
+        .nvr_device               = &nvr_at_device,
+        .nvr_params               = NVR_AT,
+        .sio_device               = NULL,
+        .sio_params               = 0x00000000,
         .kbc_p1                   = 0x000004f0,
         .gpio                     = 0xffffffff,
         .gpio_acpi                = 0xffffffff,
         .device                   = NULL,
         .fdc_device               = NULL,
-        .sio_device               = NULL,
         .vid_device               = NULL,
         .snd_device               = NULL,
-        .net_device               = NULL
+        .net_device               = NULL,
+        .aliases                  = { "" }
     },
     /* Most likely has Chips & Technologies KBC firmware. */
     {
-        .name              = "[NEAT] Atari PC 4",
+        .name              = "[NEAT] Atari PC4",
         .internal_name     = "ataripc4",
         .type              = MACHINE_TYPE_286,
         .chipset           = MACHINE_CHIPSET_NEAT,
@@ -4284,8 +4959,8 @@ const machine_t machines[] = {
         .cpu               = {
             .package     = CPU_PKG_286,
             .block       = CPU_BLOCK_NONE,
-            .min_bus     = 0,
-            .max_bus     = 0,
+            .min_bus     = 12500000,
+            .max_bus     = 16000000,
             .min_voltage = 0,
             .max_voltage = 0,
             .min_multi   = 0,
@@ -4294,7 +4969,8 @@ const machine_t machines[] = {
         .bus_flags = MACHINE_AT,
         .flags     = MACHINE_FDC, /* Machine has video: Paradise PVGA1A */
         .ram       = {
-            .min  = 512,
+            .min  = 256, /* POST misdetects memory when it's less than 1 MB,
+                            but otherwise such amounts work without issues */
             .max  = 8192,
             .step = 128
         },
@@ -4303,16 +4979,20 @@ const machine_t machines[] = {
         .default_jumpered_ecp_dma = -1,
         .kbc_device               = &kbc_at_device,
         .kbc_params               = KBC_VEN_CHIPS | 0x0000a600,
+        .nvr_device               = &nvr_at_device,
+        .nvr_params               = NVR_AT,
+        .sio_device               = NULL,
+        .sio_params               = 0x00000000,
         .kbc_p1                   = 0x000004f0,
         .gpio                     = 0xffffffff,
         .gpio_acpi                = 0xffffffff,
         .device                   = NULL,
         .kbd_device               = NULL,
         .fdc_device               = NULL,
-        .sio_device               = NULL,
         .vid_device               = NULL,
         .snd_device               = NULL,
-        .net_device               = NULL
+        .net_device               = NULL,
+        .aliases                  = { "" }
     },
     /* This has an AMIKey-2, which is 'H'. */
     {
@@ -4338,7 +5018,8 @@ const machine_t machines[] = {
         .bus_flags = MACHINE_AT,
         .flags     = MACHINE_FLAGS_NONE,
         .ram       = {
-            .min  = 512,
+            .min  = 256, /* POST misdetects memory when it's less than 1 MB,
+                            but otherwise such amounts work without issues */
             .max  = 8192,
             .step = 128
         },
@@ -4347,16 +5028,20 @@ const machine_t machines[] = {
         .default_jumpered_ecp_dma = -1,
         .kbc_device               = &kbc_at_device,
         .kbc_params               = KBC_VEN_AMI | 0x00004800,
+        .nvr_device               = &nvr_at_device,
+        .nvr_params               = NVR_AT,
+        .sio_device               = NULL,
+        .sio_params               = 0x00000000,
         .kbc_p1                   = 0x000004f0,
         .gpio                     = 0xffffffff,
         .gpio_acpi                = 0xffffffff,
         .device                   = NULL,
         .kbd_device               = NULL,
         .fdc_device               = NULL,
-        .sio_device               = NULL,
         .vid_device               = NULL,
         .snd_device               = NULL,
-        .net_device               = NULL
+        .net_device               = NULL,
+        .aliases                  = { "" }
     },
     /* Has NCR KBC firmware. */
     {
@@ -4372,8 +5057,8 @@ const machine_t machines[] = {
         .cpu               = {
             .package     = CPU_PKG_286,
             .block       = CPU_BLOCK_NONE,
-            .min_bus     = 0,
-            .max_bus     = 0,
+            .min_bus     = 12500000,
+            .max_bus     = 12500000,
             .min_voltage = 0,
             .max_voltage = 0,
             .min_multi   = 0,
@@ -4382,8 +5067,8 @@ const machine_t machines[] = {
         .bus_flags = MACHINE_AT,
         .flags     = MACHINE_IDE | MACHINE_VIDEO,
         .ram       = {
-            .min  = 512,
-            .max  = 5120,
+            .min  = 256,
+            .max  = 8192,
             .step = 128
         },
         .nvrmask                  = 127,
@@ -4391,16 +5076,70 @@ const machine_t machines[] = {
         .default_jumpered_ecp_dma = -1,
         .kbc_device               = &kbc_at_device,
         .kbc_params               = KBC_VEN_NCR,
+        .nvr_device               = &nvr_at_device,
+        .nvr_params               = NVR_AT,
+        .sio_device               = NULL,
+        .sio_params               = 0x00000000,
         .kbc_p1                   = 0x000004df,
         .gpio                     = 0xffffffff,
         .gpio_acpi                = 0xffffffff,
         .device                   = NULL,
         .kbd_device               = NULL,
         .fdc_device               = NULL,
-        .sio_device               = NULL,
         .vid_device               = &paradise_pvga1a_ncr3302_device,
         .snd_device               = NULL,
-        .net_device               = NULL
+        .net_device               = NULL,
+        .aliases                  = { "" }
+    },
+    /* Has unknown keyboard controller. */
+    {
+        .name              = "[NEAT] Nixdorf 8810 M30",
+        .internal_name     = "n8810m30",
+        .type              = MACHINE_TYPE_286,
+        .chipset           = MACHINE_CHIPSET_NEAT,
+        .init              = machine_at_n8810m30_init,
+        .p1_handler        = machine_generic_p1_handler,
+        .gpio_handler      = NULL,
+        .available_flag    = MACHINE_AVAILABLE,
+        .gpio_acpi_handler = NULL,
+        .cpu               = {
+            .package     = CPU_PKG_286,
+            .block       = CPU_BLOCK_NONE,
+            .min_bus     = 10000000,
+            .max_bus     = 10000000,
+            .min_voltage = 0,
+            .max_voltage = 0,
+            .min_multi   = 0,
+            .max_multi   = 0
+        },
+        .bus_flags = MACHINE_AT,
+        .flags     = MACHINE_FLAGS_NONE, /* Machine has internal SCSI: Western Digital WD33C93AJM */
+        .ram       = {
+            .min  = 640,
+            .max  = 640, /* memory upgrades are only possible with proprietary 1 or 2 MB
+                            expansion cards, which can be emulated using the Generic PC/AT
+                            Memory Expansion card, with the start address set to 1024 */
+            .step = 640
+        },
+        .nvrmask                  = 127,
+        .jumpered_ecp_dma         = 0,
+        .default_jumpered_ecp_dma = -1,
+        .kbc_device               = &kbc_at_device,
+        .kbc_params               = 0x00000000,
+        .nvr_device               = &nvr_at_device,
+        .nvr_params               = NVR_AT,
+        .sio_device               = NULL,
+        .sio_params               = 0x00000000,
+        .kbc_p1                   = 0x000004f0,
+        .gpio                     = 0xffffffff,
+        .gpio_acpi                = 0xffffffff,
+        .device                   = NULL,
+        .kbd_device               = NULL,
+        .fdc_device               = NULL,
+        .vid_device               = NULL,
+        .snd_device               = NULL,
+        .net_device               = NULL,
+        .aliases                  = { "" }
     },
     /* Has the VLSI 82C113 with on-chip KBC. */
     {
@@ -4416,8 +5155,8 @@ const machine_t machines[] = {
         .cpu               = {
             .package     = CPU_PKG_286,
             .block       = CPU_BLOCK_NONE,
-            .min_bus     = 0,
-            .max_bus     = 0,
+            .min_bus     = 16000000,
+            .max_bus     = 16000000,
             .min_voltage = 0,
             .max_voltage = 0,
             .min_multi   = 0,
@@ -4426,25 +5165,30 @@ const machine_t machines[] = {
         .bus_flags = MACHINE_PS2,
         .flags     = MACHINE_IDE | MACHINE_VIDEO,
         .ram       = {
-            .min  = 1024,
-            .max  = 32768,
-            .step = 1024
+            .min  = 1024, /* soldered amount */
+            .max  = 16384,
+            .step = 512
         },
         .nvrmask                  = 127,
         .jumpered_ecp_dma         = 0,
         .default_jumpered_ecp_dma = -1,
         .kbc_device               = &kbc_at_device,
         .kbc_params               = 0x00000000,
+        /* The NVR is on the VLSI VL82C113. */
+        .nvr_device               = NULL,
+        .nvr_params               = 0x00000000,
+        .sio_device               = NULL,
+        .sio_params               = 0x00000000,
         .kbc_p1                   = 0x000004f0,
         .gpio                     = 0xffffffff,
         .gpio_acpi                = 0xffffffff,
         .device                   = NULL,
         .kbd_device               = NULL,
         .fdc_device               = NULL,
-        .sio_device               = NULL,
         .vid_device               = &gd5401_onboard_device,
         .snd_device               = NULL,
-        .net_device               = NULL
+        .net_device               = NULL,
+        .aliases                  = { "Amstrad VSC286E", "" }
     },
     /* Has unknown KBC firmware. */
     {
@@ -4460,8 +5204,8 @@ const machine_t machines[] = {
         .cpu               = {
             .package     = CPU_PKG_286,
             .block       = CPU_BLOCK_NONE,
-            .min_bus     = 0,
-            .max_bus     = 0,
+            .min_bus     = 16000000,
+            .max_bus     = 16000000,
             .min_voltage = 0,
             .max_voltage = 0,
             .min_multi   = 0,
@@ -4470,8 +5214,8 @@ const machine_t machines[] = {
         .bus_flags = MACHINE_AT | MACHINE_BUS_PS2,
         .flags     = MACHINE_IDE,
         .ram       = {
-            .min  = 512,
-            .max  = 16384,
+            .min  = 1024, /* soldered amount(?) */
+            .max  = 4096,
             .step = 128
         },
         .nvrmask                  = 127,
@@ -4479,16 +5223,20 @@ const machine_t machines[] = {
         .default_jumpered_ecp_dma = -1,
         .kbc_device               = &kbc_at_device,
         .kbc_params               = 0x00000000,
+        .nvr_device               = &nvr_at_device,
+        .nvr_params               = NVR_AT,
+        .sio_device               = NULL,
+        .sio_params               = 0x00000000,
         .kbc_p1                   = 0x000004f0,
         .gpio                     = 0xffffffff,
         .gpio_acpi                = 0xffffffff,
         .device                   = &f82c710_device,
         .kbd_device               = NULL,
         .fdc_device               = NULL,
-        .sio_device               = NULL,
         .vid_device               = NULL,
         .snd_device               = NULL,
-        .net_device               = NULL
+        .net_device               = NULL,
+        .aliases                  = { "" }
     },
     /* Has Chips & Technologies KBC firmware. */
     {
@@ -4504,8 +5252,8 @@ const machine_t machines[] = {
         .cpu               = {
             .package     = CPU_PKG_286,
             .block       = CPU_BLOCK_NONE,
-            .min_bus     = 0,
-            .max_bus     = 0,
+            .min_bus     = 20000000,
+            .max_bus     = 25000000,
             .min_voltage = 0,
             .max_voltage = 0,
             .min_multi   = 0,
@@ -4514,7 +5262,7 @@ const machine_t machines[] = {
         .bus_flags = MACHINE_AT,
         .flags     = MACHINE_IDE,
         .ram       = {
-            .min  = 512,
+            .min  = 512, /* crashes at POST code 00 with less */
             .max  = 16384,
             .step = 128
         },
@@ -4523,22 +5271,26 @@ const machine_t machines[] = {
         .default_jumpered_ecp_dma = -1,
         .kbc_device               = &kbc_at_device,
         .kbc_params               = KBC_VEN_CHIPS | 0x0000a600,
+        .nvr_device               = &nvr_at_device,
+        .nvr_params               = NVR_AT,
+        .sio_device               = NULL,
+        .sio_params               = 0x00000000,
         .kbc_p1                   = 0x000004f0,
         .gpio                     = 0xffffffff,
         .gpio_acpi                = 0xffffffff,
         .device                   = &f82c710_device,
         .kbd_device               = NULL,
         .fdc_device               = NULL,
-        .sio_device               = NULL,
         .vid_device               = NULL,
         .snd_device               = NULL,
-        .net_device               = NULL
+        .net_device               = NULL,
+        .aliases                  = { "" }
     },
     /* Has IBM PS/2 Type 1 KBC firmware - that's actually a guess since we
        do not currently have a picture of the motherboard.
        In the code, we actually give it the AMI PS/2 controller. */
     {
-        .name              = "[SCAT] Goldstar GDC-212M",
+        .name              = "[SCAT] GoldStar GDC-212M",
         .internal_name     = "gdc212m",
         .type              = MACHINE_TYPE_286,
         .chipset           = MACHINE_CHIPSET_SCAT,
@@ -4550,8 +5302,8 @@ const machine_t machines[] = {
         .cpu               = {
             .package     = CPU_PKG_286,
             .block       = CPU_BLOCK_NONE,
-            .min_bus     = 0,
-            .max_bus     = 0,
+            .min_bus     = 12500000,
+            .max_bus     = 12500000,
             .min_voltage = 0,
             .max_voltage = 0,
             .min_multi   = 0,
@@ -4560,25 +5312,29 @@ const machine_t machines[] = {
         .bus_flags = MACHINE_PS2,
         .flags     = MACHINE_IDE,
         .ram       = {
-            .min  = 512,
+            .min  = 512, /* gets stuck at POST code 86 with less */
             .max  = 4096,
-            .step = 512
+            .step = 128
         },
         .nvrmask                  = 127,
         .jumpered_ecp_dma         = 0,
         .default_jumpered_ecp_dma = -1,
         .kbc_device               = &kbc_at_device,
         .kbc_params               = KBC_VEN_AMI | 0x00004600,
+        .nvr_device               = &nvr_at_device,
+        .nvr_params               = NVR_AT,
+        .sio_device               = NULL,
+        .sio_params               = 0x00000000,
         .kbc_p1                   = 0x00000cf0,
         .gpio                     = 0xffffffff,
         .gpio_acpi                = 0xffffffff,
         .device                   = NULL,
         .kbd_device               = NULL,
         .fdc_device               = NULL,
-        .sio_device               = NULL,
         .vid_device               = NULL,
         .snd_device               = NULL,
-        .net_device               = NULL
+        .net_device               = NULL,
+        .aliases                  = { "" }
     },
     /* Has a VIA VT82C42N KBC. */
     {
@@ -4594,8 +5350,8 @@ const machine_t machines[] = {
         .cpu               = {
             .package     = CPU_PKG_286,
             .block       = CPU_BLOCK_NONE,
-            .min_bus     = 0,
-            .max_bus     = 0,
+            .min_bus     = 12500000,
+            .max_bus     = 12500000,
             .min_voltage = 0,
             .max_voltage = 0,
             .min_multi   = 0,
@@ -4604,7 +5360,7 @@ const machine_t machines[] = {
         .bus_flags = MACHINE_AT,
         .flags     = MACHINE_IDE,
         .ram       = {
-            .min  = 640,
+            .min  = 640, /* misdetects the size and gets stuck during the memory test with less */
             .max  = 8192,
             .step = 128
         },
@@ -4613,16 +5369,20 @@ const machine_t machines[] = {
         .default_jumpered_ecp_dma = -1,
         .kbc_device               = &kbc_at_device,
         .kbc_params               = KBC_VEN_VIA | 0x00424600,
+        .nvr_device               = &nvr_at_device,
+        .nvr_params               = NVR_AT,
+        .sio_device               = NULL,
+        .sio_params               = 0x00000000,
         .kbc_p1                   = 0x000004f0,
         .gpio                     = 0xffffffff,
         .gpio_acpi                = 0xffffffff,
         .device                   = NULL,
         .kbd_device               = NULL,
         .fdc_device               = NULL,
-        .sio_device               = NULL,
         .vid_device               = NULL,
         .snd_device               = NULL,
-        .net_device               = NULL
+        .net_device               = NULL,
+        .aliases                  = { "" }
     },
     /* Has a VIA VT82C42N KBC. */
     {
@@ -4638,8 +5398,8 @@ const machine_t machines[] = {
         .cpu               = {
             .package     = CPU_PKG_286,
             .block       = CPU_BLOCK_NONE,
-            .min_bus     = 0,
-            .max_bus     = 0,
+            .min_bus     = 12500000,
+            .max_bus     = 12500000,
             .min_voltage = 0,
             .max_voltage = 0,
             .min_multi   = 0,
@@ -4648,7 +5408,7 @@ const machine_t machines[] = {
         .bus_flags = MACHINE_AT,
         .flags     = MACHINE_FLAGS_NONE,
         .ram       = {
-            .min  = 640,
+            .min  = 640, /* misdetects the size and gets stuck during the memory test with less */
             .max  = 8192,
             .step = 128
         },
@@ -4657,16 +5417,20 @@ const machine_t machines[] = {
         .default_jumpered_ecp_dma = -1,
         .kbc_device               = &kbc_at_device,
         .kbc_params               = KBC_VEN_VIA | 0x00424600,
+        .nvr_device               = &nvr_at_device,
+        .nvr_params               = NVR_AT,
+        .sio_device               = NULL,
+        .sio_params               = 0x00000000,
         .kbc_p1                   = 0x000004f0,
         .gpio                     = 0xffffffff,
         .gpio_acpi                = 0xffffffff,
         .device                   = NULL,
         .kbd_device               = NULL,
         .fdc_device               = NULL,
-        .sio_device               = NULL,
         .vid_device               = NULL,
         .snd_device               = NULL,
-        .net_device               = NULL
+        .net_device               = NULL,
+        .aliases                  = { "" }
     },
     {
         .name              = "[SCAT] ICL DRS M35/286",
@@ -4681,8 +5445,8 @@ const machine_t machines[] = {
         .cpu               = {
             .package     = CPU_PKG_286,
             .block       = CPU_BLOCK_NONE,
-            .min_bus     = 0,
-            .max_bus     = 0,
+            .min_bus     = 12500000,
+            .max_bus     = 12500000,
             .min_voltage = 0,
             .max_voltage = 0,
             .min_multi   = 0,
@@ -4691,7 +5455,7 @@ const machine_t machines[] = {
         .bus_flags = MACHINE_PS2,
         .flags     = MACHINE_IDE | MACHINE_VIDEO, /* Machine has Super I/O: C&T F82C711 */
         .ram       = {
-            .min  = 512,
+            .min  = 512, /* crashes at POST code 60 with less */
             .max  = 5120,
             .step = 128
         },
@@ -4700,20 +5464,24 @@ const machine_t machines[] = {
         .default_jumpered_ecp_dma = -1,
         .kbc_device               = &kbc_at_device,
         .kbc_params               = 0x00000000,
+        .nvr_device               = &nvr_at_device,
+        .nvr_params               = NVR_AT,
+        .sio_device               = NULL,
+        .sio_params               = 0x00000000,
         .kbc_p1                   = 0x000004f0,
         .gpio                     = 0xffffffff,
         .gpio_acpi                = 0xffffffff,
         .device                   = NULL,
         .kbd_device               = NULL,
         .fdc_device               = NULL,
-        .sio_device               = NULL,
         .vid_device               = &gd5401_onboard_device,
         .snd_device               = NULL,
-        .net_device               = NULL
+        .net_device               = NULL,
+        .aliases                  = { "" }
     },
     /* Has IBM AT KBC firmware. */
     {
-        .name              = "[SCAT] Samsung Deskmaster 286",
+        .name              = "[SCAT] Samsung Deskmaster 286/12",
         .internal_name     = "deskmaster286",
         .type              = MACHINE_TYPE_286,
         .chipset           = MACHINE_CHIPSET_SCAT,
@@ -4725,8 +5493,8 @@ const machine_t machines[] = {
         .cpu               = {
             .package     = CPU_PKG_286,
             .block       = CPU_BLOCK_NONE,
-            .min_bus     = 0,
-            .max_bus     = 0,
+            .min_bus     = 12500000,
+            .max_bus     = 12500000,
             .min_voltage = 0,
             .max_voltage = 0,
             .min_multi   = 0,
@@ -4735,7 +5503,7 @@ const machine_t machines[] = {
         .bus_flags = MACHINE_PS2,
         .flags     = MACHINE_IDE, /* Has internal video: C&T VGA 411 */
         .ram       = {
-            .min  = 512,
+            .min  = 512, /* crashes and bootloops during POST with less */
             .max  = 8192,
             .step = 128
         },
@@ -4744,16 +5512,20 @@ const machine_t machines[] = {
         .default_jumpered_ecp_dma = -1,
         .kbc_device               = &kbc_at_device,
         .kbc_params               = KBC_VEN_AMI | 0x00004600,
+        .nvr_device               = &nvr_at_device,
+        .nvr_params               = NVR_AT,
+        .sio_device               = NULL,
+        .sio_params               = 0x00000000,
         .kbc_p1                   = 0x00000cf0,
         .gpio                     = 0xffffffff,
         .gpio_acpi                = 0xffffffff,
         .device                   = NULL,
         .kbd_device               = NULL,
         .fdc_device               = NULL,
-        .sio_device               = NULL,
         .vid_device               = NULL,
         .snd_device               = NULL,
-        .net_device               = NULL
+        .net_device               = NULL,
+        .aliases                  = { "" }
     },
     /* Has a Samsung (SEC) V1.4 KBC firmware. */
     /* TODO: Do kbc_at.c logging to see if the BIOS sends any proprietary commands. */
@@ -4770,8 +5542,8 @@ const machine_t machines[] = {
         .cpu               = {
             .package     = CPU_PKG_286,
             .block       = CPU_BLOCK_NONE,
-            .min_bus     = 0,
-            .max_bus     = 0,
+            .min_bus     = 12500000,
+            .max_bus     = 12500000,
             .min_voltage = 0,
             .max_voltage = 0,
             .min_multi   = 0,
@@ -4780,8 +5552,8 @@ const machine_t machines[] = {
         .bus_flags = MACHINE_PS2,
         .flags     = MACHINE_IDE, /* Has internal video: C&T VGA 411 */
         .ram       = {
-            .min  = 512,
-            .max  = 2048,
+            .min  = 512, /* crashes and bootloops during POST with less */
+            .max  = 8192,
             .step = 128
         },
         .nvrmask                  = 127,
@@ -4789,16 +5561,20 @@ const machine_t machines[] = {
         .default_jumpered_ecp_dma = -1,
         .kbc_device               = &kbc_at_device,
         .kbc_params               = KBC_VEN_AMI | 0x00004600,
+        .nvr_device               = &nvr_at_device,
+        .nvr_params               = NVR_AT,
+        .sio_device               = NULL,
+        .sio_params               = 0x00000000,
         .kbc_p1                   = 0x00000cf0,
         .gpio                     = 0xffffffff,
         .gpio_acpi                = 0xffffffff,
         .device                   = NULL,
         .kbd_device               = NULL,
         .fdc_device               = NULL,
-        .sio_device               = NULL,
         .vid_device               = NULL,
         .snd_device               = NULL,
-        .net_device               = NULL
+        .net_device               = NULL,
+        .aliases                  = { "Samsung SD620", "Samsung Aladdin 286", "" }
     },
     /* Most likely has a Samsung (SEC) V1.4 KBC firmware like the SPC-4200P above. */
     {
@@ -4814,8 +5590,8 @@ const machine_t machines[] = {
         .cpu               = {
             .package     = CPU_PKG_286,
             .block       = CPU_BLOCK_NONE,
-            .min_bus     = 0,
-            .max_bus     = 0,
+            .min_bus     = 12500000,
+            .max_bus     = 12500000,
             .min_voltage = 0,
             .max_voltage = 0,
             .min_multi   = 0,
@@ -4824,25 +5600,29 @@ const machine_t machines[] = {
         .bus_flags = MACHINE_PS2,
         .flags     = MACHINE_FLAGS_NONE,
         .ram       = {
-            .min  = 1024,
+            .min  = 512, /* crashes and bootloops during POST with less */
             .max  = 5120,
-            .step = 1024
+            .step = 128
         },
         .nvrmask                  = 127,
         .jumpered_ecp_dma         = 0,
         .default_jumpered_ecp_dma = -1,
         .kbc_device               = &kbc_at_device,
         .kbc_params               = KBC_VEN_AMI | 0x00004600,
+        .nvr_device               = &nvr_at_device,
+        .nvr_params               = NVR_AT,
+        .sio_device               = NULL,
+        .sio_params               = 0x00000000,
         .kbc_p1                   = 0x00000cf0,
         .gpio                     = 0xffffffff,
         .gpio_acpi                = 0xffffffff,
         .device                   = NULL,
         .kbd_device               = NULL,
         .fdc_device               = NULL,
-        .sio_device               = NULL,
         .vid_device               = NULL,
         .snd_device               = NULL,
-        .net_device               = NULL
+        .net_device               = NULL,
+        .aliases                  = { "" }
     },
     /* Most likely has a Samsung (SEC) V1.4 KBC firmware like the SPC-4200P above. */
     {
@@ -4858,8 +5638,8 @@ const machine_t machines[] = {
         .cpu               = {
             .package     = CPU_PKG_286,
             .block       = CPU_BLOCK_NONE,
-            .min_bus     = 0,
-            .max_bus     = 0,
+            .min_bus     = 16000000,
+            .max_bus     = 16000000,
             .min_voltage = 0,
             .max_voltage = 0,
             .min_multi   = 0,
@@ -4868,25 +5648,29 @@ const machine_t machines[] = {
         .bus_flags = MACHINE_PS2,
         .flags     = MACHINE_IDE | MACHINE_VIDEO,
         .ram       = {
-            .min  = 1024,
-            .max  = 5120,
-            .step = 1024
+            .min  = 512, /* crashes and bootloops during POST with less */
+            .max  = 8192,
+            .step = 128
         },
         .nvrmask                  = 127,
         .jumpered_ecp_dma         = 0,
         .default_jumpered_ecp_dma = -1,
         .kbc_device               = &kbc_at_device,
         .kbc_params               = KBC_VEN_AMI | 0x00004600,
+        .nvr_device               = &nvr_at_device,
+        .nvr_params               = NVR_AT,
+        .sio_device               = NULL,
+        .sio_params               = 0x00000000,
         .kbc_p1                   = 0x00000cf0,
         .gpio                     = 0xffffffff,
         .gpio_acpi                = 0xffffffff,
         .device                   = NULL,
         .kbd_device               = NULL,
         .fdc_device               = NULL,
-        .sio_device               = NULL,
         .vid_device               = &ati28800k_spc4620p_device,
         .snd_device               = NULL,
-        .net_device               = NULL
+        .net_device               = NULL,
+        .aliases                  = { "Samsung Aladdin 286 Magic+", "" }
     },
     /* Has AMI '8' KBC firmware. */
     {
@@ -4902,8 +5686,8 @@ const machine_t machines[] = {
         .cpu               = {
             .package     = CPU_PKG_286,
             .block       = CPU_BLOCK_NONE,
-            .min_bus     = 0,
-            .max_bus     = 0,
+            .min_bus     = 12500000,
+            .max_bus     = 12500000,
             .min_voltage = 0,
             .max_voltage = 0,
             .min_multi   = 0,
@@ -4912,8 +5696,8 @@ const machine_t machines[] = {
         .bus_flags = MACHINE_AT,
         .flags     = MACHINE_IDE,
         .ram       = {
-            .min  = 512,
-            .max  = 4096,
+            .min  = 512, /* gets stuck at POST code 10 with less */
+            .max  = 8192,
             .step = 128
         },
         .nvrmask                  = 127,
@@ -4921,16 +5705,20 @@ const machine_t machines[] = {
         .default_jumpered_ecp_dma = -1,
         .kbc_device               = &kbc_at_device,
         .kbc_params               = KBC_VEN_AMI | 0x00003800,
+        .nvr_device               = &nvr_at_device,
+        .nvr_params               = NVR_AT,
+        .sio_device               = NULL,
+        .sio_params               = 0x00000000,
         .kbc_p1                   = 0x000004f0,
         .gpio                     = 0xffffffff,
         .gpio_acpi                = 0xffffffff,
         .device                   = NULL,
         .kbd_device               = NULL,
         .fdc_device               = NULL,
-        .sio_device               = NULL,
         .vid_device               = NULL,
         .snd_device               = NULL,
-        .net_device               = NULL
+        .net_device               = NULL,
+        .aliases                  = { "" }
     },
     /* 286 machines that utilize the MCA bus */
     /* Has IBM PS/2 Type 2 KBC firmware. */
@@ -4948,7 +5736,7 @@ const machine_t machines[] = {
             .package     = CPU_PKG_286 | CPU_PKG_486SLC_IBM,
             .block       = CPU_BLOCK_NONE,
             .min_bus     = 10000000,
-            .max_bus     = 0,
+            .max_bus     = 10000000,
             .min_voltage = 0,
             .max_voltage = 0,
             .min_multi   = 0,
@@ -4957,25 +5745,29 @@ const machine_t machines[] = {
         .bus_flags = MACHINE_PS2_MCA,
         .flags     = MACHINE_VIDEO,
         .ram       = {
-            .min  = 1024,
-            .max  = 10240,
-            .step = 1024
+            .min  = 256,
+            .max  = 7168,
+            .step = 128
         },
         .nvrmask                  = 63,
         .jumpered_ecp_dma         = 0,
         .default_jumpered_ecp_dma = -1,
         .kbc_device               = &kbc_at_device,
         .kbc_params               = KBC_VEN_IBM | KBC_FLAG_IS_TYPE2,
+        .nvr_device               = &nvr_at_device,
+        .nvr_params               = NVR_PS_NO_NMI,
+        .sio_device               = NULL,
+        .sio_params               = 0x00000000,
         .kbc_p1                   = 0x00000cf0,
         .gpio                     = 0xffffffff,
         .gpio_acpi                = 0xffffffff,
         .device                   = &ps2_model_50_device,
         .kbd_device               = NULL,
         .fdc_device               = NULL,
-        .sio_device               = NULL,
         .vid_device               = NULL,
         .snd_device               = NULL,
-        .net_device               = NULL
+        .net_device               = NULL,
+        .aliases                  = { "" }
     },
     /* Has IBM PS/2 Type 2 KBC firmware. */
     {
@@ -4992,7 +5784,7 @@ const machine_t machines[] = {
             .package     = CPU_PKG_286 | CPU_PKG_486SLC_IBM,
             .block       = CPU_BLOCK_NONE,
             .min_bus     = 10000000,
-            .max_bus     = 0,
+            .max_bus     = 10000000,
             .min_voltage = 0,
             .max_voltage = 0,
             .min_multi   = 0,
@@ -5001,25 +5793,29 @@ const machine_t machines[] = {
         .bus_flags = MACHINE_PS2_MCA,
         .flags     = MACHINE_VIDEO,
         .ram       = {
-            .min  = 1024,
-            .max  = 12288,
-            .step = 1024
+            .min  = 256,
+            .max  = 15360,
+            .step = 128
         },
         .nvrmask                  = 63,
         .jumpered_ecp_dma         = 0,
         .default_jumpered_ecp_dma = -1,
         .kbc_device               = &kbc_at_device,
         .kbc_params               = KBC_VEN_IBM | KBC_FLAG_IS_TYPE2,
+        .nvr_device               = &nvr_at_device,
+        .nvr_params               = NVR_PS_NO_NMI,
+        .sio_device               = NULL,
+        .sio_params               = 0x00000000,
         .kbc_p1                   = 0x00000cf0,
         .gpio                     = 0xffffffff,
         .gpio_acpi                = 0xffffffff,
         .device                   = NULL,
         .kbd_device               = NULL,
         .fdc_device               = NULL,
-        .sio_device               = NULL,
         .vid_device               = NULL,
         .snd_device               = NULL,
-        .net_device               = NULL
+        .net_device               = NULL,
+        .aliases                  = { "" }
     },
 
     /* 386SX machines */
@@ -5038,8 +5834,8 @@ const machine_t machines[] = {
         .cpu               = {
             .package     = CPU_PKG_386SX,
             .block       = CPU_BLOCK_NONE,
-            .min_bus     = 0,
-            .max_bus     = 0,
+            .min_bus     = 16000000,
+            .max_bus     = 20000000,
             .min_voltage = 0,
             .max_voltage = 0,
             .min_multi   = 0,
@@ -5057,15 +5853,19 @@ const machine_t machines[] = {
         .default_jumpered_ecp_dma = -1,
         .kbc_device               = &kbc_at_device,
         .kbc_params               = 0x00000000,
+        .nvr_device               = &nvr_at_device,
+        .nvr_params               = NVR_PS,
+        .sio_device               = NULL,
+        .sio_params               = 0x00000000,
         .kbc_p1                   = 0x000004f0,
         .gpio                     = 0xffffffff,
         .gpio_acpi                = 0xffffffff,
         .device                   = NULL,
         .fdc_device               = NULL,
-        .sio_device               = NULL,
         .vid_device               = NULL,
         .snd_device               = NULL,
-        .net_device               = NULL
+        .net_device               = NULL,
+        .aliases                  = { "" }
     },
     /* Has NCR KBC firmware. */
     {
@@ -5081,8 +5881,8 @@ const machine_t machines[] = {
         .cpu               = {
             .package     = CPU_PKG_386SX,
             .block       = CPU_BLOCK_NONE,
-            .min_bus     = 0,
-            .max_bus     = 0,
+            .min_bus     = 16000000,
+            .max_bus     = 16000000,
             .min_voltage = 0,
             .max_voltage = 0,
             .min_multi   = 0,
@@ -5091,25 +5891,29 @@ const machine_t machines[] = {
         .bus_flags = MACHINE_AT,
         .flags     = MACHINE_FLAGS_NONE,
         .ram       = {
-            .min  = 1024,
-            .max  = 16384,
-            .step = 128
+            .min  = 512,
+            .max  = 1024,
+            .step = 128 /* assumed */
         },
         .nvrmask                  = 127,
         .jumpered_ecp_dma         = 0,
         .default_jumpered_ecp_dma = -1,
         .kbc_device               = &kbc_at_device,
         .kbc_params               = KBC_VEN_NCR,
+        .nvr_device               = &nvr_at_device,
+        .nvr_params               = NVR_AT,
+        .sio_device               = NULL,
+        .sio_params               = 0x00000000,
         .kbc_p1                   = 0x000004df,
         .gpio                     = 0xffffffff,
         .gpio_acpi                = 0xffffffff,
         .device                   = NULL,
         .kbd_device               = NULL,
         .fdc_device               = NULL,
-        .sio_device               = NULL,
         .vid_device               = NULL,
         .snd_device               = NULL,
-        .net_device               = NULL
+        .net_device               = NULL,
+        .aliases                  = { "" }
     },
     /* Has Quadtel KBC firmware. */
     {
@@ -5125,8 +5929,8 @@ const machine_t machines[] = {
         .cpu               = {
             .package     = CPU_PKG_386SX,
             .block       = CPU_BLOCK_NONE,
-            .min_bus     = 0,
-            .max_bus     = 0,
+            .min_bus     = 16000000, /* assumed */
+            .max_bus     = 25000000, /* assumed */
             .min_voltage = 0,
             .max_voltage = 0,
             .min_multi   = 0,
@@ -5135,29 +5939,33 @@ const machine_t machines[] = {
         .bus_flags = MACHINE_AT,
         .flags     = MACHINE_FLAGS_NONE,
         .ram       = {
-            .min  = 1024,
+            .min  = 512,
             .max  = 16384,
-            .step = 128
+            .step = 512
         },
         .nvrmask                  = 127,
         .jumpered_ecp_dma         = 0,
         .default_jumpered_ecp_dma = -1,
         .kbc_device               = &kbc_at_device,
         .kbc_params               = KBC_VEN_QUADTEL,
+        .nvr_device               = &nvr_at_device,
+        .nvr_params               = NVR_AT,
+        .sio_device               = NULL,
+        .sio_params               = 0x00000000,
         .kbc_p1                   = 0x000004f0,
         .gpio                     = 0xffffffff,
         .gpio_acpi                = 0xffffffff,
         .device                   = NULL,
         .kbd_device               = NULL,
         .fdc_device               = NULL,
-        .sio_device               = NULL,
         .vid_device               = NULL,
         .snd_device               = NULL,
-        .net_device               = NULL
+        .net_device               = NULL,
+        .aliases                  = { "" }
     },
     /* Most likely has Phonenix KBC firmware. */
     {
-        .name              = "[ACC 2036] Packard Bell PB300/PB320",
+        .name              = "[ACC 2036] Packard Bell PB300",
         .internal_name     = "pbl300sx",
         .type              = MACHINE_TYPE_386SX,
         .chipset           = MACHINE_CHIPSET_ACC_2036,
@@ -5169,8 +5977,8 @@ const machine_t machines[] = {
         .cpu               = {
             .package     = CPU_PKG_386SX,
             .block       = CPU_BLOCK_NONE,
-            .min_bus     = 0,
-            .max_bus     = 0,
+            .min_bus     = 16000000,
+            .max_bus     = 20000000,
             .min_voltage = 0,
             .max_voltage = 0,
             .min_multi   = 0,
@@ -5179,9 +5987,9 @@ const machine_t machines[] = {
         .bus_flags = MACHINE_PS2,
         .flags     = MACHINE_IDE | MACHINE_VIDEO,
         .ram       = {
-            .min  = 1024,
+            .min  = 1024, /* POST hangs with less than this amount */
             .max  = 16384,
-            .step = 1024
+            .step = 128
         },
         .nvrmask                  = 127,
         .jumpered_ecp_dma         = 0,
@@ -5189,16 +5997,20 @@ const machine_t machines[] = {
         .kbc_device               = &kbc_at_device,
         /* The version number is a guess - we have no probe of this machine's controller. */
         .kbc_params               = KBC_VEN_PHOENIX | 0x00010500,
+        .nvr_device               = &nvr_at_device,
+        .nvr_params               = NVR_AT,
+        .sio_device               = NULL,
+        .sio_params               = 0x00000000,
         .kbc_p1                   = 0x000004f0,
         .gpio                     = 0xffffffff,
         .gpio_acpi                = 0xffffffff,
         .device                   = &pbl300sx_device,
         .kbd_device               = NULL,
         .fdc_device               = NULL,
-        .sio_device               = NULL,
         .vid_device               = &oti037_pbl300sx_device,
         .snd_device               = NULL,
-        .net_device               = NULL
+        .net_device               = NULL,
+        .aliases                  = { "Packard Bell PB320", "" }
     },
     /* Has the AMIKey-2 KBC - that's actually a guess since we
        do not currently have a picture of the motherboard. */
@@ -5215,8 +6027,8 @@ const machine_t machines[] = {
         .cpu               = {
             .package     = CPU_PKG_386SX,
             .block       = CPU_BLOCK_NONE,
-            .min_bus     = 0,
-            .max_bus     = 0,
+            .min_bus     = 33333333,
+            .max_bus     = 40000000,
             .min_voltage = 0,
             .max_voltage = 0,
             .min_multi   = 0,
@@ -5234,16 +6046,20 @@ const machine_t machines[] = {
         .default_jumpered_ecp_dma = 3,
         .kbc_device               = &kbc_at_device,
         .kbc_params               = KBC_VEN_AMI | 0x00004800,
+        .nvr_device               = &nvr_at_device,
+        .nvr_params               = NVR_AT,
+        .sio_device               = NULL,
+        .sio_params               = 0x00000000,
         .kbc_p1                   = 0x000004f0,
         .gpio                     = 0xffffffff,
         .gpio_acpi                = 0xffffffff,
         .device                   = NULL,
         .kbd_device               = NULL,
         .fdc_device               = NULL,
-        .sio_device               = NULL,
         .vid_device               = NULL,
         .snd_device               = NULL,
-        .net_device               = NULL
+        .net_device               = NULL,
+        .aliases                  = { "" }
     },
     /* This has a Holtek keyboard controller which clones AMI 'H'. */
     {
@@ -5259,8 +6075,8 @@ const machine_t machines[] = {
         .cpu               = {
             .package     = CPU_PKG_386SX,
             .block       = CPU_BLOCK_NONE,
-            .min_bus     = 0,
-            .max_bus     = 0,
+            .min_bus     = 33333333,
+            .max_bus     = 40000000,
             .min_voltage = 0,
             .max_voltage = 0,
             .min_multi   = 0,
@@ -5270,7 +6086,7 @@ const machine_t machines[] = {
         .flags     = MACHINE_IDE,
         .ram       = {
             .min  = 1024,
-            .max  = 32768,
+            .max  = 16384,
             .step = 1024
         },
         .nvrmask                  = 127,
@@ -5278,16 +6094,20 @@ const machine_t machines[] = {
         .default_jumpered_ecp_dma = -1,
         .kbc_device               = &kbc_at_device,
         .kbc_params               = KBC_VEN_HOLTEK | 0x00004800,
+        .nvr_device               = &nvr_at_device,
+        .nvr_params               = NVR_AT,
+        .sio_device               = NULL,
+        .sio_params               = 0x00000000,
         .kbc_p1                   = 0x00000cf0,
         .gpio                     = 0xffffffff,
         .gpio_acpi                = 0xffffffff,
         .device                   = NULL,
         .kbd_device               = NULL,
         .fdc_device               = NULL,
-        .sio_device               = NULL,
         .vid_device               = NULL,
         .snd_device               = NULL,
-        .net_device               = NULL
+        .net_device               = NULL,
+        .aliases                  = { "" }
     },
     /* Has a JetKey KBC without version, which is a clone of AMI '8'. */
     {
@@ -5303,8 +6123,8 @@ const machine_t machines[] = {
         .cpu               = {
             .package     = CPU_PKG_386SX,
             .block       = CPU_BLOCK_NONE,
-            .min_bus     = 0,
-            .max_bus     = 0,
+            .min_bus     = 25000000,
+            .max_bus     = 33333333,
             .min_voltage = 0,
             .max_voltage = 0,
             .min_multi   = 0,
@@ -5322,16 +6142,20 @@ const machine_t machines[] = {
         .default_jumpered_ecp_dma = -1,
         .kbc_device               = &kbc_at_device,
         .kbc_params               = KBC_VEN_AMI | 0x00003800,
+        .nvr_device               = &nvr_at_device,
+        .nvr_params               = NVR_AT,
+        .sio_device               = NULL,
+        .sio_params               = 0x00000000,
         .kbc_p1                   = 0x000004f0,
         .gpio                     = 0xffffffff,
         .gpio_acpi                = 0xffffffff,
         .device                   = &c325ax_device,
         .kbd_device               = NULL,
         .fdc_device               = NULL,
-        .sio_device               = NULL,
         .vid_device               = NULL,
         .snd_device               = NULL,
-        .net_device               = NULL
+        .net_device               = NULL,
+        .aliases                  = { "Chaintech 325AX", "Chaintech 333AX", "Chaintech 325AXB", "Chaintech 333AXB", "" }
     },
     /* Has a VIA VT82C42N KBC. */
     {
@@ -5347,8 +6171,8 @@ const machine_t machines[] = {
         .cpu               = {
             .package     = CPU_PKG_386SX,
             .block       = CPU_BLOCK_NONE,
-            .min_bus     = 0,
-            .max_bus     = 0,
+            .min_bus     = 20000000,
+            .max_bus     = 40000000,
             .min_voltage = 0,
             .max_voltage = 0,
             .min_multi   = 0,
@@ -5366,16 +6190,20 @@ const machine_t machines[] = {
         .default_jumpered_ecp_dma = -1,
         .kbc_device               = &kbc_at_device,
         .kbc_params               = KBC_VEN_VIA | 0x00424600,
+        .nvr_device               = &nvr_at_device,
+        .nvr_params               = NVR_AT,
+        .sio_device               = NULL,
+        .sio_params               = 0x00000000,
         .kbc_p1                   = 0x000004f0,
         .gpio                     = 0xffffffff,
         .gpio_acpi                = 0xffffffff,
         .device                   = NULL,
         .kbd_device               = NULL,
         .fdc_device               = NULL,
-        .sio_device               = NULL,
-        .vid_device               = &tvga8900d_device, /* Onboard variant not yet emulated */
+        .vid_device               = &tvga8900d_onboard_device,
         .snd_device               = NULL,
-        .net_device               = NULL
+        .net_device               = NULL,
+        .aliases                  = { "" }
     },
     /* Uses a NEC/Acer 90M002A.
        This is a strange one - it has command AF but it returns 0x00. */
@@ -5393,7 +6221,7 @@ const machine_t machines[] = {
             .package     = CPU_PKG_386SX,
             .block       = CPU_BLOCK_NONE,
             .min_bus     = 16000000,
-            .max_bus     = 25000000, /* Limited to 25 due a inaccurate cpu speed */
+            .max_bus     = 25000000, /* Limited to 25 due a inaccurate CPU speed */
             .min_voltage = 0,
             .max_voltage = 0,
             .min_multi   = 0,
@@ -5411,16 +6239,20 @@ const machine_t machines[] = {
         .default_jumpered_ecp_dma = -1,
         .kbc_device               = &kbc_at_device,
         .kbc_params               = KBC_VEN_ACER,
+        .nvr_device               = &nvr_at_device,
+        .nvr_params               = NVR_AT,
+        .sio_device               = NULL,
+        .sio_params               = 0x00000000,
         .kbc_p1                   = 0x004008f0,
         .gpio                     = 0xffffffff,
         .gpio_acpi                = 0xffffffff,
         .device                   = NULL,
         .kbd_device               = NULL,
         .fdc_device               = NULL,
-        .sio_device               = NULL,
         .vid_device               = &oti077_acer100t_device,
         .snd_device               = NULL,
-        .net_device               = NULL
+        .net_device               = NULL,
+        .aliases                  = { "Acer 386SX25/N", "" }
     },
     /* Has an AMI KBC firmware, the only photo of this is too low resolution
        for me to read what's on the KBC chip, so I'm going to assume AMI 'F'
@@ -5438,8 +6270,8 @@ const machine_t machines[] = {
         .cpu               = {
             .package     = CPU_PKG_386SX,
             .block       = CPU_BLOCK_NONE,
-            .min_bus     = 0,
-            .max_bus     = 0,
+            .min_bus     = 25000000,
+            .max_bus     = 25000000,
             .min_voltage = 0,
             .max_voltage = 0,
             .min_multi   = 0,
@@ -5457,16 +6289,68 @@ const machine_t machines[] = {
         .default_jumpered_ecp_dma = -1,
         .kbc_device               = &kbc_at_device,
         .kbc_params               = KBC_VEN_AMI | 0x00004600,
+        .nvr_device               = &nvr_at_device,
+        .nvr_params               = NVR_AT,
+        .sio_device               = NULL,
+        .sio_params               = 0x00000000,
         .kbc_p1                   = 0x000004f0,
         .gpio                     = 0xffffffff,
         .gpio_acpi                = 0xffffffff,
         .device                   = NULL,
         .kbd_device               = NULL,
         .fdc_device               = NULL,
-        .sio_device               = NULL,
         .vid_device               = &oti067_ama932j_device,
         .snd_device               = NULL,
-        .net_device               = NULL
+        .net_device               = NULL,
+        .aliases                  = { "" }
+    },
+    /* Has unknown KBC firmware */
+    {
+        .name              = "[HT18] Tandy 1000 RSX",
+        .internal_name     = "tandy1000rsx",
+        .type              = MACHINE_TYPE_386SX,
+        .chipset           = MACHINE_CHIPSET_HT18,
+        .init              = machine_at_tandy1000rsx_init,
+        .p1_handler        = machine_generic_p1_handler,
+        .gpio_handler      = NULL,
+        .available_flag    = MACHINE_AVAILABLE,
+        .gpio_acpi_handler = NULL,
+        .cpu               = {
+            .package     = CPU_PKG_386SX,
+            .block       = CPU_BLOCK_NONE,
+            .min_bus     = 25000000,
+            .max_bus     = 25000000,
+            .min_voltage = 0,
+            .max_voltage = 0,
+            .min_multi   = 0,
+            .max_multi   = 0
+        },
+        .bus_flags = MACHINE_PS2,
+        .flags     = MACHINE_IDE | MACHINE_VIDEO | MACHINE_GAMEPORT,
+        .ram       = {
+            .min  = 1024,
+            .max  = 9216,
+            .step = 512
+        },
+        .nvrmask                  = 127,
+        .jumpered_ecp_dma         = 0,
+        .default_jumpered_ecp_dma = -1,
+        .kbc_device               = &kbc_at_device,
+        .kbc_params               = 0x00000000,
+        .nvr_device               = &nvr_at_device,
+        .nvr_params               = NVR_AT,
+        .sio_device               = NULL,
+        .sio_params               = 0x00000000,
+        .kbc_p1                   = 0x000004f0,
+        .gpio                     = 0xffffffff,
+        .gpio_acpi                = 0xffffffff,
+        .device                   = NULL,
+        .kbd_device               = NULL,
+        .fdc_device               = NULL,
+        .vid_device               = &gd5402_onboard_device,
+        .snd_device               = NULL,
+        .net_device               = NULL,
+        .aliases                  = { "" }
     },
     /* Most likely has a Phoenix MultiKey/42 keyboard controller. */
     {
@@ -5482,8 +6366,8 @@ const machine_t machines[] = {
         .cpu               = {
             .package     = CPU_PKG_386SX,
             .block       = CPU_BLOCK_NONE,
-            .min_bus     = 0,
-            .max_bus     = 0,
+            .min_bus     = 16000000, /* assumed */
+            .max_bus     = 20000000, /* assumed */
             .min_voltage = 0,
             .max_voltage = 0,
             .min_multi   = 0,
@@ -5493,27 +6377,32 @@ const machine_t machines[] = {
         .flags     = MACHINE_FLAGS_NONE,
         .ram       = {
             .min  = 512,
-            .max  = 8192,
-            .step = 128
+            .max  = 8192, /* assumed */
+            .step = 512
         },
         .nvrmask                  = 127,
         .jumpered_ecp_dma         = 0,
         .default_jumpered_ecp_dma = -1,
         .kbc_device               = &kbc_at_device,
         .kbc_params               = KBC_VEN_PHOENIX | 0x00010500, /* Guess. */
+        .nvr_device               = &nvr_at_device,
+        .nvr_params               = NVR_AT_ZERO_DEFAULT,
+        .sio_device               = NULL,
+        .sio_params               = 0x00000000,
         .kbc_p1                   = 0x000004f0,
         .gpio                     = 0xffffffff,
         .gpio_acpi                = 0xffffffff,
         .device                   = NULL,
         .kbd_device               = NULL,
         .fdc_device               = NULL,
-        .sio_device               = NULL,
         .vid_device               = NULL,
         .snd_device               = NULL,
-        .net_device               = NULL
+        .net_device               = NULL,
+        .aliases                  = { "" }
     },
     /* Has an AMI Keyboard BIOS PLUS KBC firmware ('8'). */
-    { .name              = "[Intel 82335] Shuttle 386SX",
+    {
+        .name              = "[Intel 82335] Morse Shuttle 386SX",
         .internal_name     = "shuttle386sx",
         .type              = MACHINE_TYPE_386SX,
         .chipset           = MACHINE_CHIPSET_INTEL_82335,
@@ -5525,8 +6414,8 @@ const machine_t machines[] = {
         .cpu               = {
             .package     = CPU_PKG_386SX,
             .block       = CPU_BLOCK_NONE,
-            .min_bus     = 0,
-            .max_bus     = 0,
+            .min_bus     = 16000000,
+            .max_bus     = 16000000,
             .min_voltage = 0,
             .max_voltage = 0,
             .min_multi   = 0,
@@ -5537,23 +6426,27 @@ const machine_t machines[] = {
         .ram       = {
             .min  = 512,
             .max  = 8192,
-            .step = 128
+            .step = 512
         },
         .nvrmask                  = 127,
         .jumpered_ecp_dma         = 0,
         .default_jumpered_ecp_dma = -1,
         .kbc_device               = &kbc_at_device,
         .kbc_params               = KBC_VEN_AMI | 0x00004400, /* Guess. */
+        .nvr_device               = &nvr_at_device,
+        .nvr_params               = NVR_AT,
+        .sio_device               = NULL,
+        .sio_params               = 0x00000000,
         .kbc_p1                   = 0x000004f0,
         .gpio                     = 0xffffffff,
         .gpio_acpi                = 0xffffffff,
         .device                   = NULL,
         .kbd_device               = NULL,
         .fdc_device               = NULL,
-        .sio_device               = NULL,
         .vid_device               = NULL,
         .snd_device               = NULL,
-        .net_device               = NULL
+        .net_device               = NULL,
+        .aliases                  = { "Shuttle 386SX", "" }
     },
     /* Uses Commodore (CBM) KBC firmware, to be implemented as identical to
        the IBM PS/2 Type 1 KBC firmware unless evidence emerges of any
@@ -5571,8 +6464,8 @@ const machine_t machines[] = {
         .cpu               = {
             .package     = CPU_PKG_386SX,
             .block       = CPU_BLOCK_NONE,
-            .min_bus     = 0,
-            .max_bus     = 0,
+            .min_bus     = 16000000,
+            .max_bus     = 20000000,
             .min_voltage = 0,
             .max_voltage = 0,
             .min_multi   = 0,
@@ -5581,7 +6474,7 @@ const machine_t machines[] = {
         .bus_flags = MACHINE_PS2,
         .flags     = MACHINE_IDE,
         .ram       = {
-            .min  = 1024,
+            .min  = 512,
             .max  = 8192,
             .step = 512
         },
@@ -5590,16 +6483,20 @@ const machine_t machines[] = {
         .default_jumpered_ecp_dma = -1,
         .kbc_device               = &kbc_at_device,
         .kbc_params               = 0x00000000,
+        .nvr_device               = &nvr_at_device,
+        .nvr_params               = NVR_AT,
+        .sio_device               = NULL,
+        .sio_params               = 0x00000000,
         .kbc_p1                   = 0x00000cf0,
         .gpio                     = 0xffffffff,
         .gpio_acpi                = 0xffffffff,
         .device                   = NULL,
         .kbd_device               = NULL,
         .fdc_device               = NULL,
-        .sio_device               = NULL,
         .vid_device               = NULL,
         .snd_device               = NULL,
-        .net_device               = NULL
+        .net_device               = NULL,
+        .aliases                  = { "DTK PPM-1660C", "DTK PPM-2060C", "" }
     },
     /* Has IBM AT KBC firmware. */
     {
@@ -5615,8 +6512,8 @@ const machine_t machines[] = {
         .cpu               = {
             .package     = CPU_PKG_386SX,
             .block       = CPU_BLOCK_NONE,
-            .min_bus     = 0,
-            .max_bus     = 0,
+            .min_bus     = 16000000,
+            .max_bus     = 20000000,
             .min_voltage = 0,
             .max_voltage = 0,
             .min_multi   = 0,
@@ -5634,18 +6531,70 @@ const machine_t machines[] = {
         .default_jumpered_ecp_dma = -1,
         .kbc_device               = &kbc_at_device,
         .kbc_params               = 0x00000000,
+        .nvr_device               = &nvr_at_device,
+        .nvr_params               = NVR_AT,
+        .sio_device               = NULL,
+        .sio_params               = 0x00000000,
         .kbc_p1                   = 0x000004f0,
         .gpio                     = 0xffffffff,
         .gpio_acpi                = 0xffffffff,
         .device                   = NULL,
         .kbd_device               = NULL,
         .fdc_device               = NULL,
-        .sio_device               = NULL,
         .vid_device               = NULL,
         .snd_device               = NULL,
-        .net_device               = NULL
+        .net_device               = NULL,
+        .aliases                  = { "" }
     },
-    { .name              = "[NEATsx] OKI if386AX30L",
+    {
+        .name              = "[NEAT] Philips P3345",
+        .internal_name     = "p3345",
+        .type              = MACHINE_TYPE_386SX,
+        .chipset           = MACHINE_CHIPSET_NEAT,
+        .init              = machine_at_p3345_init,
+        .p1_handler        = machine_generic_p1_handler,
+        .gpio_handler      = NULL,
+        .available_flag    = MACHINE_AVAILABLE,
+        .gpio_acpi_handler = NULL,
+        .cpu = {
+            .package     = CPU_PKG_386SX,
+            .block       = CPU_BLOCK_NONE,
+            .min_bus     = 16000000,
+            .max_bus     = 16000000,
+            .min_voltage = 0,
+            .max_voltage = 0,
+            .min_multi   = 0,
+            .max_multi   = 0
+        },
+        .bus_flags = MACHINE_AT,
+        .flags     = MACHINE_IDE,
+        .ram       = {
+            .min  = 512,
+            .max  = 8192,
+            .step = 128
+        },
+        .nvrmask                  = 127,
+	    .jumpered_ecp_dma         = 0,
+        .default_jumpered_ecp_dma = -1,
+        .kbc_device               = &kbc_at_device,
+        .kbc_params               = 0x00000000,
+        .nvr_device               = &nvr_at_device,
+        .nvr_params               = NVR_AT_ZERO_DEFAULT,
+        .sio_device               = NULL,
+        .sio_params               = 0x00000000,
+        .kbc_p1                   = 0x000004f0,
+        .gpio                     = 0xffffffff,
+        .gpio_acpi                = 0xffffffff,
+        .device                   = NULL,
+        .kbd_device               = NULL,
+        .fdc_device               = NULL,
+        .vid_device               = NULL,
+        .snd_device               = NULL,
+        .net_device               = NULL,
+        .aliases                  = { "" }
+    },
+    {
+        .name              = "[NEATsx] OKI if386AX30L",
         .internal_name     = "if386sx",
         .type              = MACHINE_TYPE_386SX,
         .chipset           = MACHINE_CHIPSET_NEAT_SX,
@@ -5657,8 +6606,8 @@ const machine_t machines[] = {
         .cpu               = {
             .package     = CPU_PKG_386SX,
             .block       = CPU_BLOCK_NONE,
-            .min_bus     = 0,
-            .max_bus     = 0,
+            .min_bus     = 16000000,
+            .max_bus     = 16000000, /* assumed */
             .min_voltage = 0,
             .max_voltage = 0,
             .min_multi   = 0,
@@ -5677,16 +6626,20 @@ const machine_t machines[] = {
         .kbc_device               = &kbc_at_device,
         /* The version number is a guess - we have no probe of this machine's controller. */
         .kbc_params               = KBC_VEN_PHOENIX | 0x00010500,
+        .nvr_device               = &nvr_at_device,
+        .nvr_params               = NVR_AT_ZERO_DEFAULT,
+        .sio_device               = NULL,
+        .sio_params               = 0x00000000,
         .kbc_p1                   = 0x000004f0,
         .gpio                     = 0xffffffff,
         .gpio_acpi                = 0xffffffff,
         .device                   = NULL,
         .kbd_device               = NULL,
         .fdc_device               = NULL,
-        .sio_device               = NULL,
         .vid_device               = &if386jega_device,
         .snd_device               = NULL,
-        .net_device               = NULL
+        .net_device               = NULL,
+        .aliases                  = { "" }
     },
     /* Has AMI KBC firmware of uknown revision, maybe '8'. */
     {
@@ -5702,35 +6655,39 @@ const machine_t machines[] = {
         .cpu               = {
             .package     = CPU_PKG_386SX,
             .block       = CPU_BLOCK_NONE,
-            .min_bus     = 0,
-            .max_bus     = 0,
+            .min_bus     = 33333333, /* assumed */
+            .max_bus     = 33333333,
             .min_voltage = 0,
             .max_voltage = 0,
             .min_multi   = 0,
             .max_multi   = 0
         },
         .bus_flags = MACHINE_AT,
-        .flags     = MACHINE_APM,
+        .flags     = MACHINE_FLAGS_NONE,
         .ram       = {
-            .min  = 1024,
+            .min  = 3072, /* glitches and hangs with less than this amount */
             .max  = 16384,
-            .step = 1024
+            .step = 512
         },
         .nvrmask                  = 127,
         .jumpered_ecp_dma         = 0,
         .default_jumpered_ecp_dma = -1,
         .kbc_device               = &kbc_at_device,
         .kbc_params               = KBC_VEN_AMI | 0x00003800, /* Guess. */
+        .nvr_device               = &nvr_at_device,
+        .nvr_params               = NVR_AT,
+        .sio_device               = NULL,
+        .sio_params               = 0x00000000,
         .kbc_p1                   = 0x000004f0,
         .gpio                     = 0xffffffff,
         .gpio_acpi                = 0xffffffff,
         .device                   = NULL,
         .kbd_device               = NULL,
         .fdc_device               = NULL,
-        .sio_device               = NULL,
         .vid_device               = NULL,
         .snd_device               = NULL,
-        .net_device               = NULL
+        .net_device               = NULL,
+        .aliases                  = { "" }
     },
     /* Has IBM AT KBC firmware. */
     {
@@ -5746,8 +6703,8 @@ const machine_t machines[] = {
         .cpu               = {
             .package     = CPU_PKG_386SX,
             .block       = CPU_BLOCK_NONE,
-            .min_bus     = 0,
-            .max_bus     = 0,
+            .min_bus     = 16000000,
+            .max_bus     = 40000000,
             .min_voltage = 0,
             .max_voltage = 0,
             .min_multi   = 0,
@@ -5756,25 +6713,29 @@ const machine_t machines[] = {
         .bus_flags = MACHINE_AT,
         .flags     = MACHINE_FLAGS_NONE,
         .ram       = {
-            .min  = 1024,
+            .min  = 1024, /* POST hangs with less than this amount */
             .max  = 16384,
-            .step = 1024
+            .step = 512
         },
         .nvrmask                  = 127,
         .jumpered_ecp_dma         = 0,
         .default_jumpered_ecp_dma = -1,
         .kbc_device               = &kbc_at_device,
         .kbc_params               = 0x00000000,
+        .nvr_device               = &nvr_at_device,
+        .nvr_params               = NVR_AT,
+        .sio_device               = NULL,
+        .sio_params               = 0x00000000,
         .kbc_p1                   = 0x000004f0,
         .gpio                     = 0xffffffff,
         .gpio_acpi                = 0xffffffff,
         .device                   = NULL,
         .kbd_device               = NULL,
         .fdc_device               = NULL,
-        .sio_device               = NULL,
         .vid_device               = NULL,
         .snd_device               = NULL,
-        .net_device               = NULL
+        .net_device               = NULL,
+        .aliases                  = { "" }
     },
     /* Uses Commodore (CBM) KBC firmware, to be implemented as identical to
        the IBM PS/2 Type 1 KBC firmware unless evidence emerges of any
@@ -5792,8 +6753,8 @@ const machine_t machines[] = {
         .cpu               = {
             .package     = CPU_PKG_386SX,
             .block       = CPU_BLOCK_NONE,
-            .min_bus     = 0,
-            .max_bus     = 0,
+            .min_bus     = 16000000,
+            .max_bus     = 33333333,
             .min_voltage = 0,
             .max_voltage = 0,
             .min_multi   = 0,
@@ -5802,8 +6763,8 @@ const machine_t machines[] = {
         .bus_flags = MACHINE_PS2,
         .flags     = MACHINE_IDE | MACHINE_VIDEO,
         .ram       = {
-            .min  = 1024,
-            .max  = 8192,
+            .min  = 1024, /* Extended Memory display in SETUP glitches with less than this amount */
+            .max  = 16384,
             .step = 512
         },
         .nvrmask                  = 127,
@@ -5811,22 +6772,27 @@ const machine_t machines[] = {
         .default_jumpered_ecp_dma = -1,
         .kbc_device               = NULL, /* The keyboard controller is part of the VL82c113. */
         .kbc_params               = 0x00000000,
+        /* The NVR is on the VLSI VL82C113. */
+        .nvr_device               = NULL,
+        .nvr_params               = 0x00000000,
+        .sio_device               = NULL,
+        .sio_params               = 0x00000000,
         .kbc_p1                   = 0x00000cf0,
         .gpio                     = 0xffffffff,
         .gpio_acpi                = 0xffffffff,
         .device                   = NULL,
         .kbd_device               = NULL,
         .fdc_device               = NULL,
-        .sio_device               = NULL,
-        .vid_device               = &gd5402_onboard_device,
+        .vid_device               = &gd5402_onboard_commodore_device,
         .snd_device               = NULL,
-        .net_device               = NULL
+        .net_device               = NULL,
+        .aliases                  = { "DTK PPM-2563V", "" }
     },
     /* The closest BIOS string I find to this one's, differs only in one part,
        and ends in -8, so I'm going to assume that this, too, has an AMI '8'
        (AMI Keyboard BIOS Plus) KBC firmware. */
     {
-        .name              = "[SCAMP] DataExpert 386SX",
+        .name              = "[SCAMP] DataExpert VLSI 311 386SX",
         .internal_name     = "dataexpert386sx",
         .type              = MACHINE_TYPE_386SX,
         .chipset           = MACHINE_CHIPSET_VLSI_SCAMP,
@@ -5838,8 +6804,8 @@ const machine_t machines[] = {
         .cpu               = {
             .package     = CPU_PKG_386SX,
             .block       = CPU_BLOCK_NONE,
-            .min_bus     = 10000000,
-            .max_bus     = 25000000,
+            .min_bus     = 25000000, /* assumed */
+            .max_bus     = 25000000, /* assumed */
             .min_voltage = 0,
             .max_voltage = 0,
             .min_multi   = 0,
@@ -5848,25 +6814,29 @@ const machine_t machines[] = {
         .bus_flags = MACHINE_AT,
         .flags     = MACHINE_FLAGS_NONE,
         .ram       = {
-            .min  = 1024,
+            .min  = 512,
             .max  = 16384,
-            .step = 1024
+            .step = 512
         },
         .nvrmask                  = 127,
         .jumpered_ecp_dma         = 0,
         .default_jumpered_ecp_dma = -1,
         .kbc_device               = &kbc_at_device,
         .kbc_params               = KBC_VEN_AMI | 0x00004400, /* Guess. */
+        .nvr_device               = &nvr_at_device,
+        .nvr_params               = NVR_AT,
+        .sio_device               = NULL,
+        .sio_params               = 0x00000000,
         .kbc_p1                   = 0x000004f0,
         .gpio                     = 0xffffffff,
         .gpio_acpi                = 0xffffffff,
         .device                   = NULL,
         .kbd_device               = NULL,
         .fdc_device               = NULL,
-        .sio_device               = NULL,
         .vid_device               = NULL,
         .snd_device               = NULL,
-        .net_device               = NULL
+        .net_device               = NULL,
+        .aliases                  = { "" }
     },
     /* No proper pictures of the KBC exist, though it seems to have the IBM AT KBC
        firmware. */
@@ -5883,7 +6853,7 @@ const machine_t machines[] = {
         .cpu               = {
             .package     = CPU_PKG_386SX,
             .block       = CPU_BLOCK_NONE,
-            .min_bus     = 10000000,
+            .min_bus     = 33333333,
             .max_bus     = 33333333,
             .min_voltage = 0,
             .max_voltage = 0,
@@ -5895,28 +6865,33 @@ const machine_t machines[] = {
         .ram       = {
             .min  = 1024,
             .max  = 16384,
-            .step = 128
+            .step = 1024
         },
         .nvrmask                  = 127,
         .jumpered_ecp_dma         = 0,
         .default_jumpered_ecp_dma = -1,
         .kbc_device               = &kbc_at_device,
         .kbc_params               = 0x00000000,
+        /* The NVR is on the VLSI VL82C113. */
+        .nvr_device               = NULL,
+        .nvr_params               = 0x00000000,
+        .sio_device               = NULL,
+        .sio_params               = 0x00000000,
         .kbc_p1                   = 0x00002020,
         .gpio                     = 0xffffffff,
         .gpio_acpi                = 0xffffffff,
         .device                   = &dells333sl_device,
         .kbd_device               = NULL,
         .fdc_device               = NULL,
-        .sio_device               = NULL,
         .vid_device               = &gd5420_onboard_device,
         .snd_device               = NULL,
-        .net_device               = NULL
+        .net_device               = NULL,
+        .aliases                  = { "Jostens System 333s/L", "" }
     },
     /* The only photo we have is too blurry to read the marking on the
        the keyboard controller, but it's possibly a Phoenix. */
     {
-        .name              = "[SCAMP] Samsung SPC-6033P",
+        .name              = "[SCAMP] Samsung SPC-60xxP",
         .internal_name     = "spc6033p",
         .type              = MACHINE_TYPE_386SX,
         .chipset           = MACHINE_CHIPSET_VLSI_SCAMP,
@@ -5928,8 +6903,8 @@ const machine_t machines[] = {
         .cpu               = {
             .package     = CPU_PKG_386SX,
             .block       = CPU_BLOCK_NONE,
-            .min_bus     = 0,
-            .max_bus     = 0,
+            .min_bus     = 25000000,
+            .max_bus     = 33000000,
             .min_voltage = 0,
             .max_voltage = 0,
             .min_multi   = 0,
@@ -5938,25 +6913,29 @@ const machine_t machines[] = {
         .bus_flags = MACHINE_PS2,
         .flags     = MACHINE_IDE | MACHINE_VIDEO,
         .ram       = {
-            .min  = 2048,
-            .max  = 12288,
-            .step = 2048
+            .min  = 1024, /* Crashes and causes the emulator to segfault with less than this amount */
+            .max  = 16384,
+            .step = 512
         },
         .nvrmask                  = 127,
         .jumpered_ecp_dma         = 0,
         .default_jumpered_ecp_dma = -1,
         .kbc_device               = &kbc_at_device, /* Possibly. */
         .kbc_params               = KBC_VEN_PHOENIX | 0x00012900, /* Guess. */
+        .nvr_device               = &nvr_at_device,
+        .nvr_params               = NVR_AT,
+        .sio_device               = NULL,
+        .sio_params               = 0x00000000,
         .kbc_p1                   = 0x00000cf0,
         .gpio                     = 0xffffffff,
         .gpio_acpi                = 0xffffffff,
         .device                   = NULL,
         .kbd_device               = NULL,
         .fdc_device               = NULL,
-        .sio_device               = NULL,
         .vid_device               = &ati28800k_spc6033p_device,
         .snd_device               = NULL,
-        .net_device               = NULL
+        .net_device               = NULL,
+        .aliases                  = { "Samsung Aladdin 386sx", "Samsung TOPMATE 386S/33", "Samsung SPC-6025P", "Samsung SPC-6033P", "" }
     },
     /* Has an unknown AMI KBC firmware, I'm going to assume 'F' until a
        photo or real hardware BIOS string is found. */
@@ -5973,8 +6952,8 @@ const machine_t machines[] = {
         .cpu               = {
             .package     = CPU_PKG_386SX,
             .block       = CPU_BLOCK_NONE,
-            .min_bus     = 0,
-            .max_bus     = 0,
+            .min_bus     = 16000000,
+            .max_bus     = 25000000, /* assumed */
             .min_voltage = 0,
             .max_voltage = 0,
             .min_multi   = 0,
@@ -5992,16 +6971,20 @@ const machine_t machines[] = {
         .default_jumpered_ecp_dma = -1,
         .kbc_device               = &kbc_at_device, /* Possibly. */
         .kbc_params               = KBC_VEN_AMI | 0x00004600, /* Guess. */
+        .nvr_device               = &nvr_at_device,
+        .nvr_params               = NVR_AT,
+        .sio_device               = NULL,
+        .sio_params               = 0x00000000,
         .kbc_p1                   = 0x000004f0,
         .gpio                     = 0xffffffff,
         .gpio_acpi                = 0xffffffff,
         .device                   = NULL,
         .kbd_device               = NULL,
         .fdc_device               = NULL,
-        .sio_device               = NULL,
         .vid_device               = NULL,
         .snd_device               = NULL,
-        .net_device               = NULL
+        .net_device               = NULL,
+        .aliases                  = { "" }
     },
     /* Has Quadtel KBC firmware. */
     {
@@ -6017,7 +7000,7 @@ const machine_t machines[] = {
         .cpu               = {
             .package     = CPU_PKG_386SX,
             .block       = CPU_BLOCK_NONE,
-            .min_bus     = 16000000,
+            .min_bus     = 25000000,
             .max_bus     = 25000000,
             .min_voltage = 0,
             .max_voltage = 0,
@@ -6027,25 +7010,29 @@ const machine_t machines[] = {
         .bus_flags = MACHINE_PS2,
         .flags     = MACHINE_IDE | MACHINE_VIDEO,
         .ram       = {
-            .min  = 1024,
-            .max  = 32768,
-            .step = 1024
+            .min  = 512,
+            .max  = 16384,
+            .step = 512
         },
         .nvrmask                  = 127,
         .jumpered_ecp_dma         = 0,
         .default_jumpered_ecp_dma = -1,
         .kbc_device               = &kbc_at_device,
         .kbc_params               = KBC_VEN_QUADTEL,
+        .nvr_device               = NULL,
+        .nvr_params               = 0x00000000,
+        .sio_device               = NULL,
+        .sio_params               = 0x00000000,
         .kbc_p1                   = 0x00000cf0,
         .gpio                     = 0xffffffff,
         .gpio_acpi                = 0xffffffff,
         .device                   = NULL,
         .kbd_device               = NULL,
         .fdc_device               = NULL,
-        .sio_device               = NULL,
         .vid_device               = &paradise_wd90c11_megapc_device,
         .snd_device               = NULL,
-        .net_device               = NULL
+        .net_device               = NULL,
+        .aliases                  = { "Amstrad PC7386", "" }
     },
 
     /* 386SX machines which utilize the MCA bus */
@@ -6063,8 +7050,8 @@ const machine_t machines[] = {
         .cpu               = {
             .package     = CPU_PKG_386SX,
             .block       = CPU_BLOCK_NONE,
-            .min_bus     = 0,
-            .max_bus     = 0,
+            .min_bus     = 16000000,
+            .max_bus     = 16000000,
             .min_voltage = 0,
             .max_voltage = 0,
             .min_multi   = 0,
@@ -6082,16 +7069,20 @@ const machine_t machines[] = {
         .default_jumpered_ecp_dma = -1,
         .kbc_device               = &kbc_at_device,
         .kbc_params               = KBC_VEN_IBM,
+        .nvr_device               = &nvr_at_device,
+        .nvr_params               = NVR_PS_NO_NMI,
+        .sio_device               = NULL,
+        .sio_params               = 0x00000000,
         .kbc_p1                   = 0x00000cf0,
         .gpio                     = 0xffffffff,
         .gpio_acpi                = 0xffffffff,
         .device                   = NULL,
         .kbd_device               = NULL,
         .fdc_device               = NULL,
-        .sio_device               = NULL,
         .vid_device               = NULL,
         .snd_device               = NULL,
-        .net_device               = NULL
+        .net_device               = NULL,
+        .aliases                  = { "" }
     },
     /* Has IBM PS/2 Type 1 KBC firmware. */
     {
@@ -6107,8 +7098,8 @@ const machine_t machines[] = {
         .cpu               = {
             .package     = CPU_PKG_386SX,
             .block       = CPU_BLOCK_NONE,
-            .min_bus     = 0,
-            .max_bus     = 0,
+            .min_bus     = 16000000,
+            .max_bus     = 16000000,
             .min_voltage = 0,
             .max_voltage = 0,
             .min_multi   = 0,
@@ -6124,15 +7115,19 @@ const machine_t machines[] = {
         .nvrmask                  = 63,
         .kbc_device               = &kbc_at_device,
         .kbc_params               = KBC_VEN_IBM,
+        .nvr_device               = &nvr_at_device,
+        .nvr_params               = NVR_PS_NO_NMI,
+        .sio_device               = NULL,
+        .sio_params               = 0x00000000,
         .kbc_p1                   = 0x00000cf0,
         .gpio                     = 0xffffffff,
         .gpio_acpi                = 0xffffffff,
         .device                   = NULL,
         .fdc_device               = NULL,
-        .sio_device               = NULL,
         .vid_device               = NULL,
         .snd_device               = NULL,
-        .net_device               = NULL
+        .net_device               = NULL,
+        .aliases                  = { "" }
     },
 
     /* ALi M6117 machines */
@@ -6150,8 +7145,8 @@ const machine_t machines[] = {
         .cpu               = {
             .package     = CPU_PKG_M6117,
             .block       = CPU_BLOCK_NONE,
-            .min_bus     = 0,
-            .max_bus     = 0,
+            .min_bus     = 33333333, /* assumed */
+            .max_bus     = 40000000,
             .min_voltage = 0,
             .max_voltage = 0,
             .min_multi   = 0,
@@ -6160,8 +7155,8 @@ const machine_t machines[] = {
         .bus_flags = MACHINE_PS2,
         .flags     = MACHINE_IDE,
         .ram       = {
-            .min  = 1024,
-            .max  = 32768,
+            .min  = 1024,  /* assumed? */
+            .max  = 32768, /* assumed? */
             .step = 1024
         },
         .nvrmask                  = 127,
@@ -6169,20 +7164,120 @@ const machine_t machines[] = {
         .default_jumpered_ecp_dma = -1,
         .kbc_device               = &kbc_at_device,
         .kbc_params               = KBC_VEN_AMI | 0x00004800,
+        .nvr_device               = &nvr_at_device,
+        .nvr_params               = NVR_AT,
+        .sio_device               = NULL,
+        .sio_params               = 0x00000000,
         .kbc_p1                   = 0x00000cf0,
         .gpio                     = 0xffffffff,
         .gpio_acpi                = 0xffffffff,
         .device                   = NULL,
         .kbd_device               = NULL,
         .fdc_device               = NULL,
-        .sio_device               = NULL,
         .vid_device               = NULL,
         .snd_device               = NULL,
-        .net_device               = NULL
+        .net_device               = NULL,
+        .aliases                  = { "" }
+    },
+    /* Has built-in KBC firmware which is genuine AMI 'H' (AMIKEY-2). */
+    {
+        .name              = "[ALi M6117] ICOP-6021",
+        .internal_name     = "icop6021",
+        .type              = MACHINE_TYPE_M6117,
+        .chipset           = MACHINE_CHIPSET_ALI_M6117,
+        .init              = machine_at_icop6021_init,
+        .p1_handler        = machine_generic_p1_handler,
+        .gpio_handler      = NULL,
+        .available_flag    = MACHINE_AVAILABLE,
+        .gpio_acpi_handler = NULL,
+        .cpu               = {
+            .package     = CPU_PKG_M6117,
+            .block       = CPU_BLOCK_NONE,
+            .min_bus     = 40000000,
+            .max_bus     = 40000000,
+            .min_voltage = 0,
+            .max_voltage = 0,
+            .min_multi   = 0,
+            .max_multi   = 0
+        },
+        .bus_flags = MACHINE_PS2,
+        .flags     = MACHINE_IDE,
+        .ram       = {
+            .min  = 4096,
+            .max  = 20480,
+            .step = 4096
+        },
+        .nvrmask                  = 127,
+        .jumpered_ecp_dma         = MACHINE_DMA_0 | MACHINE_DMA_1 | MACHINE_DMA_3,
+        .default_jumpered_ecp_dma = 3,
+        .kbc_device               = &kbc_at_device,
+        .kbc_params               = KBC_VEN_AMI | 0x00004800,
+        .nvr_device               = &nvr_at_device,
+        .nvr_params               = NVR_AT,
+        .sio_device               = NULL,
+        .sio_params               = 0x00000000,
+        .kbc_p1                   = 0x00000cf0,
+        .gpio                     = 0xffffffff,
+        .gpio_acpi                = 0xffffffff,
+        .device                   = NULL,
+        .kbd_device               = NULL,
+        .fdc_device               = NULL,
+        .vid_device               = NULL,
+        .snd_device               = NULL,
+        .net_device               = NULL,
+        .aliases                  = { "Hand386", "Pocket 386", "" }
+    },
+    /* Has built-in KBC firmware which is genuine AMI 'H' (AMIKEY-2). */
+    {
+        .name              = "[ALi M6117] JUMPtec MOPS/386A",
+        .internal_name     = "mops386a",
+        .type              = MACHINE_TYPE_M6117,
+        .chipset           = MACHINE_CHIPSET_ALI_M6117,
+        .init              = machine_at_mops386a_init,
+        .p1_handler        = machine_generic_p1_handler,
+        .gpio_handler      = NULL,
+        .available_flag    = MACHINE_AVAILABLE,
+        .gpio_acpi_handler = NULL,
+        .cpu               = {
+            .package     = CPU_PKG_M6117,
+            .block       = CPU_BLOCK_NONE,
+            .min_bus     = 40000000,
+            .max_bus     = 40000000,
+            .min_voltage = 0,
+            .max_voltage = 0,
+            .min_multi   = 0,
+            .max_multi   = 0
+        },
+        .bus_flags = MACHINE_PS2,
+        .flags     = MACHINE_IDE,
+        .ram       = {
+            .min  = 2048,
+            .max  = 8192,
+            .step = 2048
+        },
+        .nvrmask                  = 127,
+        .jumpered_ecp_dma         = 0,
+        .default_jumpered_ecp_dma = -1,
+        .kbc_device               = &kbc_at_device,
+        .kbc_params               = KBC_VEN_AMI | 0x00004800,
+        .nvr_device               = &nvr_at_device,
+        .nvr_params               = NVR_AT,
+        .sio_device               = NULL,
+        .sio_params               = 0x00000000,
+        .kbc_p1                   = 0x00000cf0,
+        .gpio                     = 0xffffffff,
+        .gpio_acpi                = 0xffffffff,
+        .device                   = NULL,
+        .kbd_device               = NULL,
+        .fdc_device               = NULL,
+        .vid_device               = NULL,
+        .snd_device               = NULL,
+        .net_device               = NULL,
+        .aliases                  = { "Kontron MOPS/386A", "" }
     },
     /* Has IBM PS/2 Type 1 KBC firmware. */
     {
-        .name              = "[ALi M6117] Protech ProX-1332",
+        .name              = "[ALi M6117] Protech ProX-1330",
         .internal_name     = "prox1332",
         .type              = MACHINE_TYPE_M6117,
         .chipset           = MACHINE_CHIPSET_ALI_M6117,
@@ -6194,8 +7289,8 @@ const machine_t machines[] = {
         .cpu               = {
             .package     = CPU_PKG_M6117,
             .block       = CPU_BLOCK_NONE,
-            .min_bus     = 0,
-            .max_bus     = 0,
+            .min_bus     = 40000000,
+            .max_bus     = 40000000,
             .min_voltage = 0,
             .max_voltage = 0,
             .min_multi   = 0,
@@ -6205,7 +7300,7 @@ const machine_t machines[] = {
         .flags     = MACHINE_IDE,
         .ram       = {
             .min  = 1024,
-            .max  = 32768,
+            .max  = 65536,
             .step = 1024
         },
         .nvrmask                  = 127,
@@ -6213,16 +7308,20 @@ const machine_t machines[] = {
         .default_jumpered_ecp_dma = -1,
         .kbc_device               = &kbc_at_device,
         .kbc_params               = KBC_VEN_AMI | 0x00004800,
+        .nvr_device               = &nvr_at_device,
+        .nvr_params               = NVR_AT,
+        .sio_device               = NULL,
+        .sio_params               = 0x00000000,
         .kbc_p1                   = 0x00000cf0,
         .gpio                     = 0xffffffff,
         .gpio_acpi                = 0xffffffff,
         .device                   = NULL,
         .kbd_device               = NULL,
         .fdc_device               = NULL,
-        .sio_device               = NULL,
         .vid_device               = NULL,
         .snd_device               = NULL,
-        .net_device               = NULL
+        .net_device               = NULL,
+        .aliases                  = { "Protech ProX-1331", "Protech ProX-1332", "" }
     },
 
     /* 486SLC machines */
@@ -6241,15 +7340,15 @@ const machine_t machines[] = {
         .cpu               = {
             .package     = CPU_PKG_486SLC_IBM,
             .block       = CPU_BLOCK_NONE,
-            .min_bus     = 0,
-            .max_bus     = 0,
+            .min_bus     = 25000000,
+            .max_bus     = 33333333,
             .min_voltage = 0,
             .max_voltage = 0,
             .min_multi   = 0,
             .max_multi   = 0
         },
         .bus_flags = MACHINE_AT,
-        .flags     = MACHINE_APM,
+        .flags     = MACHINE_FLAGS_NONE,
         .ram       = {
             .min  = 1024,
             .max  = 16384,
@@ -6260,19 +7359,85 @@ const machine_t machines[] = {
         .default_jumpered_ecp_dma = -1,
         .kbc_device               = &kbc_at_device,
         .kbc_params               = KBC_VEN_AMI | 0x00004800,
+        .nvr_device               = &nvr_at_device,
+        .nvr_params               = NVR_AT,
+        .sio_device               = NULL,
+        .sio_params               = 0x00000000,
         .kbc_p1                   = 0x000004f0,
         .gpio                     = 0xffffffff,
         .gpio_acpi                = 0xffffffff,
         .device                   = NULL,
         .kbd_device               = NULL,
         .fdc_device               = NULL,
-        .sio_device               = NULL,
         .vid_device               = NULL,
         .snd_device               = NULL,
-        .net_device               = NULL
+        .net_device               = NULL,
+        .aliases                  = { "Alaris Leopard LX", "IBM OPAL LX", "" }
     },
 
     /* 386DX machines */
+    /* IBM XT (1982) with an Intel Inboard 386/PC accelerator card fitted in place of the
+       stock 8088 - same real BIOS ROM chips, same base XT platform, plus the Inboard's own
+       wait-state/A20/ROM-shadow hardware (inboard386.c). No real 8042 keyboard controller or
+       second/slave 8259 PIC exists on this hardware - it's a genuine XT platform underneath,
+       just with a 386-class CPU bolted on via a daughtercard. */
+    {
+        .name              = "[386DX] IBM XT (Inboard 386/PC)",
+        .internal_name     = "ibmxt_inboard386",
+        .type              = MACHINE_TYPE_386DX,
+        .chipset           = MACHINE_CHIPSET_DISCRETE,
+        .init              = machine_ibmxt_inboard386_init,
+        .p1_handler        = NULL,
+        .gpio_handler      = NULL,
+        .available_flag    = MACHINE_AVAILABLE,
+        .gpio_acpi_handler = NULL,
+        .cpu               = {
+            /* The Inboard's own CPU socket accepts any 386DX-pinout-compatible upgrade chip
+               of the era (PGA132 and pin-compatible packages), not one specific part - OR
+               together every compatible family so a user with a different chip on their card
+               (stock 386DX, Cyrix 486DLC, IBM 486BL, etc.) can select their own
+               from the normal CPU dropdown instead of being locked to one. */
+            .package     = CPU_PKG_386DX | CPU_PKG_486BL | CPU_PKG_486DLC,
+            .block       = CPU_BLOCK_NONE,
+            .min_bus     = 0,
+            .max_bus     = 0,
+            .min_voltage = 0,
+            .max_voltage = 0,
+            .min_multi   = 0,
+            .max_multi   = 0
+        },
+        .bus_flags = MACHINE_PC,
+        .flags     = MACHINE_FLAGS_NONE,
+        .ram       = {
+            /* The real card ships exactly three discrete configurations, not a continuous
+               range: 1MB base alone, 1MB+2MB piggyback (3MB), or 1MB+4MB piggyback (5MB) -
+               the piggyback board is either the 2MB or the 4MB part, never both at once.
+               step=2048 with min=1024/max=5120 lands exactly on {1024, 3072, 5120}, the three
+               real options, without needing a separate discrete-value list. */
+            .min  = 1024,
+            .max  = 5120,
+            .step = 2048
+        },
+        .nvrmask                  = 0,
+        .jumpered_ecp_dma         = 0,
+        .default_jumpered_ecp_dma = -1,
+        .kbc_device               = &kbc_xt_device,
+        .kbc_params               = 0x00000000,
+        .nvr_device               = NULL,
+        .nvr_params               = 0x00000000,
+        .sio_device               = NULL,
+        .sio_params               = 0x00000000,
+        .kbc_p1                   = 0xff,
+        .gpio                     = 0xffffffff,
+        .gpio_acpi                = 0xffffffff,
+        .device                   = &ibmxt_inboard386_device,
+        .kbd_device               = &keyboard_pc_xt_device,
+        .fdc_device               = NULL,
+        .vid_device               = NULL,
+        .snd_device               = NULL,
+        .net_device               = NULL,
+        .aliases                  = { "" }
+    },
     /* Uses Compaq KBC firmware. */
     {
         .name              = "[ISA] Compaq Deskpro 386",
@@ -6306,16 +7471,20 @@ const machine_t machines[] = {
         .default_jumpered_ecp_dma = -1,
         .kbc_device               = &kbc_at_device,
         .kbc_params               = KBC_VEN_COMPAQ,
+        .nvr_device               = &nvr_at_device,
+        .nvr_params               = NVR_AT,
+        .sio_device               = NULL,
+        .sio_params               = 0x00000000,
         .kbc_p1                   = 0x000000f4,
         .gpio                     = 0xffffffff,
         .gpio_acpi                = 0xffffffff,
         .device                   = &deskpro386_device,
         .kbd_device               = NULL,
         .fdc_device               = NULL,
-        .sio_device               = NULL,
         .vid_device               = NULL,
         .snd_device               = NULL,
-        .net_device               = NULL
+        .net_device               = NULL,
+        .aliases                  = { "" }
     },
     /* Uses Compaq KBC firmware. */
     {
@@ -6350,20 +7519,24 @@ const machine_t machines[] = {
         .default_jumpered_ecp_dma = -1,
         .kbc_device               = &kbc_at_device,
         .kbc_params               = KBC_VEN_COMPAQ,
+        .nvr_device               = &nvr_at_device,
+        .nvr_params               = NVR_AT,
+        .sio_device               = NULL,
+        .sio_params               = 0x00000000,
         .kbc_p1                   = 0x000000f4,
         .gpio                     = 0xffffffff,
         .gpio_acpi                = 0xffffffff,
         .device                   = NULL,
         .kbd_device               = NULL,
         .fdc_device               = NULL,
-        .sio_device               = NULL,
         .vid_device               = &compaq_plasma_device,
         .snd_device               = NULL,
-        .net_device               = NULL
+        .net_device               = NULL,
+        .aliases                  = { "" }
     },
     /* Has Phoenix MultiKey/42 KBC firmware. */
     {
-        .name              = "[ISA] Micronics 09-00021 (Tandon BIOS)",
+        .name              = "[ISA] Micronics 386 I-CACHE (Tandon BIOS)",
         .internal_name     = "micronics386",
         .type              = MACHINE_TYPE_386DX,
         .chipset           = MACHINE_CHIPSET_DISCRETE,
@@ -6375,15 +7548,15 @@ const machine_t machines[] = {
         .cpu               = {
             .package     = CPU_PKG_386DX,
             .block       = CPU_BLOCK_NONE,
-            .min_bus     = 0,
-            .max_bus     = 0,
+            .min_bus     = 20000000,
+            .max_bus     = 33333333,
             .min_voltage = 0,
             .max_voltage = 0,
             .min_multi   = 0,
             .max_multi   = 0
         },
         .bus_flags = MACHINE_AT,
-        .flags     = MACHINE_APM,
+        .flags     = MACHINE_FLAGS_NONE,
         .ram       = {
             .min  = 512,
             .max  = 8192,
@@ -6394,20 +7567,24 @@ const machine_t machines[] = {
         .default_jumpered_ecp_dma = -1,
         .kbc_device               = &kbc_at_device,
         .kbc_params               = KBC_VEN_PHOENIX | 0x00012900, /* Guess. */
+        .nvr_device               = &nvr_at_device,
+        .nvr_params               = NVR_AT,
+        .sio_device               = NULL,
+        .sio_params               = 0x00000000,
         .kbc_p1                   = 0x000004f0,
         .gpio                     = 0xffffffff,
         .gpio_acpi                = 0xffffffff,
         .device                   = NULL,
         .kbd_device               = NULL,
         .fdc_device               = NULL,
-        .sio_device               = NULL,
         .vid_device               = NULL,
         .snd_device               = NULL,
-        .net_device               = NULL
+        .net_device               = NULL,
+        .aliases                  = { "Micronics 09-00021 (Tandon BIOS)", "" }
     },
     /* Has IBM AT KBC firmware. */
     {
-        .name              = "[ISA] Micronics 09-00021 (Phoenix BIOS)",
+        .name              = "[ISA] Micronics 386 I-CACHE (Phoenix BIOS)",
         .internal_name     = "micronics386px",
         .type              = MACHINE_TYPE_386DX,
         .chipset           = MACHINE_CHIPSET_DISCRETE,
@@ -6419,15 +7596,15 @@ const machine_t machines[] = {
         .cpu               = {
             .package     = CPU_PKG_386DX,
             .block       = CPU_BLOCK_NONE,
-            .min_bus     = 0,
-            .max_bus     = 0,
+            .min_bus     = 20000000,
+            .max_bus     = 33333333,
             .min_voltage = 0,
             .max_voltage = 0,
             .min_multi   = 0,
             .max_multi   = 0
         },
         .bus_flags = MACHINE_AT,
-        .flags     = MACHINE_APM,
+        .flags     = MACHINE_FLAGS_NONE,
         .ram       = {
             .min  = 512,
             .max  = 8192,
@@ -6438,16 +7615,20 @@ const machine_t machines[] = {
         .default_jumpered_ecp_dma = -1,
         .kbc_device               = &kbc_at_device,
         .kbc_params               = 0x00000000,
+        .nvr_device               = &nvr_at_device,
+        .nvr_params               = NVR_AT,
+        .sio_device               = NULL,
+        .sio_params               = 0x00000000,
         .kbc_p1                   = 0x000004f0,
         .gpio                     = 0xffffffff,
         .gpio_acpi                = 0xffffffff,
         .device                   = NULL,
         .kbd_device               = NULL,
         .fdc_device               = NULL,
-        .sio_device               = NULL,
         .vid_device               = NULL,
         .snd_device               = NULL,
-        .net_device               = NULL
+        .net_device               = NULL,
+        .aliases                  = { "Micronics 09-00021 (Phoenix BIOS)", "" }
     },
     /* Has a Jetkey V3, which we currently lack a probe of, but an
        old test by Carlos showed it as being 'F'. */
@@ -6464,15 +7645,15 @@ const machine_t machines[] = {
         .cpu               = {
             .package     = CPU_PKG_386DX,
             .block       = CPU_BLOCK_NONE,
-            .min_bus     = 0,
-            .max_bus     = 0,
+            .min_bus     = 33333333, /* assumed */
+            .max_bus     = 33333333, /* assumed */
             .min_voltage = 0,
             .max_voltage = 0,
             .min_multi   = 0,
             .max_multi   = 0
         },
         .bus_flags = MACHINE_AT,
-        .flags     = MACHINE_APM,
+        .flags     = MACHINE_FLAGS_NONE,
         .ram       = {
             .min  = 1024,
             .max  = 16384,
@@ -6483,16 +7664,20 @@ const machine_t machines[] = {
         .default_jumpered_ecp_dma = -1,
         .kbc_device               = &kbc_at_device,
         .kbc_params               = KBC_VEN_AMI | 0x00004600,
+        .nvr_device               = &nvr_at_device,
+        .nvr_params               = NVR_AT,
+        .sio_device               = NULL,
+        .sio_params               = 0x00000000,
         .kbc_p1                   = 0x000004f0,
         .gpio                     = 0xffffffff,
         .gpio_acpi                = 0xffffffff,
         .device                   = NULL,
         .kbd_device               = NULL,
         .fdc_device               = NULL,
-        .sio_device               = NULL,
         .vid_device               = NULL,
         .snd_device               = NULL,
-        .net_device               = NULL
+        .net_device               = NULL,
+        .aliases                  = { "" }
     },
     /* Has a Lance LT38C41 that clones an AMIKEY ('F'). */
     {
@@ -6508,8 +7693,8 @@ const machine_t machines[] = {
         .cpu               = {
             .package     = CPU_PKG_386DX,
             .block       = CPU_BLOCK_NONE,
-            .min_bus     = 0,
-            .max_bus     = 0,
+            .min_bus     = 33333333,
+            .max_bus     = 40000000,
             .min_voltage = 0,
             .max_voltage = 0,
             .min_multi   = 0,
@@ -6519,7 +7704,10 @@ const machine_t machines[] = {
         .flags     = MACHINE_FLAGS_NONE,
         .ram       = {
             .min  = 1024,
-            .max  = 32768,
+            /* Theoretically, this should support up to 128 MB. In practice, its BIOS seems
+               to have trouble utilizing more than this amount. It does detect and test the
+               full 128 MB during POST, although setup and DOS only show 64 MB. */
+            .max  = 65536, 
             .step = 1024,
         },
         .nvrmask                  = 127,
@@ -6527,13 +7715,18 @@ const machine_t machines[] = {
         .default_jumpered_ecp_dma = -1,
         .kbc_device               = &kbc_at_device, /* TODO: Lance LT38C41. */
         .kbc_params               = KBC_VEN_AMI | 0x00004600,
+        .nvr_device               = &nvr_at_device,
+        .nvr_params               = NVR_AT,
+        .sio_device               = NULL,
+        .sio_params               = 0x00000000,
         .kbc_p1                   = 0x000004f0,
         .gpio                     = 0xffffffff,
         .gpio_acpi                = 0xffffffff,
         .device                   = NULL,
         .vid_device               = NULL,
         .snd_device               = NULL,
-        .net_device               = NULL
+        .net_device               = NULL,
+        .aliases                  = { "ECS AL486V-D", "Daewoo AL486V-D", "" }
     },
     /* Has an AMI Keyboard BIOS PLUS KBC firmware ('8'). */
     {
@@ -6549,15 +7742,15 @@ const machine_t machines[] = {
         .cpu               = {
             .package     = CPU_PKG_386DX,
             .block       = CPU_BLOCK_NONE,
-            .min_bus     = 0,
-            .max_bus     = 0,
+            .min_bus     = 16000000,
+            .max_bus     = 20000000,
             .min_voltage = 0,
             .max_voltage = 0,
             .min_multi   = 0,
             .max_multi   = 0
         },
         .bus_flags = MACHINE_AT,
-        .flags     = MACHINE_APM,
+        .flags     = MACHINE_FLAGS_NONE,
         .ram       = {
             .min  = 1024,
             .max  = 16384,
@@ -6568,16 +7761,20 @@ const machine_t machines[] = {
         .default_jumpered_ecp_dma = -1,
         .kbc_device               = &kbc_at_device,
         .kbc_params               = KBC_VEN_AMI | 0x00003800,
+        .nvr_device               = &nvr_at_device,
+        .nvr_params               = NVR_AT,
+        .sio_device               = NULL,
+        .sio_params               = 0x00000000,
         .kbc_p1                   = 0x000004f0,
         .gpio                     = 0xffffffff,
         .gpio_acpi                = 0xffffffff,
         .device                   = NULL,
         .kbd_device               = NULL,
         .fdc_device               = NULL,
-        .sio_device               = NULL,
         .vid_device               = NULL,
         .snd_device               = NULL,
-        .net_device               = NULL
+        .net_device               = NULL,
+        .aliases                  = { "Addonics 386/32", "" }
     },
     /* Unknown - we give it an AT Award keyboard controller. */
     {
@@ -6593,18 +7790,18 @@ const machine_t machines[] = {
         .cpu               = {
             .package     = CPU_PKG_386DX,
             .block       = CPU_BLOCK_NONE,
-            .min_bus     = 0,
-            .max_bus     = 0,
+            .min_bus     = 20000000,
+            .max_bus     = 20000000,
             .min_voltage = 0,
             .max_voltage = 0,
             .min_multi   = 0,
             .max_multi   = 0
         },
         .bus_flags = MACHINE_AT,
-        .flags     = MACHINE_APM,
+        .flags     = MACHINE_FLAGS_NONE,
         .ram       = {
             .min  = 1024,
-            .max  = 32768,
+            .max  = 16384,
             .step = 1024
         },
         .nvrmask                  = 127,
@@ -6612,16 +7809,20 @@ const machine_t machines[] = {
         .default_jumpered_ecp_dma = -1,
         .kbc_device               = &kbc_at_device,
         .kbc_params               = KBC_VEN_AWARD | 0x00424600,
+        .nvr_device               = &nvr_at_device,
+        .nvr_params               = NVR_AT,
+        .sio_device               = NULL,
+        .sio_params               = 0x00000000,
         .kbc_p1                   = 0x000004f0,
         .gpio                     = 0xffffffff,
         .gpio_acpi                = 0xffffffff,
         .device                   = NULL,
         .kbd_device               = NULL,
         .fdc_device               = NULL,
-        .sio_device               = NULL,
         .vid_device               = NULL,
         .snd_device               = NULL,
-        .net_device               = NULL
+        .net_device               = NULL,
+        .aliases                  = { "Samsung S800", "" }
     },
     /* I found one board picture of it and I can't really read the
        keyboard controller markings from it, but it may be Phoenix. */
@@ -6638,15 +7839,15 @@ const machine_t machines[] = {
         .cpu               = {
             .package     = CPU_PKG_386DX,
             .block       = CPU_BLOCK_NONE,
-            .min_bus     = 0,
-            .max_bus     = 0,
+            .min_bus     = 16000000,
+            .max_bus     = 16000000, /* assumed */
             .min_voltage = 0,
             .max_voltage = 0,
             .min_multi   = 0,
             .max_multi   = 0
         },
         .bus_flags = MACHINE_AT,
-        .flags     = MACHINE_APM,
+        .flags     = MACHINE_FLAGS_NONE,
         .ram       = {
             .min  = 1024,
             .max  = 16384,
@@ -6657,16 +7858,20 @@ const machine_t machines[] = {
         .default_jumpered_ecp_dma = -1,
         .kbc_device               = &kbc_at_device,
         .kbc_params               = KBC_VEN_PHOENIX | 0x00012900, /* Guess. */
+        .nvr_device               = &nvr_at_device,
+        .nvr_params               = NVR_AT,
+        .sio_device               = NULL,
+        .sio_params               = 0x00000000,
         .kbc_p1                   = 0x000004f0,
         .gpio                     = 0xffffffff,
         .gpio_acpi                = 0xffffffff,
         .device                   = NULL,
         .kbd_device               = NULL,
         .fdc_device               = NULL,
-        .sio_device               = NULL,
         .vid_device               = NULL,
         .snd_device               = NULL,
-        .net_device               = NULL
+        .net_device               = NULL,
+        .aliases                  = { "" }
     },
     /* Has AMIKey 'F' KBC firmware. */
     {
@@ -6682,8 +7887,8 @@ const machine_t machines[] = {
         .cpu               = {
             .package     = CPU_PKG_386DX, /* Actual machine only supports 386DXes */
             .block       = CPU_BLOCK_NONE,
-            .min_bus     = 0,
-            .max_bus     = 0,
+            .min_bus     = 33333333,
+            .max_bus     = 40000000,
             .min_voltage = 0,
             .max_voltage = 0,
             .min_multi   = 0,
@@ -6701,22 +7906,26 @@ const machine_t machines[] = {
         .default_jumpered_ecp_dma = -1,
         .kbc_device               = &kbc_at_device,
         .kbc_params               = KBC_VEN_AMI | KBC_FLAG_IS_CLONE | 0x00004600,
+        .nvr_device               = &nvr_at_device,
+        .nvr_params               = NVR_AT,
+        .sio_device               = NULL,
+        .sio_params               = 0x00000000,
         .kbc_p1                   = 0x000004f0,
         .gpio                     = 0xffffffff,
         .gpio_acpi                = 0xffffffff,
         .device                   = &dataexpert386wb_device,
         .kbd_device               = NULL,
         .fdc_device               = NULL,
-        .sio_device               = NULL,
         .vid_device               = NULL,
         .snd_device               = NULL,
-        .net_device               = NULL
+        .net_device               = NULL,
+        .aliases                  = { "" }
     },
      /* The board has a "ASII KB-100" which I was not able to find any information about,
         but the BIOS sends commands C9 without a parameter and D5, both of which are
         Phoenix MultiKey commands. */
     {
-        .name              = "[OPTi 495SLC] U-Board OPTi 495SLC",
+        .name              = "[OPTi 495SLC] U-Board Unknown",
         .internal_name     = "award495",
         .type              = MACHINE_TYPE_386DX,
         .chipset           = MACHINE_CHIPSET_OPTI_495SLC,
@@ -6728,15 +7937,15 @@ const machine_t machines[] = {
         .cpu               = {
             .package     = CPU_PKG_386DX, /* Actual machine only supports 386DXes */
             .block       = CPU_BLOCK_NONE,
-            .min_bus     = 0,
-            .max_bus     = 0,
+            .min_bus     = 33333333,
+            .max_bus     = 40000000,
             .min_voltage = 0,
             .max_voltage = 0,
             .min_multi   = 0,
             .max_multi   = 0
         },
         .bus_flags = MACHINE_AT,
-        .flags     = MACHINE_APM,
+        .flags     = MACHINE_FLAGS_NONE,
         .ram       = {
             .min  = 1024,
             .max  = 32768,
@@ -6747,16 +7956,20 @@ const machine_t machines[] = {
         .default_jumpered_ecp_dma = -1,
         .kbc_device               = &kbc_at_device,
         .kbc_params               = KBC_VEN_PHOENIX | 0x00012900, /* Guess. */
+        .nvr_device               = &nvr_at_device,
+        .nvr_params               = NVR_AT,
+        .sio_device               = NULL,
+        .sio_params               = 0x00000000,
         .kbc_p1                   = 0x000004f0,
         .gpio                     = 0xffffffff,
         .gpio_acpi                = 0xffffffff,
         .device                   = NULL,
         .kbd_device               = NULL,
         .fdc_device               = NULL,
-        .sio_device               = NULL,
         .vid_device               = NULL,
         .snd_device               = NULL,
-        .net_device               = NULL
+        .net_device               = NULL,
+        .aliases                  = { "" }
     },
     /* Has Award KBC firmware. */
     {
@@ -6772,17 +7985,20 @@ const machine_t machines[] = {
         .cpu               = {
             .package     = CPU_PKG_386DX,
             .block       = CPU_BLOCK_NONE,
-            .min_bus     = 0,
-            .max_bus     = 0,
+            .min_bus     = 33333333,
+            .max_bus     = 33333333,
             .min_voltage = 0,
             .max_voltage = 0,
             .min_multi   = 0,
             .max_multi   = 0
         },
         .bus_flags = MACHINE_AT,
-        .flags     = MACHINE_APM,
+        .flags     = MACHINE_FLAGS_NONE,
         .ram       = {
             .min  = 1024,
+            /* Unlike on the ISA-386C, the BIOS on this does not recognize
+               more than this amount at all, despite having the same chipset
+               with the same memory expansion slot (at least seemingly). */
             .max  = 16384,
             .step = 1024
         },
@@ -6791,16 +8007,20 @@ const machine_t machines[] = {
         .default_jumpered_ecp_dma = -1,
         .kbc_device               = &kbc_at_device,
         .kbc_params               = KBC_VEN_AWARD | 0x00424600,
+        .nvr_device               = &nvr_at_device,
+        .nvr_params               = NVR_AT,
+        .sio_device               = NULL,
+        .sio_params               = 0x00000000,
         .kbc_p1                   = 0x000004f0,
         .gpio                     = 0xffffffff,
         .gpio_acpi                = 0xffffffff,
         .device                   = NULL,
         .kbd_device               = NULL,
         .fdc_device               = NULL,
-        .sio_device               = NULL,
         .vid_device               = NULL,
         .snd_device               = NULL,
-        .net_device               = NULL
+        .net_device               = NULL,
+        .aliases                  = { "" }
     },
     /* Has AMIKey F KBC firmware. */
     {
@@ -6816,15 +8036,15 @@ const machine_t machines[] = {
         .cpu               = {
             .package     = CPU_PKG_386DX,
             .block       = CPU_BLOCK_NONE,
-            .min_bus     = 0,
-            .max_bus     = 0,
+            .min_bus     = 33333333,
+            .max_bus     = 40000000,
             .min_voltage = 0,
             .max_voltage = 0,
             .min_multi   = 0,
             .max_multi   = 0
         },
         .bus_flags = MACHINE_AT,
-        .flags     = MACHINE_APM,
+        .flags     = MACHINE_FLAGS_NONE,
         .ram       = {
             .min  = 1024,
             .max  = 65536,
@@ -6835,16 +8055,68 @@ const machine_t machines[] = {
         .default_jumpered_ecp_dma = -1,
         .kbc_device               = &kbc_at_device,
         .kbc_params               = KBC_VEN_AMI | 0x00004600,
+        .nvr_device               = &nvr_at_device,
+        .nvr_params               = NVR_AT,
+        .sio_device               = NULL,
+        .sio_params               = 0x00000000,
         .kbc_p1                   = 0x000004f0,
         .gpio                     = 0xffffffff,
         .gpio_acpi                = 0xffffffff,
         .device                   = NULL,
         .kbd_device               = NULL,
         .fdc_device               = NULL,
-        .sio_device               = NULL,
         .vid_device               = NULL,
         .snd_device               = NULL,
-        .net_device               = NULL
+        .net_device               = NULL,
+        .aliases                  = { "" }
+    },
+    /* Has AMIKey F KBC firmware. */
+    {
+        .name              = "[SiS 460] ASUS ISA-386SIQ",
+        .internal_name     = "asus386siq",
+        .type              = MACHINE_TYPE_386DX,
+        .chipset           = MACHINE_CHIPSET_SIS_460, // Also seen with a SiS 461 chipset
+        .init              = machine_at_asus386siq_init,
+        .p1_handler        = machine_generic_p1_handler,
+        .gpio_handler      = NULL,
+        .available_flag    = MACHINE_AVAILABLE,
+        .gpio_acpi_handler = NULL,
+        .cpu               = {
+            .package     = CPU_PKG_386DX,
+            .block       = CPU_BLOCK_NONE,
+            .min_bus     = 33333333,
+            .max_bus     = 40000000,
+            .min_voltage = 0,
+            .max_voltage = 0,
+            .min_multi   = 0,
+            .max_multi   = 0
+        },
+        .bus_flags = MACHINE_AT,
+        .flags     = MACHINE_FLAGS_NONE,
+        .ram       = {
+            .min  = 1024,
+            .max  = 32768,
+            .step = 1024
+        },
+        .nvrmask                  = 127,
+        .jumpered_ecp_dma         = 0,
+        .default_jumpered_ecp_dma = -1,
+        .kbc_device               = &kbc_at_device,
+        .kbc_params               = KBC_VEN_AMI | 0x00004600,
+        .nvr_device               = &nvr_at_device,
+        .nvr_params               = NVR_AT,
+        .sio_device               = NULL,
+        .sio_params               = 0x00000000,
+        .kbc_p1                   = 0x000004f0,
+        .gpio                     = 0xffffffff,
+        .gpio_acpi                = 0xffffffff,
+        .device                   = NULL,
+        .kbd_device               = NULL,
+        .fdc_device               = NULL,
+        .vid_device               = NULL,
+        .snd_device               = NULL,
+        .net_device               = NULL,
+        .aliases                  = { "" }
     },
 
     /* 386DX machines which utilize the MCA bus */
@@ -6862,15 +8134,15 @@ const machine_t machines[] = {
         .cpu               = {
             .package     = CPU_PKG_386DX | CPU_PKG_486BL,
             .block       = CPU_BLOCK_NONE,
-            .min_bus     = 0,
-            .max_bus     = 0,
+            .min_bus     = 20000000,
+            .max_bus     = 20000000,
             .min_voltage = 0,
             .max_voltage = 0,
             .min_multi   = 0,
             .max_multi   = 0
         },
         .bus_flags = MACHINE_PS2_MCA,
-        .flags     = MACHINE_VIDEO | MACHINE_APM,
+        .flags     = MACHINE_VIDEO,
         .ram       = {
             .min  = 1024,
             .max  = 65536,
@@ -6881,20 +8153,24 @@ const machine_t machines[] = {
         .default_jumpered_ecp_dma = -1,
         .kbc_device               = &kbc_at_device,
         .kbc_params               = KBC_VEN_IBM,
+        .nvr_device               = &nvr_at_device,
+        .nvr_params               = NVR_PS_NO_NMI,
+        .sio_device               = NULL,
+        .sio_params               = 0x00000000,
         .kbc_p1                   = 0x00000cf0,
         .gpio                     = 0xffffffff,
         .gpio_acpi                = 0xffffffff,
         .device                   = NULL,
         .kbd_device               = NULL,
         .fdc_device               = NULL,
-        .sio_device               = NULL,
         .vid_device               = NULL,
         .snd_device               = NULL,
-        .net_device               = NULL
+        .net_device               = NULL,
+        .aliases                  = { "" }
     },
-    /* Has IBM PS/55 5551-Sxx, Txx stage 2 firmware. */
+    /* Has IBM PS/55 5551-Txx stage 2 firmware. */
     {
-        .name              = "[MCA] IBM PS/55 model 5550-S/T Stage II",
+        .name              = "[MCA] IBM PS/55 model 5550-T Stage II",
         .internal_name     = "ibmps55_m50t",
         .type              = MACHINE_TYPE_386DX,
         .chipset           = MACHINE_CHIPSET_PROPRIETARY,
@@ -6906,15 +8182,15 @@ const machine_t machines[] = {
         .cpu               = {
             .package     = CPU_PKG_386DX | CPU_PKG_486BL,
             .block       = CPU_BLOCK_NONE,
-            .min_bus     = 0,
-            .max_bus     = 0,
+            .min_bus     = 20000000,
+            .max_bus     = 20000000,
             .min_voltage = 0,
             .max_voltage = 0,
             .min_multi   = 0,
             .max_multi   = 0
         },
         .bus_flags = MACHINE_PS2_MCA,
-        .flags     = MACHINE_VIDEO | MACHINE_KEYBOARD_JIS | MACHINE_APM,
+        .flags     = MACHINE_VIDEO | MACHINE_KEYBOARD_JIS,
         .ram       = {
             .min  = 2048,
             .max  = 16384,
@@ -6925,16 +8201,20 @@ const machine_t machines[] = {
         .default_jumpered_ecp_dma = -1,
         .kbc_device               = &kbc_at_device,
         .kbc_params               = KBC_VEN_IBM,
+        .nvr_device               = &nvr_at_device,
+        .nvr_params               = NVR_PS_NO_NMI,
+        .sio_device               = NULL,
+        .sio_params               = 0x00000000,
         .kbc_p1                   = 0x00000cf0,
         .gpio                     = 0xffffffff,
         .gpio_acpi                = 0xffffffff,
         .device                   = NULL,
         .kbd_device               = NULL,
         .fdc_device               = NULL,
-        .sio_device               = NULL,
         .vid_device               = NULL,
         .snd_device               = NULL,
-        .net_device               = NULL
+        .net_device               = NULL,
+        .aliases                  = { "" }
     },
 
     /* 386DX/486 machines */
@@ -6952,10 +8232,10 @@ const machine_t machines[] = {
         .cpu               = {
             .package     = CPU_PKG_386DX | CPU_PKG_SOCKET3,
             .block       = CPU_BLOCK_NONE,
-            .min_bus     = 0,
-            .max_bus     = 0,
-            .min_voltage = 0,
-            .max_voltage = 0,
+            .min_bus     = 25000000,
+            .max_bus     = 50000000,
+            .min_voltage = 3300,
+            .max_voltage = 5000,
             .min_multi   = 0,
             .max_multi   = 0
         },
@@ -6971,16 +8251,20 @@ const machine_t machines[] = {
         .default_jumpered_ecp_dma = -1,
         .kbc_device               = &kbc_at_device,
         .kbc_params               = KBC_VEN_PHOENIX | 0x00021400,
+        .nvr_device               = &nvr_at_device,
+        .nvr_params               = NVR_AT,
+        .sio_device               = NULL,
+        .sio_params               = 0x00000000,
         .kbc_p1                   = 0x000004f0,
         .gpio                     = 0xffffffff,
         .gpio_acpi                = 0xffffffff,
         .device                   = NULL,
         .kbd_device               = NULL,
         .fdc_device               = NULL,
-        .sio_device               = NULL,
         .vid_device               = NULL,
         .snd_device               = NULL,
-        .net_device               = NULL
+        .net_device               = NULL,
+        .aliases                  = { "" }
     },
     /* Has AMIKey F KBC firmware. The EFAR chipst is a rebrand of OPTi 495SX. */
     {
@@ -6996,15 +8280,15 @@ const machine_t machines[] = {
         .cpu               = {
             .package     = CPU_PKG_386DX | CPU_PKG_SOCKET1,
             .block       = CPU_BLOCK_NONE,
-            .min_bus     = 0,
-            .max_bus     = 0,
-            .min_voltage = 0,
-            .max_voltage = 0,
+            .min_bus     = 20000000,
+            .max_bus     = 50000000,
+            .min_voltage = 5000,
+            .max_voltage = 5000,
             .min_multi   = 0,
             .max_multi   = 0
         },
         .bus_flags = MACHINE_AT,
-        .flags     = MACHINE_APM | MACHINE_IDE,
+        .flags     = MACHINE_IDE,
         .ram       = {
             .min  = 1024,
             .max  = 32768,
@@ -7015,21 +8299,25 @@ const machine_t machines[] = {
         .default_jumpered_ecp_dma = -1,
         .kbc_device               = &kbc_at_device,
         .kbc_params               = KBC_VEN_SIEMENS,
+        .nvr_device               = &nvr_at_device,
+        .nvr_params               = NVR_AT,
+        .sio_device               = NULL,
+        .sio_params               = 0x00000000,
         .kbc_p1                   = 0x000004f0,
         .gpio                     = 0xffffffff,
         .gpio_acpi                = 0xffffffff,
         .device                   = NULL,
         .kbd_device               = NULL,
         .fdc_device               = NULL,
-        .sio_device               = NULL,
         .vid_device               = NULL,
         .snd_device               = NULL,
-        .net_device               = NULL
+        .net_device               = NULL,
+        .aliases                  = { "" }
     },
     /* Has AMIKey 'F' or MR BIOS 'M' KBC firmware, we give it the latter
        for the sake of keyboard controller diversity. */
     {
-        .name              = "[OPTi 495SX] DataExpert SX495",
+        .name              = "[OPTi 495SX] DataExpert OPTI-495SX",
         .internal_name     = "ami495",
         .type              = MACHINE_TYPE_386DX_486,
         .chipset           = MACHINE_CHIPSET_OPTI_495SX,
@@ -7041,15 +8329,15 @@ const machine_t machines[] = {
         .cpu               = {
             .package     = CPU_PKG_386DX | CPU_PKG_SOCKET1,
             .block       = CPU_BLOCK_NONE,
-            .min_bus     = 0,
-            .max_bus     = 0,
-            .min_voltage = 0,
-            .max_voltage = 0,
+            .min_bus     = 20000000,
+            .max_bus     = 50000000,
+            .min_voltage = 5000,
+            .max_voltage = 5000,
             .min_multi   = 0,
             .max_multi   = 0
         },
         .bus_flags = MACHINE_VLB,
-        .flags     = MACHINE_APM,
+        .flags     = MACHINE_FLAGS_NONE,
         .ram       = {
             .min  = 1024,
             .max  = 32768,
@@ -7060,16 +8348,116 @@ const machine_t machines[] = {
         .default_jumpered_ecp_dma = -1,
         .kbc_device               = &kbc_at_device,
         .kbc_params               = KBC_VEN_AMI | 0x00004d00,
+        .nvr_device               = &nvr_at_device,
+        .nvr_params               = NVR_AT,
+        .sio_device               = NULL,
+        .sio_params               = 0x00000000,
         .kbc_p1                   = 0x000004f0,
         .gpio                     = 0xffffffff,
         .gpio_acpi                = 0xffffffff,
         .device                   = &opti495_ami_device,
         .kbd_device               = NULL,
         .fdc_device               = NULL,
-        .sio_device               = NULL,
         .vid_device               = NULL,
         .snd_device               = NULL,
-        .net_device               = NULL
+        .net_device               = NULL,
+        .aliases                  = { "" }
+    },
+    /* Likely has an AMIKEY-2 'H' KBC.  */
+    {
+        .name              = "[Symphony SL82C460] APC Predator I Plus",
+        .internal_name     = "pred1plus",
+        .type              = MACHINE_TYPE_386DX_486,
+        .chipset           = MACHINE_CHIPSET_SYMPHONY_SL82C460,
+        .init              = machine_at_pred1plus_init,
+        .p1_handler        = machine_generic_p1_handler,
+        .gpio_handler      = NULL,
+        .available_flag    = MACHINE_AVAILABLE,
+        .gpio_acpi_handler = NULL,
+        .cpu               = {
+            .package     = CPU_PKG_386DX | CPU_PKG_SOCKET1,
+            .block       = CPU_BLOCK_NONE,
+            .min_bus     = 20000000,
+            .max_bus     = 50000000,
+            .min_voltage = 5000,
+            .max_voltage = 5000,
+            .min_multi   = 0,
+            .max_multi   = 0
+        },
+        .bus_flags = MACHINE_PS2_VLB,
+        .flags     = MACHINE_IDE,
+        .ram       = {
+            .min  = 1024,
+            .max  = 65536,
+            .step = 1024
+        },
+        .nvrmask                  = 127,
+        .jumpered_ecp_dma         = 0,
+        .default_jumpered_ecp_dma = -1,
+        .kbc_device               = &kbc_at_device,
+        .kbc_params               = KBC_VEN_AMI | 0x00004800,
+        .nvr_device               = &nvr_at_device,
+        .nvr_params               = NVR_AT,
+        .sio_device               = NULL,
+        .sio_params               = 0x00000000,
+        .kbc_p1                   = 0x00000cf0,
+        .gpio                     = 0xffffffff,
+        .gpio_acpi                = 0xffffffff,
+        .device                   = NULL,
+        .kbd_device               = NULL,
+        .fdc_device               = NULL,
+        .vid_device               = NULL,
+        .snd_device               = NULL,
+        .net_device               = NULL,
+        .aliases                  = { "APC FP-PR1PW-01", "" }
+    },
+    /* Has a Lance LT38C41 that clones an AMIKEY ('F'). */
+    {
+        .name              = "[VIA VT82C495] FIC 4386-VC-V",
+        .internal_name     = "fic4386vcv",
+        .type              = MACHINE_TYPE_386DX_486,
+        .chipset           = MACHINE_CHIPSET_VIA_VT82C495,
+        .init              = machine_at_fic4386vcv_init,
+        .p1_handler        = machine_generic_p1_handler,
+        .gpio_handler      = NULL,
+        .available_flag    = MACHINE_AVAILABLE,
+        .gpio_acpi_handler = NULL,
+        .cpu               = {
+            .package     = CPU_PKG_386DX | CPU_PKG_SOCKET1,
+            .block       = CPU_BLOCK_NONE,
+            .min_bus     = 20000000,
+            .max_bus     = 50000000,
+            .min_voltage = 5000,
+            .max_voltage = 5000,
+            .min_multi   = 0,
+            .max_multi   = 0
+        },
+        .bus_flags = MACHINE_VLB,
+        .flags     = MACHINE_FLAGS_NONE,
+        .ram       = {
+            .min  = 1024,
+            .max  = 65536, /* AwardBIOS v4.20 does not recognize more than this amount */
+            .step = 1024
+        },
+        .nvrmask                  = 127,
+        .jumpered_ecp_dma         = 0,
+        .default_jumpered_ecp_dma = -1,
+        .kbc_device               = &kbc_at_device, /* TODO: Lance LT38C41. */
+        .kbc_params               = KBC_VEN_AMI | 0x00004600,
+        .nvr_device               = &nvr_at_device,
+        .nvr_params               = NVR_AT,
+        .sio_device               = NULL,
+        .sio_params               = 0x00000000,
+        .kbc_p1                   = 0x00000cf0,
+        .gpio                     = 0xffffffff,
+        .gpio_acpi                = 0xffffffff,
+        .device                   = &fic4386vcv_device,
+        .kbd_device               = NULL,
+        .fdc_device               = NULL,
+        .vid_device               = NULL,
+        .snd_device               = NULL,
+        .net_device               = NULL,
+        .aliases                  = { "" }
     },
     /* Has IBM PS/2 Type 1 KBC firmware. */
     {
@@ -7085,15 +8473,15 @@ const machine_t machines[] = {
         .cpu               = {
             .package     = CPU_PKG_386DX | CPU_PKG_486BL | CPU_PKG_SOCKET1,
             .block       = CPU_BLOCK_NONE,
-            .min_bus     = 0,
-            .max_bus     = 0,
-            .min_voltage = 0,
-            .max_voltage = 0,
+            .min_bus     = 25000000,
+            .max_bus     = 25000000,
+            .min_voltage = 5000,
+            .max_voltage = 5000,
             .min_multi   = 0,
             .max_multi   = 0
         },
         .bus_flags = MACHINE_PS2_MCA,
-        .flags     = MACHINE_VIDEO | MACHINE_APM,
+        .flags     = MACHINE_VIDEO,
         .ram       = {
             .min  = 2048,
             .max  = 65536,
@@ -7104,16 +8492,20 @@ const machine_t machines[] = {
         .default_jumpered_ecp_dma = -1,
         .kbc_device               = &kbc_at_device,
         .kbc_params               = KBC_VEN_IBM,
+        .nvr_device               = &nvr_at_device,
+        .nvr_params               = NVR_PS_NO_NMI,
+        .sio_device               = NULL,
+        .sio_params               = 0x00000000,
         .kbc_p1                   = 0x00000cf0,
         .gpio                     = 0xffffffff,
         .gpio_acpi                = 0xffffffff,
         .device                   = NULL,
         .kbd_device               = NULL,
         .fdc_device               = NULL,
-        .sio_device               = NULL,
         .vid_device               = NULL,
         .snd_device               = NULL,
-        .net_device               = NULL
+        .net_device               = NULL,
+        .aliases                  = { "" }
     },
     /* Has IBM PS/2 Type 1 KBC firmware. */
     {
@@ -7129,15 +8521,15 @@ const machine_t machines[] = {
         .cpu               = {
             .package     = CPU_PKG_386DX | CPU_PKG_486BL | CPU_PKG_SOCKET1,
             .block       = CPU_BLOCK_NONE,
-            .min_bus     = 0,
-            .max_bus     = 0,
-            .min_voltage = 0,
-            .max_voltage = 0,
+            .min_bus     = 25000000,
+            .max_bus     = 25000000,
+            .min_voltage = 5000,
+            .max_voltage = 5000,
             .min_multi   = 0,
             .max_multi   = 0
         },
         .bus_flags = MACHINE_PS2_MCA,
-        .flags     = MACHINE_VIDEO | MACHINE_APM,
+        .flags     = MACHINE_VIDEO,
         .ram       = {
             .min  = 2048,
             .max  = 65536,
@@ -7148,16 +8540,20 @@ const machine_t machines[] = {
         .default_jumpered_ecp_dma = -1,
         .kbc_device               = &kbc_at_device,
         .kbc_params               = KBC_VEN_IBM,
+        .nvr_device               = &nvr_at_device,
+        .nvr_params               = NVR_PS_NO_NMI,
+        .sio_device               = NULL,
+        .sio_params               = 0x00000000,
         .kbc_p1                   = 0x00000cf0,
         .gpio                     = 0xffffffff,
         .gpio_acpi                = 0xffffffff,
         .device                   = NULL,
         .kbd_device               = NULL,
         .fdc_device               = NULL,
-        .sio_device               = NULL,
         .vid_device               = NULL,
         .snd_device               = NULL,
-        .net_device               = NULL
+        .net_device               = NULL,
+        .aliases                  = { "" }
     },
     /* Has IBM PS/55 5551-V0x, V1x firmware. */
     {
@@ -7173,15 +8569,15 @@ const machine_t machines[] = {
         .cpu               = {
             .package     = CPU_PKG_386DX | CPU_PKG_486BL | CPU_PKG_SOCKET1,
             .block       = CPU_BLOCK_NONE,
-            .min_bus     = 0,
-            .max_bus     = 0,
-            .min_voltage = 0,
-            .max_voltage = 0,
+            .min_bus     = 25000000,
+            .max_bus     = 25000000,
+            .min_voltage = 5000,
+            .max_voltage = 5000,
             .min_multi   = 0,
             .max_multi   = 0
         },
         .bus_flags = MACHINE_PS2_MCA,
-        .flags     = MACHINE_VIDEO | MACHINE_KEYBOARD_JIS | MACHINE_APM,
+        .flags     = MACHINE_VIDEO | MACHINE_KEYBOARD_JIS,
         .ram       = {
             .min  = 4096,
             .max  = 16384,
@@ -7192,25 +8588,29 @@ const machine_t machines[] = {
         .default_jumpered_ecp_dma = -1,
         .kbc_device               = &kbc_at_device,
         .kbc_params               = KBC_VEN_IBM,
+        .nvr_device               = &nvr_at_device,
+        .nvr_params               = NVR_PS_NO_NMI,
+        .sio_device               = NULL,
+        .sio_params               = 0x00000000,
         .kbc_p1                   = 0x00000cf0,
         .gpio                     = 0xffffffff,
         .gpio_acpi                = 0xffffffff,
         .device                   = NULL,
         .kbd_device               = NULL,
         .fdc_device               = NULL,
-        .sio_device               = NULL,
         .vid_device               = NULL,
         .snd_device               = NULL,
-        .net_device               = NULL
+        .net_device               = NULL,
+        .aliases                  = { "" }
     },
 
-    /* 486 machines - Socket 1 */
+    /* Socket 168/1 machines */
     /* Has JetKey V5 KBC Firmware - we now have a photo of the board and its POST
        screen, so we can match JetKey V5 to 'F'. */
     {
         .name              = "[CS4031] AMI 486 CS4031",
         .internal_name     = "cs4031",
-        .type              = MACHINE_TYPE_486,
+        .type              = MACHINE_TYPE_SOCKET1,
         .chipset           = MACHINE_CHIPSET_CT_CS4031,
         .init              = machine_at_cs4031_init,
         .p1_handler        = machine_generic_p1_handler,
@@ -7220,15 +8620,15 @@ const machine_t machines[] = {
         .cpu               = {
             .package     = CPU_PKG_SOCKET1,
             .block       = CPU_BLOCK_NONE,
-            .min_bus     = 0,
-            .max_bus     = 0,
-            .min_voltage = 0,
-            .max_voltage = 0,
+            .min_bus     = 25000000, /* assumed */
+            .max_bus     = 33333333, /* assumed */
+            .min_voltage = 5000,
+            .max_voltage = 5000,
             .min_multi   = 0,
             .max_multi   = 0
         },
         .bus_flags = MACHINE_VLB,
-        .flags     = MACHINE_APM,
+        .flags     = MACHINE_FLAGS_NONE,
         .ram       = {
             .min  = 1024,
             .max  = 65536,
@@ -7239,23 +8639,27 @@ const machine_t machines[] = {
         .default_jumpered_ecp_dma = -1,
         .kbc_device               = &kbc_at_device,
         .kbc_params               = KBC_VEN_AMI | 0x00004600,
+        .nvr_device               = &nvr_at_device,
+        .nvr_params               = NVR_AT,
+        .sio_device               = NULL,
+        .sio_params               = 0x00000000,
         .kbc_p1                   = 0x000004f0,
         .gpio                     = 0xffffffff,
         .gpio_acpi                = 0xffffffff,
         .device                   = NULL,
         .kbd_device               = NULL,
         .fdc_device               = NULL,
-        .sio_device               = NULL,
         .vid_device               = NULL,
         .snd_device               = NULL,
-        .net_device               = NULL
+        .net_device               = NULL,
+        .aliases                  = { "" }
     },
-    /* Has AMI KF KBC firmware. */
+    /* Uses the AMIKey 'F' keyboard controller firmware. */
     {
-        .name              = "[OPTi 381] Gigabyte GA-486L",
+        .name              = "[OPTi 481] Gigabyte GA-486L",
         .internal_name     = "ga486l",
-        .type              = MACHINE_TYPE_486,
-        .chipset           = MACHINE_CHIPSET_OPTI_381,
+        .type              = MACHINE_TYPE_SOCKET1,
+        .chipset           = MACHINE_CHIPSET_OPTI_481,
         .init              = machine_at_ga486l_init,
         .p1_handler        = machine_generic_p1_handler,
         .gpio_handler      = NULL,
@@ -7264,15 +8668,15 @@ const machine_t machines[] = {
         .cpu               = {
             .package     = CPU_PKG_SOCKET1,
             .block       = CPU_BLOCK_NONE,
-            .min_bus     = 0,
-            .max_bus     = 0,
-            .min_voltage = 0,
-            .max_voltage = 0,
+            .min_bus     = 25000000,
+            .max_bus     = 25000000,
+            .min_voltage = 5000,
+            .max_voltage = 5000,
             .min_multi   = 0,
             .max_multi   = 0
         },
         .bus_flags = MACHINE_AT,
-        .flags     = MACHINE_APM,
+        .flags     = MACHINE_FLAGS_NONE,
         .ram       = {
             .min  = 1024,
             .max  = 16384,
@@ -7283,24 +8687,28 @@ const machine_t machines[] = {
         .default_jumpered_ecp_dma = -1,
         .kbc_device               = &kbc_at_device,
         .kbc_params               = KBC_VEN_AMI | 0x00004600,
+        .nvr_device               = &nvr_at_device,
+        .nvr_params               = NVR_AT,
+        .sio_device               = NULL,
+        .sio_params               = 0x00000000,
         .kbc_p1                   = 0x000004f0,
         .gpio                     = 0xffffffff,
         .gpio_acpi                = 0xffffffff,
         .device                   = NULL,
         .kbd_device               = NULL,
         .fdc_device               = NULL,
-        .sio_device               = NULL,
         .vid_device               = NULL,
         .snd_device               = NULL,
-        .net_device               = NULL
+        .net_device               = NULL,
+        .aliases                  = { "" }
     },
     /* Uses the AMIKey 'F' keyboard controller firmware. */
     {
-        .name              = "[OPTi 493] Silicon Valley Computer 486WB",
-        .internal_name     = "svc486wb",
-        .type              = MACHINE_TYPE_486,
-        .chipset           = MACHINE_CHIPSET_OPTI_493,
-        .init              = machine_at_svc486wb_init,
+        .name              = "[OPTi 481] Pioneer Vantage 4865C-25/33",
+        .internal_name     = "vantage4865c",
+        .type              = MACHINE_TYPE_SOCKET1,
+        .chipset           = MACHINE_CHIPSET_OPTI_481,
+        .init              = machine_at_vantage4865c_init,
         .p1_handler        = machine_generic_p1_handler,
         .gpio_handler      = NULL,
         .available_flag    = MACHINE_AVAILABLE,
@@ -7308,15 +8716,15 @@ const machine_t machines[] = {
         .cpu               = {
             .package     = CPU_PKG_SOCKET1,
             .block       = CPU_BLOCK_NONE,
-            .min_bus     = 20000000,
+            .min_bus     = 25000000,
             .max_bus     = 33333333,
-            .min_voltage = 0,
-            .max_voltage = 0,
+            .min_voltage = 5000,
+            .max_voltage = 5000,
             .min_multi   = 0,
-            .max_multi   = 2.0
+            .max_multi   = 0
         },
         .bus_flags = MACHINE_AT,
-        .flags     = MACHINE_IDE | MACHINE_APM,
+        .flags     = MACHINE_FLAGS_NONE,
         .ram       = {
             .min  = 1024,
             .max  = 32768,
@@ -7327,23 +8735,219 @@ const machine_t machines[] = {
         .default_jumpered_ecp_dma = -1,
         .kbc_device               = &kbc_at_device,
         .kbc_params               = KBC_VEN_AMI | 0x00004600,
+        .nvr_device               = &nvr_at_device,
+        .nvr_params               = NVR_AT,
+        .sio_device               = NULL,
+        .sio_params               = 0x00000000,
         .kbc_p1                   = 0x000004f0,
         .gpio                     = 0xffffffff,
         .gpio_acpi                = 0xffffffff,
         .device                   = NULL,
         .kbd_device               = NULL,
         .fdc_device               = NULL,
-        .sio_device               = NULL,
         .vid_device               = NULL,
         .snd_device               = NULL,
-        .net_device               = NULL
+        .net_device               = NULL,
+        .aliases                  = { "" }
+    },
+    /* Uses the AMIKey 'F' keyboard controller firmware. */
+    {
+        .name              = "[OPTi 493] Dell Precision V486/xx",
+        .internal_name     = "precisionv486",
+        .type              = MACHINE_TYPE_SOCKET1,
+        .chipset           = MACHINE_CHIPSET_OPTI_493,
+        .init              = machine_at_precisionv486_init,
+        .p1_handler        = machine_generic_p1_handler,
+        .gpio_handler      = NULL,
+        .available_flag    = MACHINE_AVAILABLE,
+        .gpio_acpi_handler = NULL,
+        .cpu               = {
+            .package     = CPU_PKG_SOCKET1,
+            .block       = CPU_BLOCK_NONE,
+            .min_bus     = 20000000,
+            .max_bus     = 33333333,
+            .min_voltage = 5000,
+            .max_voltage = 5000,
+            .min_multi   = 0,
+            .max_multi   = 0
+        },
+        .bus_flags = MACHINE_AT,
+        .flags     = MACHINE_FLAGS_NONE,
+        .ram       = {
+            .min  = 1024,
+            .max  = 65536,
+            .step = 1024
+        },
+        .nvrmask                  = 127,
+        .jumpered_ecp_dma         = 0,
+        .default_jumpered_ecp_dma = -1,
+        .kbc_device               = &kbc_at_device,
+        .kbc_params               = KBC_VEN_AMI | 0x00004600,
+        .nvr_device               = &nvr_at_device,
+        .nvr_params               = NVR_AT,
+        .sio_device               = NULL,
+        .sio_params               = 0x00000000,
+        .kbc_p1                   = 0x000004f0,
+        .gpio                     = 0xffffffff,
+        .gpio_acpi                = 0xffffffff,
+        .device                   = &precisionv486_device,
+        .kbd_device               = NULL,
+        .fdc_device               = NULL,
+        .vid_device               = NULL,
+        .snd_device               = NULL,
+        .net_device               = NULL,
+        .aliases                  = { "" }
+    },
+    /* Uses Phoenix keyboard controller firmware. */
+    {
+        .name              = "[OPTi 493] Leading Edge CPC-2000",
+        .internal_name     = "cpc2000le",
+        .type              = MACHINE_TYPE_SOCKET1,
+        .chipset           = MACHINE_CHIPSET_OPTI_493,
+        .init              = machine_at_cpc2000le_init,
+        .p1_handler        = machine_generic_p1_handler,
+        .gpio_handler      = NULL,
+        .available_flag    = MACHINE_AVAILABLE,
+        .gpio_acpi_handler = NULL,
+        .cpu               = {
+            .package     = CPU_PKG_SOCKET1,
+            .block       = CPU_BLOCK_NONE,
+            .min_bus     = 20000000,
+            .max_bus     = 33333333,
+            .min_voltage = 5000,
+            .max_voltage = 5000,
+            .min_multi   = 0,
+            .max_multi   = 0
+        },
+        .bus_flags = MACHINE_AT,
+        .flags     = MACHINE_FLAGS_NONE,
+        .ram       = {
+            .min  = 1024,
+            .max  = 65536,
+            .step = 1024
+        },
+        .nvrmask                  = 127,
+        .jumpered_ecp_dma         = 0,
+        .default_jumpered_ecp_dma = -1,
+        .kbc_device               = &kbc_at_device,
+        .kbc_params               = KBC_VEN_PHOENIX | 0x00012900,
+        .nvr_device               = &nvr_at_device,
+        .nvr_params               = NVR_AT,
+        .sio_device               = NULL,
+        .sio_params               = 0x00000000,
+        .kbc_p1                   = 0x000004f0,
+        .gpio                     = 0xffffffff,
+        .gpio_acpi                = 0xffffffff,
+        .device                   = NULL,
+        .kbd_device               = NULL,
+        .fdc_device               = NULL,
+        .vid_device               = NULL,
+        .snd_device               = NULL,
+        .net_device               = NULL,
+        .aliases                  = { "Daewoo CPC-2000", "Leading Edge CPC-2004", "Leading Edge CPC-2008", "" }
+    },
+    /* Uses the AMIKey 'F' keyboard controller firmware. */
+    {
+        .name              = "[OPTi 493] Silicon Valley Computer 486WB",
+        .internal_name     = "svc486wb",
+        .type              = MACHINE_TYPE_SOCKET1,
+        .chipset           = MACHINE_CHIPSET_OPTI_493,
+        .init              = machine_at_svc486wb_init,
+        .p1_handler        = machine_generic_p1_handler,
+        .gpio_handler      = NULL,
+        .available_flag    = MACHINE_AVAILABLE,
+        .gpio_acpi_handler = NULL,
+        .cpu               = {
+            .package     = CPU_PKG_SOCKET1,
+            .block       = CPU_BLOCK_NONE,
+            .min_bus     = 33333333,
+            .max_bus     = 50000000,
+            .min_voltage = 5000,
+            .max_voltage = 5000,
+            .min_multi   = 0,
+            .max_multi   = 2.0
+        },
+        .bus_flags = MACHINE_AT,
+        .flags     = MACHINE_PS2_KBC | MACHINE_IDE,
+        .ram       = {
+            .min  = 1024,
+            .max  = 32768,
+            .step = 1024
+        },
+        .nvrmask                  = 127,
+        .jumpered_ecp_dma         = 0,
+        .default_jumpered_ecp_dma = -1,
+        .kbc_device               = &kbc_at_device,
+        .kbc_params               = KBC_VEN_AMI | 0x00004600,
+        .nvr_device               = &nvr_at_device,
+        .nvr_params               = NVR_AT,
+        .sio_device               = NULL,
+        .sio_params               = 0x00000000,
+        .kbc_p1                   = 0x000004f0,
+        .gpio                     = 0xffffffff,
+        .gpio_acpi                = 0xffffffff,
+        .device                   = NULL,
+        .kbd_device               = NULL,
+        .fdc_device               = NULL,
+        .vid_device               = NULL,
+        .snd_device               = NULL,
+        .net_device               = NULL,
+        .aliases                  = { "" }
+    },
+    /* Uses Phoenix keyboard controller firmware. */
+    {
+        .name              = "[OPTi 495SX] Packard Bell PB400",
+        .internal_name     = "pb400",
+        .type              = MACHINE_TYPE_SOCKET1,
+        .chipset           = MACHINE_CHIPSET_OPTI_495SX,
+        .init              = machine_at_pb400_init,
+        .p1_handler        = machine_generic_p1_handler,
+        .gpio_handler      = NULL,
+        .available_flag    = MACHINE_AVAILABLE,
+        .gpio_acpi_handler = NULL,
+        .cpu               = {
+            .package     = CPU_PKG_SOCKET1,
+            .block       = CPU_BLOCK_NONE,
+            .min_bus     = 16000000,
+            .max_bus     = 33333333,
+            .min_voltage = 5000,
+            .max_voltage = 5000,
+            .min_multi   = 0,
+            .max_multi   = 0
+        },
+        .bus_flags = MACHINE_PS2,
+        .flags     = MACHINE_IDE | MACHINE_VIDEO,
+        .ram       = {
+            .min  = 4096,
+            .max  = 20480,
+            .step = 1024
+        },
+        .nvrmask                  = 127,
+        .jumpered_ecp_dma         = 0,
+        .default_jumpered_ecp_dma = -1,
+        .kbc_device               = &kbc_at_device,
+        .kbc_params               = KBC_VEN_PHOENIX | 0x00012900,
+        .nvr_device               = &nvr_at_device,
+        .nvr_params               = NVR_AT,
+        .sio_device               = NULL,
+        .sio_params               = 0x00000000,
+        .kbc_p1                   = 0x000004f0,
+        .gpio                     = 0xffffffff,
+        .gpio_acpi                = 0xffffffff,
+        .device                   = NULL,
+        .kbd_device               = NULL,
+        .fdc_device               = NULL,
+        .vid_device               = &oti077_pb400_device,
+        .snd_device               = NULL,
+        .net_device               = NULL,
+        .aliases                  = { "Packard Bell PB401T", "" }
     },
     /* Uses some variant of Phoenix MultiKey/42 as the Intel 8242 chip has a Phoenix
        copyright. */
     {
         .name              = "[OPTi 498] Mylex MVI486",
         .internal_name     = "mvi486",
-        .type              = MACHINE_TYPE_486,
+        .type              = MACHINE_TYPE_SOCKET1,
         .chipset           = MACHINE_CHIPSET_OPTI_498,
         .init              = machine_at_mvi486_init,
         .p1_handler        = machine_generic_p1_handler,
@@ -7353,15 +8957,15 @@ const machine_t machines[] = {
         .cpu               = {
             .package     = CPU_PKG_SOCKET1,
             .block       = CPU_BLOCK_NONE,
-            .min_bus     = 0,
-            .max_bus     = 0,
-            .min_voltage = 0,
-            .max_voltage = 0,
+            .min_bus     = 20000000,
+            .max_bus     = 33333333,
+            .min_voltage = 5000,
+            .max_voltage = 5000,
             .min_multi   = 0,
             .max_multi   = 0
         },
         .bus_flags = MACHINE_VLB,
-        .flags     = MACHINE_IDE | MACHINE_APM,
+        .flags     = MACHINE_IDE,
         .ram       = {
             .min  = 1024,
             .max  = 65536,
@@ -7372,22 +8976,26 @@ const machine_t machines[] = {
         .default_jumpered_ecp_dma = -1,
         .kbc_device               = &kbc_at_device,
         .kbc_params               = KBC_VEN_PHOENIX | 0x00012900, /* Guess. */
+        .nvr_device               = &nvr_at_device,
+        .nvr_params               = NVR_AT,
+        .sio_device               = NULL,
+        .sio_params               = 0x00000000,
         .kbc_p1                   = 0x000004f0,
         .gpio                     = 0xffffffff,
         .gpio_acpi                = 0xffffffff,
         .device                   = NULL,
         .kbd_device               = NULL,
         .fdc_device               = NULL,
-        .sio_device               = NULL,
         .vid_device               = NULL,
         .snd_device               = NULL,
-        .net_device               = NULL
+        .net_device               = NULL,
+        .aliases                  = { "" }
     },
     /* Has AMI KF KBC firmware. */
     {
         .name              = "[SiS 401] ASUS ISA-486",
         .internal_name     = "isa486",
-        .type              = MACHINE_TYPE_486,
+        .type              = MACHINE_TYPE_SOCKET1,
         .chipset           = MACHINE_CHIPSET_SIS_401,
         .init              = machine_at_isa486_init,
         .p1_handler        = machine_generic_p1_handler,
@@ -7397,15 +9005,15 @@ const machine_t machines[] = {
         .cpu               = {
             .package     = CPU_PKG_SOCKET1,
             .block       = CPU_BLOCK_NONE,
-            .min_bus     = 0,
-            .max_bus     = 0,
-            .min_voltage = 0,
-            .max_voltage = 0,
+            .min_bus     = 16000000,
+            .max_bus     = 50000000,
+            .min_voltage = 5000,
+            .max_voltage = 5000,
             .min_multi   = 0,
             .max_multi   = 0
         },
         .bus_flags = MACHINE_AT,
-        .flags     = MACHINE_APM,
+        .flags     = MACHINE_FLAGS_NONE,
         .ram       = {
             .min  = 1024,
             .max  = 65536,
@@ -7416,23 +9024,27 @@ const machine_t machines[] = {
         .default_jumpered_ecp_dma = -1,
         .kbc_device               = &kbc_at_device,
         .kbc_params               = KBC_VEN_AMI | 0x00004600,
+        .nvr_device               = &nvr_at_device,
+        .nvr_params               = NVR_AT,
+        .sio_device               = NULL,
+        .sio_params               = 0x00000000,
         .kbc_p1                   = 0x000004f0,
         .gpio                     = 0xffffffff,
         .gpio_acpi                = 0xffffffff,
         .device                   = NULL,
         .kbd_device               = NULL,
         .fdc_device               = NULL,
-        .sio_device               = NULL,
         .vid_device               = NULL,
         .snd_device               = NULL,
-        .net_device               = NULL
+        .net_device               = NULL,
+        .aliases                  = { "" }
     },
     /* Has AMIKey H KBC firmware, per the screenshot in "How computers & MS-DOS work".
        Also seen with an AMI 'F'. */
     {
         .name              = "[SiS 401] Chaintech 4xxSX/SC",
         .internal_name     = "sis401",
-        .type              = MACHINE_TYPE_486,
+        .type              = MACHINE_TYPE_SOCKET1,
         .chipset           = MACHINE_CHIPSET_SIS_401,
         .init              = machine_at_sis401_init,
         .p1_handler        = machine_generic_p1_handler,
@@ -7442,15 +9054,15 @@ const machine_t machines[] = {
         .cpu               = {
             .package     = CPU_PKG_SOCKET1,
             .block       = CPU_BLOCK_NONE,
-            .min_bus     = 0,
-            .max_bus     = 0,
-            .min_voltage = 0,
-            .max_voltage = 0,
+            .min_bus     = 16000000,
+            .max_bus     = 50000000,
+            .min_voltage = 5000,
+            .max_voltage = 5000,
             .min_multi   = 0,
             .max_multi   = 0
         },
         .bus_flags = MACHINE_AT,
-        .flags     = MACHINE_APM,
+        .flags     = MACHINE_FLAGS_NONE,
         .ram       = {
             .min  = 1024,
             .max  = 65536,
@@ -7461,22 +9073,26 @@ const machine_t machines[] = {
         .default_jumpered_ecp_dma = -1,
         .kbc_device               = &kbc_at_device,
         .kbc_params               = KBC_VEN_AMI | 0x00004800,
+        .nvr_device               = &nvr_at_device,
+        .nvr_params               = NVR_AT,
+        .sio_device               = NULL,
+        .sio_params               = 0x00000000,
         .kbc_p1                   = 0x000004f0,
         .gpio                     = 0xffffffff,
         .gpio_acpi                = 0xffffffff,
         .device                   = NULL,
         .kbd_device               = NULL,
         .fdc_device               = NULL,
-        .sio_device               = NULL,
         .vid_device               = NULL,
         .snd_device               = NULL,
-        .net_device               = NULL
+        .net_device               = NULL,
+        .aliases                  = { "" }
     },
     /* Seen with both AMIKey F and AMIKey-2 H KBC firmwares. */
     {
         .name              = "[SiS 460] ABIT AB-AV4",
         .internal_name     = "av4",
-        .type              = MACHINE_TYPE_486,
+        .type              = MACHINE_TYPE_SOCKET1,
         .chipset           = MACHINE_CHIPSET_SIS_460,
         .init              = machine_at_av4_init,
         .p1_handler        = machine_generic_p1_handler,
@@ -7486,15 +9102,63 @@ const machine_t machines[] = {
         .cpu               = {
             .package     = CPU_PKG_SOCKET1,
             .block       = CPU_BLOCK_NONE,
-            .min_bus     = 0,
-            .max_bus     = 0,
-            .min_voltage = 0,
-            .max_voltage = 0,
+            .min_bus     = 20000000,
+            .max_bus     = 50000000,
+            .min_voltage = 5000,
+            .max_voltage = 5000,
             .min_multi   = 0,
             .max_multi   = 0
         },
         .bus_flags = MACHINE_VLB,
-        .flags     = MACHINE_APM,
+        .flags     = MACHINE_FLAGS_NONE,
+        .ram       = {
+            .min  = 1024,
+            .max  = 32768,
+            .step = 1024
+        },
+        .nvrmask                  = 127,
+        .jumpered_ecp_dma         = 0,
+        .default_jumpered_ecp_dma = -1,
+        .kbc_device               = &kbc_at_device,
+        .kbc_params               = KBC_VEN_AMI | 0x00004600,
+        .nvr_device               = &nvr_at_device,
+        .nvr_params               = NVR_AT,
+        .sio_device               = NULL,
+        .sio_params               = 0x00000000,
+        .kbc_p1                   = 0x000004f0,
+        .gpio                     = 0xffffffff,
+        .gpio_acpi                = 0xffffffff,
+        .device                   = NULL,
+        .kbd_device               = NULL,
+        .fdc_device               = NULL,
+        .vid_device               = NULL,
+        .snd_device               = NULL,
+        .net_device               = NULL,
+        .aliases                  = { "" }
+    },
+    /* Uses an Intel KBC with Phoenix MultiKey KBC firmware. */
+    {
+        .name              = "[SiS 461] DEC DECpc LPV+",
+        .internal_name     = "decpclpv",
+        .type              = MACHINE_TYPE_SOCKET1,
+        .chipset           = MACHINE_CHIPSET_SIS_461,
+        .init              = machine_at_decpclpv_init,
+        .p1_handler        = machine_generic_p1_handler,
+        .gpio_handler      = NULL,
+        .available_flag    = MACHINE_AVAILABLE,
+        .gpio_acpi_handler = NULL,
+        .cpu               = {
+            .package     = CPU_PKG_SOCKET1,
+            .block       = CPU_BLOCK_NONE,
+            .min_bus     = 25000000,
+            .max_bus     = 50000000,
+            .min_voltage = 5000,
+            .max_voltage = 5000,
+            .min_multi   = 0,
+            .max_multi   = 0
+        },
+        .bus_flags = MACHINE_PS2,
+        .flags     = MACHINE_IDE | MACHINE_VIDEO | MACHINE_APM,
         .ram       = {
             .min  = 1024,
             .max  = 65536,
@@ -7504,23 +9168,27 @@ const machine_t machines[] = {
         .jumpered_ecp_dma         = 0,
         .default_jumpered_ecp_dma = -1,
         .kbc_device               = &kbc_at_device,
-        .kbc_params               = KBC_VEN_AMI | 0x00004600,
-        .kbc_p1                   = 0x000004f0,
+        .kbc_params               = KBC_VEN_PHOENIX | 0x00012900, /* Guess. */
+        .nvr_device               = &nvr_at_device,
+        .nvr_params               = NVR_AT,
+        .sio_device               = NULL,
+        .sio_params               = 0x00000000,
+        .kbc_p1                   = 0x00000cf0,
         .gpio                     = 0xffffffff,
         .gpio_acpi                = 0xffffffff,
         .device                   = NULL,
         .kbd_device               = NULL,
         .fdc_device               = NULL,
-        .sio_device               = NULL,
-        .vid_device               = NULL,
+        .vid_device               = &s3_86c805_onboard_vlb_device,
         .snd_device               = NULL,
-        .net_device               = NULL
+        .net_device               = NULL,
+        .aliases                  = { "" }
     },
     /* Has Phoenix KBC firmware. */
     {
         .name              = "[SiS 471] AST Advantage! 40xxd",
         .internal_name     = "advantage40xxd",
-        .type              = MACHINE_TYPE_486,
+        .type              = MACHINE_TYPE_SOCKET1,
         .chipset           = MACHINE_CHIPSET_SIS_471,
         .init              = machine_at_advantage40xxd_init,
         .p1_handler        = machine_generic_p1_handler,
@@ -7530,10 +9198,10 @@ const machine_t machines[] = {
         .cpu               = {
             .package     = CPU_PKG_SOCKET1,
             .block       = CPU_BLOCK_NONE,
-            .min_bus     = 0,
-            .max_bus     = 0,
-            .min_voltage = 0,
-            .max_voltage = 0,
+            .min_bus     = 25000000,
+            .max_bus     = 33333333,
+            .min_voltage = 5000,
+            .max_voltage = 5000,
             .min_multi   = 0,
             .max_multi   = 2
         },
@@ -7549,22 +9217,26 @@ const machine_t machines[] = {
         .default_jumpered_ecp_dma = -1,
         .kbc_device               = &kbc_at_device,
         .kbc_params               = KBC_VEN_PHOENIX | 0x00012900, /* Guess. */
+        .nvr_device               = &nvr_at_device,
+        .nvr_params               = NVR_AT,
+        .sio_device               = NULL,
+        .sio_params               = 0x00000000,
         .kbc_p1                   = 0x00000cf0,
         .gpio                     = 0xffffffff,
         .gpio_acpi                = 0xffffffff,
         .device                   = NULL,
         .kbd_device               = NULL,
         .fdc_device               = NULL,
-        .sio_device               = NULL,
         .vid_device               = &gd5424_onboard_device,
         .snd_device               = NULL,
-        .net_device               = NULL
+        .net_device               = NULL,
+        .aliases                  = { "" }
     },
     /* Has AMIKey F KBC firmware. */
     {
-        .name              = "[Symphony SL42C460] DTK PKM-0031Y",
+        .name              = "[Symphony SL82C460] DTK PKM-0031Y",
         .internal_name     = "dtk461",
-        .type              = MACHINE_TYPE_486,
+        .type              = MACHINE_TYPE_SOCKET1,
         .chipset           = MACHINE_CHIPSET_SYMPHONY_SL82C460,
         .init              = machine_at_dtk461_init,
         .p1_handler        = machine_generic_p1_handler,
@@ -7574,15 +9246,15 @@ const machine_t machines[] = {
         .cpu               = {
             .package     = CPU_PKG_SOCKET1,
             .block       = CPU_BLOCK_NONE,
-            .min_bus     = 0,
-            .max_bus     = 0,
-            .min_voltage = 0,
-            .max_voltage = 0,
+            .min_bus     = 16000000,
+            .max_bus     = 50000000,
+            .min_voltage = 5000,
+            .max_voltage = 5000,
             .min_multi   = 0,
             .max_multi   = 0
         },
         .bus_flags = MACHINE_AT,
-        .flags     = MACHINE_APM,
+        .flags     = MACHINE_FLAGS_NONE,
         .ram       = {
             .min  = 1024,
             .max  = 32768,
@@ -7593,26 +9265,30 @@ const machine_t machines[] = {
         .default_jumpered_ecp_dma = -1,
         .kbc_device               = &kbc_at_device,
         .kbc_params               = KBC_VEN_AMI | 0x00004600,
+        .nvr_device               = &nvr_at_device,
+        .nvr_params               = NVR_AT,
+        .sio_device               = NULL,
+        .sio_params               = 0x00000000,
         .kbc_p1                   = 0x000004f0,
         .gpio                     = 0xffffffff,
         .gpio_acpi                = 0xffffffff,
         .device                   = NULL,
         .kbd_device               = NULL,
         .fdc_device               = NULL,
-        .sio_device               = NULL,
         .vid_device               = NULL,
         .snd_device               = NULL,
-        .net_device               = NULL
+        .net_device               = NULL,
+        .aliases                  = { "" }
     },
     /* The chip is a Lance LT38C41, a clone of the Intel 8041, and the BIOS sends
        commands BC, BD, and C9 which exist on both AMIKey and Phoenix MultiKey/42,
        but it does not write a byte after C9, which is consistent with AMIKey, so
        this must have some form of AMIKey.
-       This is also seen with a genuine AMI 'F' (one of the photos on TheRetroWeb). */
+       This is also seen with a genuine AMI 'F' (one of the photos on The Retro Web). */
     {
         .name              = "[VIA VT82C495] FIC 486-VC-HD",
         .internal_name     = "486vchd",
-        .type              = MACHINE_TYPE_486,
+        .type              = MACHINE_TYPE_SOCKET1,
         .chipset           = MACHINE_CHIPSET_VIA_VT82C495,
         .init              = machine_at_486vchd_init,
         .p1_handler        = machine_generic_p1_handler,
@@ -7622,18 +9298,18 @@ const machine_t machines[] = {
         .cpu               = {
             .package     = CPU_PKG_SOCKET1,
             .block       = CPU_BLOCK_NONE,
-            .min_bus     = 0,
-            .max_bus     = 0,
-            .min_voltage = 0,
-            .max_voltage = 0,
+            .min_bus     = 25000000,
+            .max_bus     = 50000000,
+            .min_voltage = 5000,
+            .max_voltage = 5000,
             .min_multi   = 0,
             .max_multi   = 0
         },
         .bus_flags = MACHINE_AT,
-        .flags     = MACHINE_APM,
+        .flags     = MACHINE_FLAGS_NONE,
         .ram       = {
             .min  = 1024,
-            .max  = 64512,
+            .max  = 65536, /* AwardBIOS v4.20 does not recognize more than this amount */
             .step = 1024
         },
         .nvrmask                  = 127,
@@ -7641,22 +9317,26 @@ const machine_t machines[] = {
         .default_jumpered_ecp_dma = -1,
         .kbc_device               = &kbc_at_device,
         .kbc_params               = KBC_VEN_AMI | 0x00004600,
+        .nvr_device               = &nvr_at_device,
+        .nvr_params               = NVR_AT,
+        .sio_device               = NULL,
+        .sio_params               = 0x00000000,
         .kbc_p1                   = 0x000004f0,
         .gpio                     = 0xffffffff,
         .gpio_acpi                = 0xffffffff,
         .device                   = NULL,
         .kbd_device               = NULL,
         .fdc_device               = NULL,
-        .sio_device               = NULL,
         .vid_device               = NULL,
         .snd_device               = NULL,
-        .net_device               = NULL
+        .net_device               = NULL,
+        .aliases                  = { "" }
     },
     /* Has a VLSI VL82C113A SCAMP Combination I/O which holds the KBC. */
     {
         .name              = "[VLSI 82C480] HP Vectra 486VL",
         .internal_name     = "vect486vl",
-        .type              = MACHINE_TYPE_486,
+        .type              = MACHINE_TYPE_SOCKET1,
         .chipset           = MACHINE_CHIPSET_VLSI_VL82C480,
         .init              = machine_at_vect486vl_init,
         .p1_handler        = machine_generic_p1_handler,
@@ -7666,15 +9346,15 @@ const machine_t machines[] = {
         .cpu               = {
             .package     = CPU_PKG_SOCKET1,
             .block       = CPU_BLOCK_NONE,
-            .min_bus     = 0,
-            .max_bus     = 0,
-            .min_voltage = 0,
-            .max_voltage = 0,
+            .min_bus     = 25000000,
+            .max_bus     = 33333333,
+            .min_voltage = 5000,
+            .max_voltage = 5000,
             .min_multi   = 0,
             .max_multi   = 0
         },
         .bus_flags = MACHINE_PS2,
-        .flags     = MACHINE_IDE | MACHINE_VIDEO | MACHINE_APM,
+        .flags     = MACHINE_IDE | MACHINE_VIDEO,
         .ram       = {
             .min  = 2048,
             .max  = 32768,
@@ -7685,22 +9365,27 @@ const machine_t machines[] = {
         .default_jumpered_ecp_dma = -1,
         .kbc_device               = NULL, /* The keyboard controller is part of the VL82c113. */
         .kbc_params               = 0x00000000,
+        /* The NVR is on the VLSI VL82C113. */
+        .nvr_device               = NULL,
+        .nvr_params               = 0x00000000,
+        .sio_device               = NULL, /*Has SIO (sorta): VLSI VL82C113A SCAMP Combination I/O*/
+        .sio_params               = 0x00000000,
         .kbc_p1                   = 0x00000cf0,
         .gpio                     = 0xffffffff,
         .gpio_acpi                = 0xffffffff,
         .device                   = NULL,
         .kbd_device               = NULL,
         .fdc_device               = NULL,
-        .sio_device               = NULL, /*Has SIO (sorta): VLSI VL82C113A SCAMP Combination I/O*/
-        .vid_device               = &gd5428_onboard_device,
+        .vid_device               = &gd5426_onboard_isa_device,
         .snd_device               = NULL,
-        .net_device               = NULL
+        .net_device               = NULL,
+        .aliases                  = { "" }
     },
     /* Has a standard IBM PS/2 KBC firmware or a clone thereof. */
     {
-        .name              = "[VLSI 82C481] Siemens Nixdorf D824",
+        .name              = "[VLSI 82C481] Siemens-Nixdorf D824",
         .internal_name     = "d824",
-        .type              = MACHINE_TYPE_486,
+        .type              = MACHINE_TYPE_SOCKET1,
         .chipset           = MACHINE_CHIPSET_VLSI_VL82C481,
         .init              = machine_at_d824_init,
         .p1_handler        = machine_generic_p1_handler,
@@ -7710,15 +9395,15 @@ const machine_t machines[] = {
         .cpu               = {
             .package     = CPU_PKG_SOCKET1,
             .block       = CPU_BLOCK_NONE,
-            .min_bus     = 0,
-            .max_bus     = 0,
-            .min_voltage = 0,
-            .max_voltage = 0,
+            .min_bus     = 25000000,
+            .max_bus     = 33333333,
+            .min_voltage = 5000,
+            .max_voltage = 5000,
             .min_multi   = 0,
             .max_multi   = 0
         },
         .bus_flags = MACHINE_PS2,
-        .flags     = MACHINE_IDE | MACHINE_VIDEO | MACHINE_APM,
+        .flags     = MACHINE_IDE | MACHINE_VIDEO,
         .ram       = {
             .min  = 2048,
             .max  = 32768,
@@ -7729,22 +9414,27 @@ const machine_t machines[] = {
         .default_jumpered_ecp_dma = -1,
         .kbc_device               = &kbc_at_device,
         .kbc_params               = 0x00000000,
+        /* The NVR is on the VLSI VL82C113. */
+        .nvr_device               = NULL,
+        .nvr_params               = 0x00000000,
+        .sio_device               = NULL,
+        .sio_params               = 0x00000000,
         .kbc_p1                   = 0x00000cf0,
         .gpio                     = 0xffffffff,
         .gpio_acpi                = 0xffffffff,
         .device                   = NULL,
         .kbd_device               = NULL,
         .fdc_device               = NULL,
-        .sio_device               = NULL,
         .vid_device               = &gd5428_onboard_device,
         .snd_device               = NULL,
-        .net_device               = NULL
+        .net_device               = NULL,
+        .aliases                  = { "" }
     },
     /* Has a VLSI VL82C113A SCAMP Combination I/O which holds the KBC. */
     {
         .name              = "[VLSI 82C486] Olivetti PCS 44/C",
         .internal_name     = "pcs44c",
-        .type              = MACHINE_TYPE_486,
+        .type              = MACHINE_TYPE_SOCKET1,
         .chipset           = MACHINE_CHIPSET_VLSI_VL82C486,
         .init              = machine_at_pcs44c_init,
         .p1_handler        = machine_generic_p1_handler,
@@ -7754,15 +9444,15 @@ const machine_t machines[] = {
         .cpu               = {
             .package     = CPU_PKG_SOCKET1,
             .block       = CPU_BLOCK_NONE,
-            .min_bus     = 0,
-            .max_bus     = 0,
-            .min_voltage = 0,
-            .max_voltage = 0,
+            .min_bus     = 25000000,
+            .max_bus     = 25000000,
+            .min_voltage = 5000,
+            .max_voltage = 5000,
             .min_multi   = 0,
             .max_multi   = 0
         },
         .bus_flags = MACHINE_PS2,
-        .flags     = MACHINE_IDE | MACHINE_VIDEO | MACHINE_APM,
+        .flags     = MACHINE_IDE | MACHINE_VIDEO,
         .ram       = {
             .min  = 1024,
             .max  = 20480,
@@ -7773,22 +9463,76 @@ const machine_t machines[] = {
         .default_jumpered_ecp_dma = -1,
         .kbc_device               = NULL,
         .kbc_params               = 0x00000000,
+        /* The NVR is on the VLSI VL82C113. */
+        .nvr_device               = NULL,
+        .nvr_params               = 0x00000000,
+        .sio_device               = NULL,
+        .sio_params               = 0x00000000,
         .kbc_p1                   = 0x00000cf0,
         .gpio                     = 0xffffffff,
         .gpio_acpi                = 0xffffffff,
         .device                   = NULL,
         .kbd_device               = NULL,
         .fdc_device               = NULL,
-        .sio_device               = NULL,
         .vid_device               = &oti077_pcs44c_device,
         .snd_device               = NULL,
-        .net_device               = NULL
+        .net_device               = NULL,
+        .aliases                  = { "" }
+    },
+    /* Has a VLSI VL82C113A SCAMP Combination I/O which holds the KBC. */
+    {
+        .name              = "[VLSI 82C486] Tandy Sensation! (25-1650)",
+        .internal_name     = "sensation1",
+        .type              = MACHINE_TYPE_SOCKET1,
+        .chipset           = MACHINE_CHIPSET_VLSI_VL82C486,
+        .init              = machine_at_sensation1_init,
+        .p1_handler        = machine_generic_p1_handler,
+        .gpio_handler      = NULL,
+        .available_flag    = MACHINE_AVAILABLE,
+        .gpio_acpi_handler = NULL,
+        .cpu               = {
+            .package     = CPU_PKG_SOCKET1,
+            .block       = CPU_BLOCK_NONE,
+            .min_bus     = 25000000,
+            .max_bus     = 25000000,
+            .min_voltage = 5000,
+            .max_voltage = 5000,
+            .min_multi   = 0,
+            .max_multi   = 0
+        },
+        .bus_flags = MACHINE_PS2,
+        .flags     = MACHINE_IDE | MACHINE_SOUND | MACHINE_GAMEPORT,
+        .ram       = {
+            .min  = 2048,
+            .max  = 32768,
+            .step = 2048
+        },
+        .nvrmask                  = 127,
+        .jumpered_ecp_dma         = 0,
+        .default_jumpered_ecp_dma = -1,
+        .kbc_device               = NULL,
+        .kbc_params               = 0x00000000,
+        /* The NVR is on the VLSI VL82C113. */
+        .nvr_device               = NULL,
+        .nvr_params               = 0x00000000,
+        .sio_device               = NULL,
+        .sio_params               = 0x00000000,
+        .kbc_p1                   = 0x000004f0,
+        .gpio                     = 0xffffffff,
+        .gpio_acpi                = 0xffffffff,
+        .device                   = NULL,
+        .kbd_device               = NULL,
+        .fdc_device               = NULL,
+        .vid_device               = NULL,
+        .snd_device               = &sensationaud_device,
+        .net_device               = NULL,
+        .aliases                  = { "" }
     },
     /* Has a VLSI VL82C113A SCAMP Combination I/O which holds the KBC. */
     {
         .name              = "[VLSI 82C486] Tulip 486 DC/DT",
         .internal_name     = "tuliptc38",
-        .type              = MACHINE_TYPE_486,
+        .type              = MACHINE_TYPE_SOCKET1,
         .chipset           = MACHINE_CHIPSET_VLSI_VL82C486,
         .init              = machine_at_tuliptc38_init,
         .p1_handler        = machine_generic_p1_handler,
@@ -7798,10 +9542,10 @@ const machine_t machines[] = {
         .cpu               = {
             .package     = CPU_PKG_SOCKET1,
             .block       = CPU_BLOCK_NONE,
-            .min_bus     = 0,
-            .max_bus     = 0,
-            .min_voltage = 0,
-            .max_voltage = 0,
+            .min_bus     = 25000000,
+            .max_bus     = 33333333,
+            .min_voltage = 5000,
+            .max_voltage = 5000,
             .min_multi   = 0,
             .max_multi   = 0
         },
@@ -7817,22 +9561,27 @@ const machine_t machines[] = {
         .default_jumpered_ecp_dma = -1,
         .kbc_device               = NULL,
         .kbc_params               = 0x00000000,
+        /* The NVR is on the VLSI VL82C113. */
+        .nvr_device               = NULL,
+        .nvr_params               = 0x00000000,
+        .sio_device               = NULL,
+        .sio_params               = 0x00000000,
         .kbc_p1                   = 0x000004f0,
         .gpio                     = 0xffffffff,
         .gpio_acpi                = 0xffffffff,
         .device                   = NULL,
         .kbd_device               = NULL,
         .fdc_device               = NULL,
-        .sio_device               = NULL, /*Has SIO (sorta): VLSI VL82C113A SCAMP Combination I/O*/
         .vid_device               = &gd5426_onboard_device,
         .snd_device               = NULL,
-        .net_device               = NULL
+        .net_device               = NULL,
+        .aliases                  = { "Tulip TC38", "" }
     },
     /* Has Award KBC firmware. */
     {
         .name              = "[ZyMOS Poach] ASUS ISA-486C",
         .internal_name     = "isa486c",
-        .type              = MACHINE_TYPE_486,
+        .type              = MACHINE_TYPE_SOCKET1,
         .chipset           = MACHINE_CHIPSET_ZYMOS_POACH,
         .init              = machine_at_isa486c_init,
         .p1_handler        = machine_generic_p1_handler,
@@ -7842,15 +9591,15 @@ const machine_t machines[] = {
         .cpu               = {
             .package     = CPU_PKG_SOCKET1,
             .block       = CPU_BLOCK_NONE,
-            .min_bus     = 0,
-            .max_bus     = 0,
-            .min_voltage = 0,
-            .max_voltage = 0,
+            .min_bus     = 25000000,
+            .max_bus     = 33333333,
+            .min_voltage = 5000,
+            .max_voltage = 5000,
             .min_multi   = 0,
             .max_multi   = 0
         },
         .bus_flags = MACHINE_AT,
-        .flags     = MACHINE_APM,
+        .flags     = MACHINE_FLAGS_NONE,
         .ram       = {
             .min  = 1024,
             .max  = 16384,
@@ -7861,22 +9610,26 @@ const machine_t machines[] = {
         .default_jumpered_ecp_dma = -1,
         .kbc_device               = &kbc_at_device,
         .kbc_params               = KBC_VEN_AWARD | 0x00424600,
+        .nvr_device               = &nvr_at_device,
+        .nvr_params               = NVR_AT,
+        .sio_device               = NULL,
+        .sio_params               = 0x00000000,
         .kbc_p1                   = 0x000004f0,
         .gpio                     = 0xffffffff,
         .gpio_acpi                = 0xffffffff,
         .device                   = NULL,
         .kbd_device               = NULL,
         .fdc_device               = NULL,
-        .sio_device               = NULL,
         .vid_device               = NULL,
         .snd_device               = NULL,
-        .net_device               = NULL
+        .net_device               = NULL,
+        .aliases                  = { "" }
     },
     /* Has AMI KF KBC firmware. */
     {
         .name              = "[ZyMOS Poach] Genoa Unknown 486",
         .internal_name     = "genoa486",
-        .type              = MACHINE_TYPE_486,
+        .type              = MACHINE_TYPE_SOCKET1,
         .chipset           = MACHINE_CHIPSET_ZYMOS_POACH,
         .init              = machine_at_genoa486_init,
         .p1_handler        = machine_generic_p1_handler,
@@ -7886,15 +9639,15 @@ const machine_t machines[] = {
         .cpu               = {
             .package     = CPU_PKG_SOCKET1,
             .block       = CPU_BLOCK_NONE,
-            .min_bus     = 0,
-            .max_bus     = 0,
-            .min_voltage = 0,
-            .max_voltage = 0,
+            .min_bus     = 25000000, /* assumed */
+            .max_bus     = 33333333, /* assumed */
+            .min_voltage = 5000,
+            .max_voltage = 5000,
             .min_multi   = 0,
             .max_multi   = 0
         },
         .bus_flags = MACHINE_AT,
-        .flags     = MACHINE_APM,
+        .flags     = MACHINE_FLAGS_NONE,
         .ram       = {
             .min  = 1024,
             .max  = 16384,
@@ -7905,22 +9658,26 @@ const machine_t machines[] = {
         .default_jumpered_ecp_dma = -1,
         .kbc_device               = &kbc_at_device,
         .kbc_params               = KBC_VEN_AMI | 0x00004600,
+        .nvr_device               = &nvr_at_device,
+        .nvr_params               = NVR_AT,
+        .sio_device               = NULL,
+        .sio_params               = 0x00000000,
         .kbc_p1                   = 0x000004f0,
         .gpio                     = 0xffffffff,
         .gpio_acpi                = 0xffffffff,
         .device                   = NULL,
         .kbd_device               = NULL,
         .fdc_device               = NULL,
-        .sio_device               = NULL,
         .vid_device               = NULL,
         .snd_device               = NULL,
-        .net_device               = NULL
+        .net_device               = NULL,
+        .aliases                  = { "" }
     },
     /* Has IBM PS/2 Type 1 KBC firmware. */
     {
         .name              = "[MCA] IBM PS/2 model 70 (type 4)",
         .internal_name     = "ibmps2_m70_type4",
-        .type              = MACHINE_TYPE_486,
+        .type              = MACHINE_TYPE_SOCKET1,
         .chipset           = MACHINE_CHIPSET_PROPRIETARY,
         .init              = machine_ps2_model_70_type4_init,
         .p1_handler        = machine_generic_p1_handler,
@@ -7930,10 +9687,10 @@ const machine_t machines[] = {
         .cpu               = {
             .package     = CPU_PKG_SOCKET1,
             .block       = CPU_BLOCK(CPU_i486SX, CPU_i486SX_SLENH, CPU_Am486SX, CPU_Cx486S),
-            .min_bus     = 0,
-            .max_bus     = 0,
-            .min_voltage = 0,
-            .max_voltage = 0,
+            .min_bus     = 25000000,
+            .max_bus     = 25000000,
+            .min_voltage = 5000,
+            .max_voltage = 5000,
             .min_multi   = 0,
             .max_multi   = 0
         },
@@ -7949,25 +9706,29 @@ const machine_t machines[] = {
         .default_jumpered_ecp_dma = -1,
         .kbc_device               = &kbc_at_device,
         .kbc_params               = KBC_VEN_IBM,
+        .nvr_device               = &nvr_at_device,
+        .nvr_params               = NVR_PS_NO_NMI,
+        .sio_device               = NULL,
+        .sio_params               = 0x00000000,
         .kbc_p1                   = 0x00000cf0,
         .gpio                     = 0xffffffff,
         .gpio_acpi                = 0xffffffff,
         .device                   = NULL,
         .kbd_device               = NULL,
         .fdc_device               = NULL,
-        .sio_device               = NULL,
         .vid_device               = NULL,
         .snd_device               = NULL,
-        .net_device               = NULL
+        .net_device               = NULL,
+        .aliases                  = { "" }
     },
-    /* 486 machines - Socket 2 */
+    /* Socket 2 machines */
     /* 486 machines with just the ISA slot */
     /* Uses some variant of Phoenix MultiKey/42 as the BIOS sends keyboard controller
        command C7 (OR input byte with received data byte). */
     {
-        .name              = "[ACC 2168] Packard Bell PB410/PB410A/PB420/PB420T",
+        .name              = "[ACC 2168] Packard Bell PB410A",
         .internal_name     = "pb410a",
-        .type              = MACHINE_TYPE_486_S2,
+        .type              = MACHINE_TYPE_SOCKET2,
         .chipset           = MACHINE_CHIPSET_ACC_2168,
         .init              = machine_at_pb410a_init,
         .p1_handler        = machine_generic_p1_handler,
@@ -7977,15 +9738,15 @@ const machine_t machines[] = {
         .cpu               = {
             .package     = CPU_PKG_SOCKET3,
             .block       = CPU_BLOCK_NONE,
-            .min_bus     = 0,
-            .max_bus     = 0,
-            .min_voltage = 0,
-            .max_voltage = 0,
+            .min_bus     = 20000000,
+            .max_bus     = 33333333,
+            .min_voltage = 5000,
+            .max_voltage = 5000,
             .min_multi   = 0,
             .max_multi   = 0
         },
         .bus_flags = MACHINE_PS2,
-        .flags     = MACHINE_IDE | MACHINE_VIDEO | MACHINE_APM | MACHINE_GAMEPORT,
+        .flags     = MACHINE_IDE | MACHINE_VIDEO | MACHINE_GAMEPORT,
         .ram       = {
             .min  = 4096,
             .max  = 36864,
@@ -7996,22 +9757,75 @@ const machine_t machines[] = {
         .default_jumpered_ecp_dma = -1,
         .kbc_device               = &kbc_at_device,
         .kbc_params               = KBC_VEN_PHOENIX | 0x00012900 /* Guess. */,
+        .nvr_device               = &nvr_at_device,
+        .nvr_params               = NVR_AT,
+        .sio_device               = NULL,
+        .sio_params               = 0x00000000,
         .kbc_p1                   = 0x00000cf0,
+        .gpio                     = 0xffffffff,
+        .gpio_acpi                = 0xffffffff,
+        .device                   = &pb410a_device,
+        .kbd_device               = NULL,
+        .fdc_device               = NULL,
+        .vid_device               = &ht216_32_pb410a_device,
+        .snd_device               = NULL,
+        .net_device               = NULL,
+        .aliases                  = { "Packard Bell PB410", "Packard Bell PB420", "Packard Bell PB420T", "" }
+    },
+    /* Has JetKey V5.0 KBC Firmware which clones an AMI 'H'.
+       The board was also seen 2003 with a -F string. */
+    {
+        .name              = "[ALi M1429] Olystar LIL1429",
+        .internal_name     = "ali1429",
+        .type              = MACHINE_TYPE_SOCKET2,
+        .chipset           = MACHINE_CHIPSET_ALI_M1429,
+        .init              = machine_at_ali1429_init,
+        .p1_handler        = machine_generic_p1_handler,
+        .gpio_handler      = NULL,
+        .available_flag    = MACHINE_AVAILABLE,
+        .gpio_acpi_handler = NULL,
+        .cpu               = {
+            .package     = CPU_PKG_SOCKET3,
+            .block       = CPU_BLOCK_NONE,
+            .min_bus     = 25000000,
+            .max_bus     = 50000000,
+            .min_voltage = 5000,
+            .max_voltage = 5000,
+            .min_multi   = 0,
+            .max_multi   = 0
+        },
+        .bus_flags = MACHINE_VLB,
+        .flags     = MACHINE_FLAGS_NONE,
+        .ram       = {
+            .min  = 1024,
+            .max  = 32768,
+            .step = 1024
+        },
+        .nvrmask                  = 127,
+        .jumpered_ecp_dma         = 0,
+        .default_jumpered_ecp_dma = -1,
+        .kbc_device               = &kbc_at_device,
+        .kbc_params               = KBC_VEN_AMI | 0x00004800,
+        .nvr_device               = &nvr_at_device,
+        .nvr_params               = NVR_AT,
+        .sio_device               = NULL,
+        .sio_params               = 0x00000000,
+        .kbc_p1                   = 0x000004f0,
         .gpio                     = 0xffffffff,
         .gpio_acpi                = 0xffffffff,
         .device                   = NULL,
         .kbd_device               = NULL,
         .fdc_device               = NULL,
-        .sio_device               = NULL,
-        .vid_device               = &ht216_32_pb410a_device,
+        .vid_device               = NULL,
         .snd_device               = NULL,
-        .net_device               = NULL
+        .net_device               = NULL,
+        .aliases                  = { "" }
     },
     /* Uses an ACER/NEC 90M002A (UPD82C42C, 8042 clone) with unknown firmware (V4.01H). */
     {
         .name              = "[ALi M1429G] Acer A1G",
         .internal_name     = "acera1g",
-        .type              = MACHINE_TYPE_486_S2,
+        .type              = MACHINE_TYPE_SOCKET2,
         .chipset           = MACHINE_CHIPSET_ALI_M1429G,
         .init              = machine_at_acera1g_init,
         .p1_handler        = machine_generic_p1_handler,
@@ -8021,10 +9835,10 @@ const machine_t machines[] = {
         .cpu               = {
             .package     = CPU_PKG_SOCKET3,
             .block       = CPU_BLOCK_NONE,
-            .min_bus     = 0,
-            .max_bus     = 0,
-            .min_voltage = 0,
-            .max_voltage = 0,
+            .min_bus     = 25000000,
+            .max_bus     = 33333333,
+            .min_voltage = 3300,
+            .max_voltage = 5000,
             .min_multi   = 0,
             .max_multi   = 0
         },
@@ -8040,22 +9854,26 @@ const machine_t machines[] = {
         .default_jumpered_ecp_dma = -1,
         .kbc_device               = &kbc_at_device,
         .kbc_params               = KBC_VEN_ACER,
+        .nvr_device               = &nvr_at_device,
+        .nvr_params               = NVR_AT,
+        .sio_device               = NULL,
+        .sio_params               = 0x00000000,
         .kbc_p1                   = 0x004008f0,
         .gpio                     = 0xffffffff,
         .gpio_acpi                = 0xffffffff,
         .device                   = NULL,
         .kbd_device               = NULL,
         .fdc_device               = NULL,
-        .sio_device               = NULL,
         .vid_device               = &gd5428_onboard_device,
         .snd_device               = NULL,
-        .net_device               = NULL
+        .net_device               = NULL,
+        .aliases                  = { "" }
     },
     /* This has an AMIKey-2, which is an updated version of type 'H'. */
     {
         .name              = "[ALi M1429G] Kaimei SA-486 VL-BUS M.B.",
         .internal_name     = "win486",
-        .type              = MACHINE_TYPE_486_S2,
+        .type              = MACHINE_TYPE_SOCKET2,
         .chipset           = MACHINE_CHIPSET_ALI_M1429G,
         .init              = machine_at_winbios1429_init,
         .p1_handler        = machine_generic_p1_handler,
@@ -8065,18 +9883,18 @@ const machine_t machines[] = {
         .cpu               = {
             .package     = CPU_PKG_SOCKET3,
             .block       = CPU_BLOCK_NONE,
-            .min_bus     = 0,
-            .max_bus     = 0,
-            .min_voltage = 0,
-            .max_voltage = 0,
+            .min_bus     = 20000000,
+            .max_bus     = 50000000,
+            .min_voltage = 3300,
+            .max_voltage = 5000,
             .min_multi   = 0,
             .max_multi   = 0
         },
         .bus_flags = MACHINE_VLB,
-        .flags     = MACHINE_APM,
+        .flags     = MACHINE_PS2_KBC | MACHINE_APM,
         .ram       = {
             .min  = 1024,
-            .max  = 32768,
+            .max  = 131072,
             .step = 1024
         },
         .nvrmask                  = 127,
@@ -8084,67 +9902,26 @@ const machine_t machines[] = {
         .default_jumpered_ecp_dma = -1,
         .kbc_device               = &kbc_at_device,
         .kbc_params               = KBC_VEN_AMI | 0x00004800,
-        .kbc_p1                   = 0x000004f0,
+        .nvr_device               = &nvr_at_device,
+        .nvr_params               = NVR_AT,
+        .sio_device               = NULL,
+        .sio_params               = 0x00000000,
+        .kbc_p1                   = 0x00000cf0,
         .gpio                     = 0xffffffff,
         .gpio_acpi                = 0xffffffff,
         .device                   = NULL,
         .kbd_device               = NULL,
         .fdc_device               = NULL,
-        .sio_device               = NULL,
         .vid_device               = NULL,
         .snd_device               = NULL,
-        .net_device               = NULL
-    },
-    /* Has JetKey V5.0 KBC Firmware which clones an AMI 'H'.
-       The board was also seen 2003 with a -F string. */
-    {
-        .name              = "[ALi M1429] Olystar LIL1429",
-        .internal_name     = "ali1429",
-        .type              = MACHINE_TYPE_486_S2,
-        .chipset           = MACHINE_CHIPSET_ALI_M1429,
-        .init              = machine_at_ali1429_init,
-        .p1_handler        = machine_generic_p1_handler,
-        .gpio_handler      = NULL,
-        .available_flag    = MACHINE_AVAILABLE,
-        .gpio_acpi_handler = NULL,
-        .cpu               = {
-            .package     = CPU_PKG_SOCKET3,
-            .block       = CPU_BLOCK_NONE,
-            .min_bus     = 0,
-            .max_bus     = 0,
-            .min_voltage = 0,
-            .max_voltage = 0,
-            .min_multi   = 0,
-            .max_multi   = 0
-        },
-        .bus_flags = MACHINE_VLB,
-        .flags     = MACHINE_APM,
-        .ram       = {
-            .min  = 1024,
-            .max  = 32768,
-            .step = 1024
-        },
-        .nvrmask                  = 127,
-        .jumpered_ecp_dma         = 0,
-        .default_jumpered_ecp_dma = -1,
-        .kbc_device               = &kbc_at_device,
-        .kbc_params               = KBC_VEN_AMI | 0x00004800,
-        .kbc_p1                   = 0x000004f0,
-        .gpio                     = 0xffffffff,
-        .gpio_acpi                = 0xffffffff,
-        .device                   = NULL,
-        .kbd_device               = NULL,
-        .fdc_device               = NULL,
-        .sio_device               = NULL,
-        .vid_device               = NULL,
-        .snd_device               = NULL,
-        .net_device               = NULL
+        .net_device               = NULL,
+        .aliases                  = { "" }
     },
     /* Has AMI 'H' KBC.  */
     {
         .name              = "[i420TX] J-Bond PCI400C-A",
         .internal_name     = "pci400ca",
-        .type              = MACHINE_TYPE_486_S2,
+        .type              = MACHINE_TYPE_SOCKET2,
         .chipset           = MACHINE_CHIPSET_INTEL_420TX,
         .init              = machine_at_pci400ca_init,
         .p1_handler        = machine_generic_p1_handler,
@@ -8154,10 +9931,10 @@ const machine_t machines[] = {
         .cpu               = {
             .package     = CPU_PKG_SOCKET3,
             .block       = CPU_BLOCK_NONE,
-            .min_bus     = 0,
-            .max_bus     = 0,
-            .min_voltage = 0,
-            .max_voltage = 0,
+            .min_bus     = 25000000,
+            .max_bus     = 50000000,
+            .min_voltage = 5000,
+            .max_voltage = 5000,
             .min_multi   = 0,
             .max_multi   = 0
         },
@@ -8173,22 +9950,26 @@ const machine_t machines[] = {
         .default_jumpered_ecp_dma = -1,
         .kbc_device               = &kbc_at_device,
         .kbc_params               = KBC_VEN_AMI | 0x00004800,
+        .nvr_device               = &nvr_at_device,
+        .nvr_params               = NVR_AT,
+        .sio_device               = NULL,
+        .sio_params               = 0x00000000,
         .kbc_p1                   = 0x00000cf0,
         .gpio                     = 0xffffffff,
         .gpio_acpi                = 0xffffffff,
         .device                   = NULL,
         .kbd_device               = NULL,
         .fdc_device               = NULL,
-        .sio_device               = NULL,
         .vid_device               = NULL,
         .snd_device               = NULL,
-        .net_device               = NULL
+        .net_device               = NULL,
+        .aliases                  = { "" }
     },
     /* This has a standalone AMI Megakey 1993, which is type 'P'. */
     {
         .name              = "[IMS 8848] Tekram G486IP",
         .internal_name     = "g486ip",
-        .type              = MACHINE_TYPE_486_S2,
+        .type              = MACHINE_TYPE_SOCKET2,
         .chipset           = MACHINE_CHIPSET_IMS_8848,
         .init              = machine_at_g486ip_init,
         .p1_handler        = machine_generic_p1_handler,
@@ -8198,10 +9979,10 @@ const machine_t machines[] = {
         .cpu               = {
             .package     = CPU_PKG_SOCKET3,
             .block       = CPU_BLOCK_NONE,
-            .min_bus     = 0,
-            .max_bus     = 0,
-            .min_voltage = 0,
-            .max_voltage = 0,
+            .min_bus     = 25000000,
+            .max_bus     = 33333333,
+            .min_voltage = 5000,
+            .max_voltage = 5000,
             .min_multi   = 0,
             .max_multi   = 0
         },
@@ -8217,66 +9998,26 @@ const machine_t machines[] = {
         .default_jumpered_ecp_dma = -1,
         .kbc_device               = &kbc_at_device,
         .kbc_params               = KBC_VEN_AMI | 0x00005000,
+        .nvr_device               = &nvr_at_device,
+        .nvr_params               = NVR_AMI_1992,
+        .sio_device               = NULL,
+        .sio_params               = 0x00000000,
         .kbc_p1                   = 0x000004f0,
         .gpio                     = 0xffffffff,
         .gpio_acpi                = 0xffffffff,
         .device                   = NULL,
         .kbd_device               = NULL,
         .fdc_device               = NULL,
-        .sio_device               = NULL,
         .vid_device               = NULL,
         .snd_device               = NULL,
-        .net_device               = NULL
-    },
-    /* Has AMIKey-2 'H' KBC firmware. */
-    {
-        .name              = "[OPTi 499] Alaris Cobalt LPX",
-        .internal_name     = "cobalt",
-        .type              = MACHINE_TYPE_486_S2,
-        .chipset           = MACHINE_CHIPSET_OPTI_499,
-        .init              = machine_at_cobalt_init,
-        .p1_handler        = machine_generic_p1_handler,
-        .gpio_handler      = NULL,
-        .available_flag    = MACHINE_AVAILABLE,
-        .gpio_acpi_handler = NULL,
-        .cpu               = {
-            .package     = CPU_PKG_SOCKET3 | CPU_PKG_486BL,
-            .block       = CPU_BLOCK(CPU_P24T),
-            .min_bus     = 0,
-            .max_bus     = 0,
-            .min_voltage = 0,
-            .max_voltage = 0,
-            .min_multi   = 0,
-            .max_multi   = 0
-        },
-        .bus_flags = MACHINE_PS2_VLB,
-        .flags     = MACHINE_APM | MACHINE_VIDEO | MACHINE_IDE_DUAL,
-        .ram       = {
-            .min  = 1024,
-            .max  = 65536,
-            .step = 1024
-        },
-        .nvrmask                  = 127,
-        .jumpered_ecp_dma         = 0,
-        .default_jumpered_ecp_dma = -1,
-        .kbc_device               = &kbc_at_device,
-        .kbc_params               = KBC_VEN_AMI | 0x00004800,
-        .kbc_p1                   = 0x00000cf0,
-        .gpio                     = 0xffffffff,
-        .gpio_acpi                = 0xffffffff,
-        .device                   = NULL,
-        .kbd_device               = NULL,
-        .fdc_device               = NULL,
-        .sio_device               = NULL,
-        .vid_device               = &gd5428_vlb_onboard_device,
-        .snd_device               = NULL,
-        .net_device               = NULL
+        .net_device               = NULL,
+        .aliases                  = { "" }
     },
     /* Has AMIKey-2 'H' KBC firmware. */
     {
         .name              = "[OPTi 499] Alaris COUGAR 486BL",
         .internal_name     = "cougar",
-        .type              = MACHINE_TYPE_486_S2,
+        .type              = MACHINE_TYPE_SOCKET2,
         .chipset           = MACHINE_CHIPSET_OPTI_499,
         .init              = machine_at_cougar_init,
         .p1_handler        = machine_generic_p1_handler,
@@ -8286,15 +10027,15 @@ const machine_t machines[] = {
         .cpu               = {
             .package     = CPU_PKG_SOCKET3 | CPU_PKG_486BL,
             .block       = CPU_BLOCK_NONE,
-            .min_bus     = 0,
-            .max_bus     = 0,
-            .min_voltage = 0,
-            .max_voltage = 0,
+            .min_bus     = 25000000,
+            .max_bus     = 50000000,
+            .min_voltage = 5000,
+            .max_voltage = 5000,
             .min_multi   = 0,
             .max_multi   = 0
         },
         .bus_flags = MACHINE_VLB,
-        .flags     = MACHINE_APM, /* Machine has IDE with controller: Appian ADI/2 */
+        .flags     = MACHINE_FLAGS_NONE, /* Machine has IDE with controller: Appian ADI/2 */
         .ram       = {
             .min  = 1024,
             .max  = 65536,
@@ -8305,24 +10046,29 @@ const machine_t machines[] = {
         .default_jumpered_ecp_dma = 3,
         .kbc_device               = &kbc_at_device,
         .kbc_params               = KBC_VEN_AMI | 0x00004800,
+        .nvr_device               = &nvr_at_device,
+        .nvr_params               = NVR_AT,
+        .sio_device               = NULL,
+        .sio_params               = 0x00000000,
         .kbc_p1                   = 0x000004f0,
         .gpio                     = 0xffffffff,
         .gpio_acpi                = 0xffffffff,
         .device                   = NULL,
         .kbd_device               = NULL,
         .fdc_device               = NULL,
-        .sio_device               = NULL,
         .vid_device               = NULL,
         .snd_device               = NULL,
-        .net_device               = NULL
+        .net_device               = NULL,
+        .aliases                  = { "" }
     },
-    /* Uses an Intel KBC with Phoenix MultiKey KBC firmware. */
+    /* Uses an Intel KBC with Phoenix MultiKey 2.03 KBC firmware. */
     {
-        .name              = "[SiS 461] DEC DECpc LPV",
-        .internal_name     = "decpclpv",
-        .type              = MACHINE_TYPE_486_S2,
-        .chipset           = MACHINE_CHIPSET_SIS_461,
-        .init              = machine_at_decpclpv_init,
+        .name              = "[SiS 460] Samsung SPC-7500P",
+        .internal_name     = "spc7500p",
+        /* Board seen with Socket 1 but with the pins for Socket 2. */
+        .type              = MACHINE_TYPE_SOCKET2,
+        .chipset           = MACHINE_CHIPSET_SIS_460,
+        .init              = machine_at_spc7500p_init,
         .p1_handler        = machine_generic_p1_handler,
         .gpio_handler      = NULL,
         .available_flag    = MACHINE_AVAILABLE,
@@ -8330,15 +10076,63 @@ const machine_t machines[] = {
         .cpu               = {
             .package     = CPU_PKG_SOCKET3,
             .block       = CPU_BLOCK_NONE,
-            .min_bus     = 0,
-            .max_bus     = 0,
-            .min_voltage = 0,
-            .max_voltage = 0,
+            .min_bus     = 25000000,
+            .max_bus     = 33333333,
+            .min_voltage = 3300,
+            .max_voltage = 5000,
             .min_multi   = 0,
             .max_multi   = 0
         },
         .bus_flags = MACHINE_PS2,
-        .flags     = MACHINE_IDE | MACHINE_VIDEO | MACHINE_APM,
+        .flags     = MACHINE_IDE | MACHINE_APM, /* Machine has internal Adaptec SCSI */
+        .ram       = {
+            .min  = 1024,
+            .max  = 65536,
+            .step = 1024
+        },
+        .nvrmask                  = 127,
+        .jumpered_ecp_dma         = 0,
+        .default_jumpered_ecp_dma = -1,
+        .kbc_device               = &kbc_at_device,
+        .kbc_params               = KBC_VEN_PHOENIX | 0x00020300, /* Guess. */
+        .nvr_device               = &nvr_at_device,
+        .nvr_params               = NVR_AT,
+        .sio_device               = NULL,
+        .sio_params               = 0x00000000,
+        .kbc_p1                   = 0x00000cf0,
+        .gpio                     = 0xffffffff,
+        .gpio_acpi                = 0xffffffff,
+        .device                   = NULL,
+        .kbd_device               = NULL,
+        .fdc_device               = NULL,
+        .vid_device               = NULL,
+        .snd_device               = NULL,
+        .net_device               = NULL,
+        .aliases                  = { "" }
+    },
+    /* Uses an Intel KBC with Phoenix MultiKey 2.03 KBC firmware and has a early PhoenixBIOS (known as Phoenix DragonBIOS) 4.00. */
+    {
+        .name              = "[SiS 461] Auva Compter CAM/SG0",
+        .internal_name     = "auvacam",
+        .type              = MACHINE_TYPE_SOCKET2,
+        .chipset           = MACHINE_CHIPSET_SIS_461,
+        .init              = machine_at_auvacam_init,
+        .p1_handler        = machine_generic_p1_handler,
+        .gpio_handler      = NULL,
+        .available_flag    = MACHINE_AVAILABLE,
+        .gpio_acpi_handler = NULL,
+        .cpu               = {
+            .package     = CPU_PKG_SOCKET3,
+            .block       = CPU_BLOCK_NONE,
+            .min_bus     = 20000000,
+            .max_bus     = 50000000,
+            .min_voltage = 5000,
+            .max_voltage = 5000,
+            .min_multi   = 0,
+            .max_multi   = 0
+        },
+        .bus_flags = MACHINE_VLB,
+        .flags     = MACHINE_APM,
         .ram       = {
             .min  = 1024,
             .max  = 32768,
@@ -8348,23 +10142,27 @@ const machine_t machines[] = {
         .jumpered_ecp_dma         = 0,
         .default_jumpered_ecp_dma = -1,
         .kbc_device               = &kbc_at_device,
-        .kbc_params               = KBC_VEN_PHOENIX | 0x00012900, /* Guess. */
+        .kbc_params               = KBC_VEN_PHOENIX | 0x00020300, /* Guess. */
+        .nvr_device               = &nvr_at_device,
+        .nvr_params               = NVR_AT,
+        .sio_device               = NULL,
+        .sio_params               = 0x00000000,
         .kbc_p1                   = 0x00000cf0,
         .gpio                     = 0xffffffff,
         .gpio_acpi                = 0xffffffff,
         .device                   = NULL,
         .kbd_device               = NULL,
         .fdc_device               = NULL,
-        .sio_device               = NULL,
-        .vid_device               = &s3_86c805_onboard_vlb_device,
+        .vid_device               = NULL,
         .snd_device               = NULL,
-        .net_device               = NULL
+        .net_device               = NULL,
+        .aliases                  = { "Auva Computer CPM/xx-SG0", "" }
     },
     /* Uses a ???? KBC. */
     {
         .name              = "[SiS 461] Dell System 4xx/NP",
         .internal_name     = "dell466np",
-        .type              = MACHINE_TYPE_486_S2,
+        .type              = MACHINE_TYPE_SOCKET2,
         .chipset           = MACHINE_CHIPSET_SIS_461,
         .init              = machine_at_dell466np_init,
         .p1_handler        = machine_generic_p1_handler,
@@ -8374,15 +10172,15 @@ const machine_t machines[] = {
         .cpu               = {
             .package     = CPU_PKG_SOCKET3,
             .block       = CPU_BLOCK_NONE,
-            .min_bus     = 0,
-            .max_bus     = 0,
-            .min_voltage = 0,
-            .max_voltage = 0,
+            .min_bus     = 25000000,
+            .max_bus     = 33333333,
+            .min_voltage = 3300,
+            .max_voltage = 5000,
             .min_multi   = 0,
             .max_multi   = 0
         },
         .bus_flags = MACHINE_PS2,
-        .flags     = MACHINE_IDE | MACHINE_VIDEO | MACHINE_APM,
+        .flags     = MACHINE_IDE | MACHINE_VIDEO,
         .ram       = {
             .min  = 1024,
             .max  = 32768,
@@ -8393,23 +10191,27 @@ const machine_t machines[] = {
         .default_jumpered_ecp_dma = -1,
         .kbc_device               = &kbc_at_device,
         .kbc_params               = KBC_VEN_PHOENIX | 0x00012900, /* Guess. */
+        .nvr_device               = &nvr_at_device,
+        .nvr_params               = NVR_AT,
+        .sio_device               = NULL,
+        .sio_params               = 0x00000000,
         .kbc_p1                   = 0x00002420,
         .gpio                     = 0xffffffff,
         .gpio_acpi                = 0xffffffff,
         .device                   = NULL,
         .kbd_device               = NULL,
         .fdc_device               = NULL,
-        .sio_device               = NULL,
         .vid_device               = &gd5428_onboard_vlb_device,
         .snd_device               = NULL,
-        .net_device               = NULL
+        .net_device               = NULL,
+        .aliases                  = { "" }
     },
     /* The BIOS does not send any non-standard keyboard controller commands and wants
        a PS/2 mouse, so it's an IBM PS/2 KBC (Type 1) firmware. */
     {
         .name              = "[SiS 461] IBM PS/ValuePoint 433DX/Si",
         .internal_name     = "valuepoint433",
-        .type              = MACHINE_TYPE_486_S2,
+        .type              = MACHINE_TYPE_SOCKET2,
         .chipset           = MACHINE_CHIPSET_SIS_461,
         .init              = machine_at_valuepoint433_init,
         .p1_handler        = machine_generic_p1_handler,
@@ -8419,15 +10221,15 @@ const machine_t machines[] = {
         .cpu               = {
             .package     = CPU_PKG_SOCKET3,
             .block       = CPU_BLOCK_NONE,
-            .min_bus     = 0,
-            .max_bus     = 0,
-            .min_voltage = 0,
-            .max_voltage = 0,
+            .min_bus     = 33333333,
+            .max_bus     = 33333333,
+            .min_voltage = 5000,
+            .max_voltage = 5000,
             .min_multi   = 0,
             .max_multi   = 0
         },
         .bus_flags = MACHINE_PS2,
-        .flags     = MACHINE_IDE | MACHINE_VIDEO | MACHINE_APM,
+        .flags     = MACHINE_IDE | MACHINE_VIDEO,
         .ram       = {
             .min  = 1024,
             .max  = 65536,
@@ -8438,22 +10240,75 @@ const machine_t machines[] = {
         .default_jumpered_ecp_dma = -1,
         .kbc_device               = &kbc_at_device,
         .kbc_params               = 0x00000000,
+        .nvr_device               = &nvr_at_device,
+        .nvr_params               = NVR_AT,
+        .sio_device               = NULL,
+        .sio_params               = 0x00000000,
         .kbc_p1                   = 0x00000cf0,
         .gpio                     = 0xffffffff,
         .gpio_acpi                = 0xffffffff,
         .device                   = NULL,
         .kbd_device               = NULL,
         .fdc_device               = NULL,
-        .sio_device               = NULL,
         .vid_device               = &et4000w32_onboard_device,
         .snd_device               = NULL,
-        .net_device               = NULL
+        .net_device               = NULL,
+        .aliases                  = { "" }
+    },
+    /* Has a VLSI VL82C113A SCAMP Combination I/O which holds the KBC. */
+    {
+        .name              = "[VLSI 82C480] Intel Classic R",
+        .internal_name     = "monsoon",
+        .type              = MACHINE_TYPE_SOCKET2,
+        .chipset           = MACHINE_CHIPSET_VLSI_VL82C480,
+        .init              = machine_at_monsoon_init,
+        .p1_handler        = machine_generic_p1_handler,
+        .gpio_handler      = NULL,
+        .available_flag    = MACHINE_AVAILABLE,
+        .gpio_acpi_handler = NULL,
+        .cpu               = {
+            .package     = CPU_PKG_SOCKET3,
+            .block       = CPU_BLOCK_NONE,
+            .min_bus     = 25000000,
+            .max_bus     = 33333333,
+            .min_voltage = 5000,
+            .max_voltage = 5000,
+            .min_multi   = 0,
+            .max_multi   = 0
+        },
+        .bus_flags = MACHINE_PS2,
+        .flags     = MACHINE_IDE | MACHINE_VIDEO,
+        .ram       = {
+            .min  = 2048,
+            .max  = 32768,
+            .step = 2048
+        },
+        .nvrmask                  = 127,
+        .jumpered_ecp_dma         = 0,
+        .default_jumpered_ecp_dma = -1,
+        .kbc_device               = NULL,
+        .kbc_params               = 0x00000000,
+        /* The NVR is on the VLSI VL82C113. */
+        .nvr_device               = NULL,
+        .nvr_params               = 0x00000000,
+        .sio_device               = NULL,
+        .sio_params               = 0x00000000,
+        .kbc_p1                   = 0x00000ce0,
+        .gpio                     = 0xffffffff,
+        .gpio_acpi                = 0xffffffff,
+        .device                   = NULL,
+        .kbd_device               = NULL,
+        .fdc_device               = NULL,
+        .vid_device               = &gd5428_onboard_vlb_device,
+        .snd_device               = NULL,
+        .net_device               = NULL,
+        .aliases                  = { "Intel Classic R Plus", "Intel Monsoon", "" }
     },
     /* Has a VLSI VL82C113A SCAMP Combination I/O which holds the KBC. */
     {
         .name              = "[VLSI 82C480] ZEOS Martin",
         .internal_name     = "martin",
-        .type              = MACHINE_TYPE_486_S2,
+        .type              = MACHINE_TYPE_SOCKET2,
         .chipset           = MACHINE_CHIPSET_VLSI_VL82C480,
         .init              = machine_at_martin_init,
         .p1_handler        = machine_generic_p1_handler,
@@ -8463,15 +10318,15 @@ const machine_t machines[] = {
         .cpu               = {
             .package     = CPU_PKG_SOCKET3,
             .block       = CPU_BLOCK_NONE,
-            .min_bus     = 0,
-            .max_bus     = 0,
-            .min_voltage = 0,
-            .max_voltage = 0,
+            .min_bus     = 25000000,
+            .max_bus     = 33333333,
+            .min_voltage = 3300,
+            .max_voltage = 5000,
             .min_multi   = 0,
             .max_multi   = 0
         },
         .bus_flags = MACHINE_VLB,
-        .flags     = MACHINE_IDE | MACHINE_APM,
+        .flags     = MACHINE_IDE,
         .ram       = {
             .min  = 2048,
             .max  = 65536,
@@ -8482,25 +10337,128 @@ const machine_t machines[] = {
         .default_jumpered_ecp_dma = -1,
         .kbc_device               = NULL,
         .kbc_params               = 0x00000000,
+        /* The NVR is on the VLSI VL82C113. */
+        .nvr_device               = NULL,
+        .nvr_params               = 0x00000000,
+        .sio_device               = NULL,
+        .sio_params               = 0x00000000,
         .kbc_p1                   = 0x000004f0,
         .gpio                     = 0xffffffff,
         .gpio_acpi                = 0xffffffff,
         .device                   = NULL,
         .kbd_device               = NULL,
         .fdc_device               = NULL,
-        .sio_device               = NULL,
         .vid_device               = NULL,
         .snd_device               = NULL,
-        .net_device               = NULL
+        .net_device               = NULL,
+        .aliases                  = { "" }
+    },
+    /* Has a VLSI VL82C113A SCAMP Combination I/O which holds the KBC. */
+    {
+        .name              = "[VLSI 82C486] Tandy Sensation! II (25-1651)",
+        .internal_name     = "sensation2",
+        .type              = MACHINE_TYPE_SOCKET2,
+        .chipset           = MACHINE_CHIPSET_VLSI_VL82C486,
+        .init              = machine_at_sensation2_init,
+        .p1_handler        = machine_generic_p1_handler,
+        .gpio_handler      = NULL,
+        .available_flag    = MACHINE_AVAILABLE,
+        .gpio_acpi_handler = NULL,
+        .cpu               = {
+            .package     = CPU_PKG_SOCKET3,
+            .block       = CPU_BLOCK_NONE,
+            .min_bus     = 25000000, /* assumed */
+            .max_bus     = 33333333, /* assumed */
+            .min_voltage = 5000,
+            .max_voltage = 5000,
+            .min_multi   = 0,
+            .max_multi   = 0
+        },
+        .bus_flags = MACHINE_PS2,
+        .flags     = MACHINE_IDE | MACHINE_VIDEO,
+        .ram       = {
+            .min  = 2048,
+            .max  = 65536,
+            .step = 2048
+        },
+        .nvrmask                  = 127,
+        .jumpered_ecp_dma         = 0,
+        .default_jumpered_ecp_dma = -1,
+        .kbc_device               = NULL,
+        .kbc_params               = 0x00000000,
+        /* The NVR is on the VLSI VL82C113. */
+        .nvr_device               = NULL,
+        .nvr_params               = 0x00000000,
+        .sio_device               = NULL,
+        .sio_params               = 0x00000000,
+        .kbc_p1                   = 0x000004f0,
+        .gpio                     = 0xffffffff,
+        .gpio_acpi                = 0xffffffff,
+        .device                   = NULL,
+        .kbd_device               = NULL,
+        .fdc_device               = NULL,
+        .vid_device               = &gd5428_vlb_onboard_tandy_device,
+        .snd_device               = NULL,
+        .net_device               = NULL,
+        .aliases                  = { "" }
     },
 
-    /* 486 machines - Socket 3 */
+    /* Socket 3 machines */
     /* 486 machines with just the ISA slot */
+    /* Uses some variant of Phoenix MultiKey/42 as the BIOS sends keyboard controller
+       command C7 (OR input byte with received data byte). */
+    {
+        .name              = "[ACC 2168] Packard Bell PB430",
+        .internal_name     = "pb430",
+        .type              = MACHINE_TYPE_SOCKET3,
+        .chipset           = MACHINE_CHIPSET_ACC_2168,
+        .init              = machine_at_pb430_init,
+        .p1_handler        = machine_generic_p1_handler,
+        .gpio_handler      = NULL,
+        .available_flag    = MACHINE_AVAILABLE,
+        .gpio_acpi_handler = NULL,
+        .cpu               = {
+            .package     = CPU_PKG_SOCKET3,
+            .block       = CPU_BLOCK_NONE,
+            .min_bus     = 20000000,
+            .max_bus     = 33333333,
+            .min_voltage = 3300,
+            .max_voltage = 5000,
+            .min_multi   = 0,
+            .max_multi   = 0
+        },
+        .bus_flags = MACHINE_PS2,
+        .flags     = MACHINE_IDE | MACHINE_VIDEO | MACHINE_GAMEPORT,
+        .ram       = {
+            .min  = 4096,
+            .max  = 65536,
+            .step = 1024
+        },
+        .nvrmask                  = 127,
+        .jumpered_ecp_dma         = 0,
+        .default_jumpered_ecp_dma = -1,
+        .kbc_device               = &kbc_at_device,
+        .kbc_params               = KBC_VEN_PHOENIX | 0x00012900 /* Guess. */,
+        .nvr_device               = &nvr_at_device,
+        .nvr_params               = NVR_AT,
+        .sio_device               = NULL,
+        .sio_params               = 0x00000000,
+        .kbc_p1                   = 0x00000cf0,
+        .gpio                     = 0xffffffff,
+        .gpio_acpi                = 0xffffffff,
+        .device                   = NULL,
+        .kbd_device               = NULL,
+        .fdc_device               = NULL,
+        .vid_device               = &gd5424_onboard_device,
+        .snd_device               = NULL,
+        .net_device               = NULL,
+        .aliases                  = { "Packard Bell PB440", "Packard Bell PB440T", "" }
+    },
     /* JETKey V5.0 */
     {
         .name              = "[ALi M1429G] A-Trend ATC-1762",
         .internal_name     = "atc1762",
-        .type              = MACHINE_TYPE_486_S3,
+        .type              = MACHINE_TYPE_SOCKET3,
         .chipset           = MACHINE_CHIPSET_ALI_M1429G,
         .init              = machine_at_atc1762_init,
         .p1_handler        = machine_generic_p1_handler,
@@ -8510,10 +10468,10 @@ const machine_t machines[] = {
         .cpu               = {
             .package     = CPU_PKG_SOCKET3,
             .block       = CPU_BLOCK_NONE,
-            .min_bus     = 0,
-            .max_bus     = 0,
-            .min_voltage = 0,
-            .max_voltage = 0,
+            .min_bus     = 25000000,
+            .max_bus     = 50000000,
+            .min_voltage = 3300,
+            .max_voltage = 5000,
             .min_multi   = 0,
             .max_multi   = 0
         },
@@ -8529,22 +10487,26 @@ const machine_t machines[] = {
         .default_jumpered_ecp_dma = -1,
         .kbc_device               = &kbc_at_device,
         .kbc_params               = KBC_VEN_AMI | KBC_FLAG_IS_CLONE | KBC_FLAG_IS_ASIC | 0x00004800,
+        .nvr_device               = &nvr_at_device,
+        .nvr_params               = NVR_AT,
+        .sio_device               = NULL,
+        .sio_params               = 0x00000000,
         .kbc_p1                   = 0x00000cf0,
         .gpio                     = 0xffffffff,
         .gpio_acpi                = 0xffffffff,
         .device                   = NULL,
         .kbd_device               = NULL,
         .fdc_device               = NULL,
-        .sio_device               = NULL,
         .vid_device               = NULL,
         .snd_device               = NULL,
-        .net_device               = NULL
+        .net_device               = NULL,
+        .aliases                  = { "" }
     },
     /* This has an AMIKey-2, which is an updated version of type 'H'. */
     {
         .name              = "[ALi M1429G] ECS AL486",
         .internal_name     = "ecsal486",
-        .type              = MACHINE_TYPE_486_S3,
+        .type              = MACHINE_TYPE_SOCKET3,
         .chipset           = MACHINE_CHIPSET_ALI_M1429G,
         .init              = machine_at_ecsal486_init,
         .p1_handler        = machine_generic_p1_handler,
@@ -8553,11 +10515,11 @@ const machine_t machines[] = {
         .gpio_acpi_handler = NULL,
         .cpu               = {
             .package     = CPU_PKG_SOCKET3,
-            .block       = CPU_BLOCK_NONE,
-            .min_bus     = 0,
-            .max_bus     = 0,
-            .min_voltage = 0,
-            .max_voltage = 0,
+            .block       = CPU_BLOCK(CPU_Cx486S, CPU_Cx486DX, CPU_Cx5x86),
+            .min_bus     = 25000000,
+            .max_bus     = 50000000,
+            .min_voltage = 3300,
+            .max_voltage = 5000,
             .min_multi   = 0,
             .max_multi   = 0
         },
@@ -8573,23 +10535,27 @@ const machine_t machines[] = {
         .default_jumpered_ecp_dma = -1,
         .kbc_device               = &kbc_at_device,
         .kbc_params               = KBC_VEN_AMI | 0x00004800,
+        .nvr_device               = &nvr_at_device,
+        .nvr_params               = NVR_AT,
+        .sio_device               = NULL,
+        .sio_params               = 0x00000000,
         .kbc_p1                   = 0x00000cf0,
         .gpio                     = 0xffffffff,
         .gpio_acpi                = 0xffffffff,
         .device                   = NULL,
         .kbd_device               = NULL,
         .fdc_device               = NULL,
-        .sio_device               = NULL,
         .vid_device               = NULL,
         .snd_device               = NULL,
-        .net_device               = NULL
+        .net_device               = NULL,
+        .aliases                  = { "" }
     },
     /* This uses a VIA VT82C42N KBC, which is a clone of type 'F' with additional commands.
        It's really an ASIC clone of the Award KBC, which is itself an extended clone of AMI 'F'. */
     {
         .name              = "[ALi M1429G] Lanner Electronics AP-4100AA",
         .internal_name     = "ap4100aa",
-        .type              = MACHINE_TYPE_486_S3,
+        .type              = MACHINE_TYPE_SOCKET3,
         .chipset           = MACHINE_CHIPSET_ALI_M1429G,
         .init              = machine_at_ap4100aa_init,
         .p1_handler        = machine_generic_p1_handler,
@@ -8599,10 +10565,10 @@ const machine_t machines[] = {
         .cpu               = {
             .package     = CPU_PKG_SOCKET3,
             .block       = CPU_BLOCK_NONE,
-            .min_bus     = 0,
-            .max_bus     = 0,
-            .min_voltage = 0,
-            .max_voltage = 0,
+            .min_bus     = 25000000,
+            .max_bus     = 50000000,
+            .min_voltage = 3300,
+            .max_voltage = 5000,
             .min_multi   = 0,
             .max_multi   = 0
         },
@@ -8618,22 +10584,26 @@ const machine_t machines[] = {
         .default_jumpered_ecp_dma = 3,
         .kbc_device               = &kbc_at_device,
         .kbc_params               = KBC_VEN_VIA | 0x00424600,
+        .nvr_device               = &nvr_at_device,
+        .nvr_params               = NVR_AMI_1994,
+        .sio_device               = NULL,
+        .sio_params               = 0x00000000,
         .kbc_p1                   = 0x00000cf0,
         .gpio                     = 0xffffffff,
         .gpio_acpi                = 0xffffffff,
         .device                   = NULL,
         .kbd_device               = NULL,
         .fdc_device               = NULL,
-        .sio_device               = NULL,
         .vid_device               = NULL,
         .snd_device               = NULL,
-        .net_device               = NULL
+        .net_device               = NULL,
+        .aliases                  = { "" }
     },
     /* Has a Fujitsu MBL8042H KBC. */
     {
         .name              = "[Contaq 82C596A] A-Trend 4GPV5",
         .internal_name     = "4gpv5",
-        .type              = MACHINE_TYPE_486_S3,
+        .type              = MACHINE_TYPE_SOCKET3,
         .chipset           = MACHINE_CHIPSET_CONTAQ_82C596,
         .init              = machine_at_4gpv5_init,
         .p1_handler        = machine_generic_p1_handler,
@@ -8643,10 +10613,10 @@ const machine_t machines[] = {
         .cpu               = {
             .package     = CPU_PKG_SOCKET3,
             .block       = CPU_BLOCK_NONE,
-            .min_bus     = 0,
-            .max_bus     = 0,
-            .min_voltage = 0,
-            .max_voltage = 0,
+            .min_bus     = 25000000,
+            .max_bus     = 50000000,
+            .min_voltage = 3300,
+            .max_voltage = 5000,
             .min_multi   = 0,
             .max_multi   = 0
         },
@@ -8662,22 +10632,26 @@ const machine_t machines[] = {
         .default_jumpered_ecp_dma = -1,
         .kbc_device               = &kbc_at_device,
         .kbc_params               = 0x00000000,
+        .nvr_device               = &nvr_at_device,
+        .nvr_params               = NVR_AT,
+        .sio_device               = NULL,
+        .sio_params               = 0x00000000,
         .kbc_p1                   = 0x000004f0,
         .gpio                     = 0xffffffff,
         .gpio_acpi                = 0xffffffff,
         .device                   = NULL,
         .kbd_device               = NULL,
         .fdc_device               = NULL,
-        .sio_device               = NULL,
         .vid_device               = NULL,
         .snd_device               = NULL,
-        .net_device               = NULL
+        .net_device               = NULL,
+        .aliases                  = { "" }
     },
     /* Has AMI MegaKey 'P' KBC firmware. */
     {
         .name              = "[Contaq 82C597] Visionex Green-B",
         .internal_name     = "greenb",
-        .type              = MACHINE_TYPE_486_S3,
+        .type              = MACHINE_TYPE_SOCKET3,
         .chipset           = MACHINE_CHIPSET_CONTAQ_82C597,
         .init              = machine_at_greenb_init,
         .p1_handler        = machine_generic_p1_handler,
@@ -8687,15 +10661,15 @@ const machine_t machines[] = {
         .cpu               = {
             .package     = CPU_PKG_SOCKET3,
             .block       = CPU_BLOCK_NONE,
-            .min_bus     = 0,
-            .max_bus     = 0,
-            .min_voltage = 0,
-            .max_voltage = 0,
+            .min_bus     = 20000000,
+            .max_bus     = 50000000,
+            .min_voltage = 5000,
+            .max_voltage = 5000,
             .min_multi   = 0,
             .max_multi   = 0
         },
         .bus_flags = MACHINE_VLB,
-        .flags     = MACHINE_APM,
+        .flags     = MACHINE_FLAGS_NONE,
         .ram       = {
             .min  = 1024,
             .max  = 65536,
@@ -8706,22 +10680,122 @@ const machine_t machines[] = {
         .default_jumpered_ecp_dma = -1,
         .kbc_device               = &kbc_at_device,
         .kbc_params               = KBC_VEN_AMI | 0x00005000,
+        .nvr_device               = &nvr_at_device,
+        .nvr_params               = NVR_AT,
+        .sio_device               = NULL,
+        .sio_params               = 0x00000000,
         .kbc_p1                   = 0x000004f0,
         .gpio                     = 0xffffffff,
         .gpio_acpi                = 0xffffffff,
         .device                   = NULL,
         .kbd_device               = NULL,
         .fdc_device               = NULL,
-        .sio_device               = NULL,
         .vid_device               = NULL,
         .snd_device               = NULL,
-        .net_device               = NULL
+        .net_device               = NULL,
+        .aliases                  = { "" }
+    },
+    /* Has AMIKey F KBC firmware. */
+    {
+        .name              = "[OPTi 499] ADD-X Normerel Xenon",
+        .internal_name     = "xenon",
+        .type              = MACHINE_TYPE_SOCKET3,
+        .chipset           = MACHINE_CHIPSET_OPTI_499,
+        .init              = machine_at_xenon_init,
+        .p1_handler        = machine_generic_p1_handler,
+        .gpio_handler      = NULL,
+        .available_flag    = MACHINE_AVAILABLE,
+        .gpio_acpi_handler = NULL,
+        .cpu               = {
+            .package     = CPU_PKG_SOCKET3,
+            .block       = CPU_BLOCK_NONE,
+            .min_bus     = 25000000,
+            .max_bus     = 50000000,
+            .min_voltage = 3300,
+            .max_voltage = 5000,
+            .min_multi   = 0,
+            .max_multi   = 0
+        },
+        .bus_flags = MACHINE_PS2_VLB,
+        .flags     = MACHINE_IDE,
+        .ram       = {
+            .min  = 1024,
+            .max  = 65536,
+            .step = 1024
+        },
+        .nvrmask                  = 127,
+        .jumpered_ecp_dma         = 0,
+        .default_jumpered_ecp_dma = -1,
+        .kbc_device               = &kbc_at_device,
+        .kbc_params               = KBC_VEN_AMI | 0x00004600,
+        .nvr_device               = &nvr_at_device,
+        .nvr_params               = NVR_AT,
+        .sio_device               = NULL,
+        .sio_params               = 0x00000000,
+        .kbc_p1                   = 0x00000cf0,
+        .gpio                     = 0xffffffff,
+        .gpio_acpi                = 0xffffffff,
+        .device                   = NULL,
+        .kbd_device               = NULL,
+        .fdc_device               = NULL,
+        .vid_device               = NULL,
+        .snd_device               = NULL,
+        .net_device               = NULL,
+        .aliases                  = { "" }
+    },
+    /* Has AMIKey-2 'H' KBC firmware. */
+    {
+        .name              = "[OPTi 499] Alaris Cobalt LPX",
+        .internal_name     = "cobalt",
+        .type              = MACHINE_TYPE_SOCKET3,
+        .chipset           = MACHINE_CHIPSET_OPTI_499,
+        .init              = machine_at_cobalt_init,
+        .p1_handler        = machine_generic_p1_handler,
+        .gpio_handler      = NULL,
+        .available_flag    = MACHINE_AVAILABLE,
+        .gpio_acpi_handler = NULL,
+        .cpu               = {
+            .package     = CPU_PKG_SOCKET3 | CPU_PKG_486BL,
+            .block       = CPU_BLOCK(CPU_P24T),
+            .min_bus     = 25000000,
+            .max_bus     = 50000000,
+            .min_voltage = 5000,
+            .max_voltage = 5000,
+            .min_multi   = 0,
+            .max_multi   = 0
+        },
+        .bus_flags = MACHINE_PS2_VLB,
+        .flags     = MACHINE_VIDEO | MACHINE_IDE_DUAL,
+        .ram       = {
+            .min  = 1024,
+            .max  = 65536,
+            .step = 1024
+        },
+        .nvrmask                  = 127,
+        .jumpered_ecp_dma         = 0,
+        .default_jumpered_ecp_dma = -1,
+        .kbc_device               = &kbc_at_device,
+        .kbc_params               = KBC_VEN_AMI | 0x00004800,
+        .nvr_device               = &nvr_at_device,
+        .nvr_params               = NVR_AT,
+        .sio_device               = NULL,
+        .sio_params               = 0x00000000,
+        .kbc_p1                   = 0x00000cf0,
+        .gpio                     = 0xffffffff,
+        .gpio_acpi                = 0xffffffff,
+        .device                   = NULL,
+        .kbd_device               = NULL,
+        .fdc_device               = NULL,
+        .vid_device               = &gd5428_vlb_onboard_device,
+        .snd_device               = NULL,
+        .net_device               = NULL,
+        .aliases                  = { "" }
     },
     /* Version 1.0 has an AMIKEY-2, version 2.0 has a VIA VT82C42N KBC. */
     {
         .name              = "[OPTi 895] Jetway J-403TG",
         .internal_name     = "403tg",
-        .type              = MACHINE_TYPE_486_S3,
+        .type              = MACHINE_TYPE_SOCKET3,
         .chipset           = MACHINE_CHIPSET_OPTI_895_802G,
         .init              = machine_at_403tg_init,
         .p1_handler        = machine_generic_p1_handler,
@@ -8731,10 +10805,10 @@ const machine_t machines[] = {
         .cpu               = {
             .package     = CPU_PKG_SOCKET3,
             .block       = CPU_BLOCK_NONE,
-            .min_bus     = 0,
-            .max_bus     = 0,
-            .min_voltage = 0,
-            .max_voltage = 0,
+            .min_bus     = 25000000,
+            .max_bus     = 40000000,
+            .min_voltage = 3300,
+            .max_voltage = 5000,
             .min_multi   = 0,
             .max_multi   = 0
         },
@@ -8750,23 +10824,28 @@ const machine_t machines[] = {
         .default_jumpered_ecp_dma = -1,
         .kbc_device               = &kbc_at_device,
         .kbc_params               = KBC_VEN_AMI | 0x00004800,
+        /* TODO: Per-BIOS NVR parameters. */
+        .nvr_device               = NULL,
+        .nvr_params               = 0x00000000,
+        .sio_device               = NULL,
+        .sio_params               = 0x00000000,
         .kbc_p1                   = 0x000004f0,
         .gpio                     = 0xffffffff,
         .gpio_acpi                = 0xffffffff,
         .device                   = &j403tg_device,
         .kbd_device               = NULL,
         .fdc_device               = NULL,
-        .sio_device               = NULL,
         .vid_device               = NULL,
         .snd_device               = NULL,
-        .net_device               = NULL
+        .net_device               = NULL,
+        .aliases                  = { "" }
     },
     /* Uses an Acer 90M002A.
        This is a strange one - it has command AF but it returns 0x00. */
     {
         .name              = "[SiS 461] Acer V10",
         .internal_name     = "acerv10",
-        .type              = MACHINE_TYPE_486_S3,
+        .type              = MACHINE_TYPE_SOCKET3,
         .chipset           = MACHINE_CHIPSET_SIS_461,
         .init              = machine_at_acerv10_init,
         .p1_handler        = machine_generic_p1_handler,
@@ -8776,15 +10855,15 @@ const machine_t machines[] = {
         .cpu               = {
             .package     = CPU_PKG_SOCKET3,
             .block       = CPU_BLOCK_NONE,
-            .min_bus     = 0,
-            .max_bus     = 0,
-            .min_voltage = 0,
-            .max_voltage = 0,
+            .min_bus     = 20000000,
+            .max_bus     = 50000000,
+            .min_voltage = 5000,
+            .max_voltage = 5000,
             .min_multi   = 0,
             .max_multi   = 0
         },
         .bus_flags = MACHINE_PS2_VLB,
-        .flags     = MACHINE_IDE | MACHINE_APM, /* Machine has internal SCSI: Adaptec AIC-6360 */
+        .flags     = MACHINE_IDE, /* Machine has internal SCSI: Adaptec AIC-6360 */
         .ram       = {
             .min  = 1024,
             .max  = 65536,
@@ -8795,16 +10874,20 @@ const machine_t machines[] = {
         .default_jumpered_ecp_dma = -1,
         .kbc_device               = &kbc_at_device,
         .kbc_params               = KBC_VEN_ACER,
+        .nvr_device               = &nvr_at_device,
+        .nvr_params               = NVR_AT,
+        .sio_device               = NULL,
+        .sio_params               = 0x00000000,
         .kbc_p1                   = 0x004008f0,
         .gpio                     = 0xffffffff,
         .gpio_acpi                = 0xffffffff,
         .device                   = NULL,
         .kbd_device               = NULL,
         .fdc_device               = NULL,
-        .sio_device               = NULL,
         .vid_device               = NULL,
         .snd_device               = NULL,
-        .net_device               = NULL
+        .net_device               = NULL,
+        .aliases                  = { "" }
     },
     /* The BIOS string ends in -U, unless command 0xA1 (AMIKey get version) returns an
        'F', in which case, it ends in -F, so it has an AMIKey F KBC firmware.
@@ -8812,7 +10895,7 @@ const machine_t machines[] = {
     {
         .name              = "[SiS 471] ABIT AB-AH4",
         .internal_name     = "win471",
-        .type              = MACHINE_TYPE_486_S3,
+        .type              = MACHINE_TYPE_SOCKET3,
         .chipset           = MACHINE_CHIPSET_SIS_471,
         .init              = machine_at_win471_init,
         .p1_handler        = machine_generic_p1_handler,
@@ -8822,10 +10905,10 @@ const machine_t machines[] = {
         .cpu               = {
             .package     = CPU_PKG_SOCKET3,
             .block       = CPU_BLOCK(CPU_Cx5x86),
-            .min_bus     = 0,
-            .max_bus     = 0,
-            .min_voltage = 0,
-            .max_voltage = 0,
+            .min_bus     = 20000000,
+            .max_bus     = 40000000,
+            .min_voltage = 5000,
+            .max_voltage = 5000,
             .min_multi   = 0,
             .max_multi   = 2
         },
@@ -8841,22 +10924,26 @@ const machine_t machines[] = {
         .default_jumpered_ecp_dma = -1,
         .kbc_device               = &kbc_at_device,
         .kbc_params               = KBC_VEN_AMI | 0x00004600,
+        .nvr_device               = &nvr_at_device,
+        .nvr_params               = NVR_AT,
+        .sio_device               = NULL,
+        .sio_params               = 0x00000000,
         .kbc_p1                   = 0x000004f0,
         .gpio                     = 0xffffffff,
         .gpio_acpi                = 0xffffffff,
         .device                   = NULL,
         .kbd_device               = NULL,
         .fdc_device               = NULL,
-        .sio_device               = NULL,
         .vid_device               = NULL,
         .snd_device               = NULL,
-        .net_device               = NULL
+        .net_device               = NULL,
+        .aliases                  = { "" }
     },
     /* JETKey 5.0 KBC */
     {
         .name              = "[SiS 471] ABIT AB-AH4T",
         .internal_name     = "win471t",
-        .type              = MACHINE_TYPE_486_S3,
+        .type              = MACHINE_TYPE_SOCKET3,
         .chipset           = MACHINE_CHIPSET_SIS_471,
         .init              = machine_at_win471t_init,
         .p1_handler        = machine_generic_p1_handler,
@@ -8866,10 +10953,10 @@ const machine_t machines[] = {
         .cpu               = {
             .package     = CPU_PKG_SOCKET3,
             .block       = CPU_BLOCK_NONE,
-            .min_bus     = 0,
-            .max_bus     = 0,
-            .min_voltage = 0,
-            .max_voltage = 0,
+            .min_bus     = 20000000,
+            .max_bus     = 40000000,
+            .min_voltage = 3300,
+            .max_voltage = 5000,
             .min_multi   = 0,
             .max_multi   = 0
         },
@@ -8885,22 +10972,26 @@ const machine_t machines[] = {
         .default_jumpered_ecp_dma = -1,
         .kbc_device               = &kbc_at_device,
         .kbc_params               = KBC_VEN_AMI | KBC_FLAG_IS_CLONE | KBC_FLAG_IS_ASIC | 0x00004800,
+        .nvr_device               = &nvr_at_device,
+        .nvr_params               = NVR_AT,
+        .sio_device               = NULL,
+        .sio_params               = 0x00000000,
         .kbc_p1                   = 0x00000cf0,
         .gpio                     = 0xffffffff,
         .gpio_acpi                = 0xffffffff,
         .device                   = NULL,
         .kbd_device               = NULL,
         .fdc_device               = NULL,
-        .sio_device               = NULL,
         .vid_device               = NULL,
         .snd_device               = NULL,
-        .net_device               = NULL
+        .net_device               = NULL,
+        .aliases                  = { "" }
     },
     /* Has AMIKey-2 'H' keyboard BIOS. */
     {
-        .name              = "[SiS 471] AOpen Vi15G",
+        .name              = "[SiS 471] Acer Vi15G",
         .internal_name     = "vi15g",
-        .type              = MACHINE_TYPE_486_S3,
+        .type              = MACHINE_TYPE_SOCKET3,
         .chipset           = MACHINE_CHIPSET_SIS_471,
         .init              = machine_at_vi15g_init,
         .p1_handler        = machine_generic_p1_handler,
@@ -8910,10 +11001,10 @@ const machine_t machines[] = {
         .cpu               = {
             .package     = CPU_PKG_SOCKET3,
             .block       = CPU_BLOCK_NONE,
-            .min_bus     = 0,
-            .max_bus     = 0,
-            .min_voltage = 0,
-            .max_voltage = 0,
+            .min_bus     = 20000000,
+            .max_bus     = 50000000,
+            .min_voltage = 3300,
+            .max_voltage = 5000,
             .min_multi   = 0,
             .max_multi   = 0
         },
@@ -8929,22 +11020,26 @@ const machine_t machines[] = {
         .default_jumpered_ecp_dma = -1,
         .kbc_device               = &kbc_at_device,
         .kbc_params               = KBC_VEN_AMI | 0x00004800,
+        .nvr_device               = &nvr_at_device,
+        .nvr_params               = NVR_AT,
+        .sio_device               = NULL,
+        .sio_params               = 0x00000000,
         .kbc_p1                   = 0x000004f0,
         .gpio                     = 0xffffffff,
         .gpio_acpi                = 0xffffffff,
         .device                   = NULL,
         .kbd_device               = NULL,
         .fdc_device               = NULL,
-        .sio_device               = NULL,
         .vid_device               = NULL,
         .snd_device               = NULL,
-        .net_device               = NULL
+        .net_device               = NULL,
+        .aliases                  = { "AOpen Vi15G", "" }
     },
     /* This has an AMIKey-2, which is an updated version of type 'H'. */
     {
         .name              = "[SiS 471] ASUS VL/I-486SV2GX4",
         .internal_name     = "vli486sv2g",
-        .type              = MACHINE_TYPE_486_S3,
+        .type              = MACHINE_TYPE_SOCKET3,
         .chipset           = MACHINE_CHIPSET_SIS_471,
         .init              = machine_at_vli486sv2g_init,
         .p1_handler        = machine_generic_p1_handler,
@@ -8954,10 +11049,10 @@ const machine_t machines[] = {
         .cpu               = {
             .package     = CPU_PKG_SOCKET3,
             .block       = CPU_BLOCK_NONE,
-            .min_bus     = 0,
-            .max_bus     = 0,
-            .min_voltage = 0,
-            .max_voltage = 0,
+            .min_bus     = 20000000,
+            .max_bus     = 50000000,
+            .min_voltage = 3300,
+            .max_voltage = 5000,
             .min_multi   = 0,
             .max_multi   = 0
         },
@@ -8973,22 +11068,26 @@ const machine_t machines[] = {
         .default_jumpered_ecp_dma = -1,
         .kbc_device               = &kbc_at_device,
         .kbc_params               = KBC_VEN_AMI | 0x00004800,
+        .nvr_device               = &nvr_at_device,
+        .nvr_params               = NVR_AT,
+        .sio_device               = NULL,
+        .sio_params               = 0x00000000,
         .kbc_p1                   = 0x000004f0,
         .gpio                     = 0xffffffff,
         .gpio_acpi                = 0xffffffff,
         .device                   = NULL,
         .kbd_device               = NULL,
         .fdc_device               = NULL,
-        .sio_device               = NULL,
         .vid_device               = NULL,
         .snd_device               = NULL,
-        .net_device               = NULL
+        .net_device               = NULL,
+        .aliases                  = { "" }
     },
     /* Has an Intel 82C42PE with Phoenix MultiKey/C42 KBC firmware, copyrighted 1993. */
     {
         .name              = "[SiS 471] DEC Venturis 4xx",
         .internal_name     = "dvent4xx",
-        .type              = MACHINE_TYPE_486_S3,
+        .type              = MACHINE_TYPE_SOCKET3,
         .chipset           = MACHINE_CHIPSET_SIS_471,
         .init              = machine_at_dvent4xx_init,
         .p1_handler        = machine_generic_p1_handler,
@@ -8998,10 +11097,10 @@ const machine_t machines[] = {
         .cpu               = {
             .package     = CPU_PKG_SOCKET3,
             .block       = CPU_BLOCK_NONE,
-            .min_bus     = 0,
-            .max_bus     = 0,
-            .min_voltage = 0,
-            .max_voltage = 0,
+            .min_bus     = 25000000,
+            .max_bus     = 40000000,
+            .min_voltage = 3300,
+            .max_voltage = 5000,
             .min_multi   = 0,
             .max_multi   = 0
         },
@@ -9017,22 +11116,26 @@ const machine_t machines[] = {
         .default_jumpered_ecp_dma = 4,
         .kbc_device               = &kbc_at_device,
         .kbc_params               = KBC_VEN_PHOENIX | 0x00021400, /* Guess. */
+        .nvr_device               = &nvr_at_device,
+        .nvr_params               = NVR_AT,
+        .sio_device               = NULL,
+        .sio_params               = 0x00000000,
         .kbc_p1                   = 0x00000cf0,
         .gpio                     = 0xffffffff,
         .gpio_acpi                = 0xffffffff,
         .device                   = NULL,
         .kbd_device               = NULL,
         .fdc_device               = NULL,
-        .sio_device               = NULL,
-        .vid_device               = &s3_phoenix_trio32_onboard_vlb_device,
+        .vid_device               = &s3_trio32_onboard_vlb_device,
         .snd_device               = NULL,
-        .net_device               = NULL
+        .net_device               = NULL,
+        .aliases                  = { "" }
     },
     /* Has JetKey v5.0G KBC Firmware which is a clone of AMIKey type F. */
     {
         .name              = "[SiS 471] DTK PKM-0038S E-2",
         .internal_name     = "dtk486",
-        .type              = MACHINE_TYPE_486_S3,
+        .type              = MACHINE_TYPE_SOCKET3,
         .chipset           = MACHINE_CHIPSET_SIS_471,
         .init              = machine_at_dtk486_init,
         .p1_handler        = machine_generic_p1_handler,
@@ -9041,11 +11144,11 @@ const machine_t machines[] = {
         .gpio_acpi_handler = NULL,
         .cpu               = {
             .package     = CPU_PKG_SOCKET3,
-            .block       = CPU_BLOCK_NONE,
-            .min_bus     = 0,
-            .max_bus     = 0,
-            .min_voltage = 0,
-            .max_voltage = 0,
+            .block       = CPU_BLOCK(CPU_Cx486S, CPU_Cx486DX, CPU_Cx5x86),
+            .min_bus     = 20000000,
+            .max_bus     = 50000000,
+            .min_voltage = 3300,
+            .max_voltage = 5000,
             .min_multi   = 0,
             .max_multi   = 0
         },
@@ -9061,22 +11164,26 @@ const machine_t machines[] = {
         .default_jumpered_ecp_dma = -1,
         .kbc_device               = &kbc_at_device,
         .kbc_params               = KBC_VEN_AMI | KBC_FLAG_IS_CLONE | KBC_FLAG_IS_ASIC | 0x00004600,
+        .nvr_device               = &nvr_at_device,
+        .nvr_params               = NVR_AT,
+        .sio_device               = NULL,
+        .sio_params               = 0x00000000,
         .kbc_p1                   = 0x000004f0,
         .gpio                     = 0xffffffff,
         .gpio_acpi                = 0xffffffff,
         .device                   = NULL,
         .kbd_device               = NULL,
         .fdc_device               = NULL,
-        .sio_device               = NULL,
         .vid_device               = NULL,
         .snd_device               = NULL,
-        .net_device               = NULL
+        .net_device               = NULL,
+        .aliases                  = { "" }
     },
     /* Has a Lance LT38C41L with AMIKey F keyboard BIOS. */
     {
         .name              = "[SiS 471] Epox GXA486SG",
         .internal_name     = "ami471",
-        .type              = MACHINE_TYPE_486_S3,
+        .type              = MACHINE_TYPE_SOCKET3,
         .chipset           = MACHINE_CHIPSET_SIS_471,
         .init              = machine_at_ami471_init,
         .p1_handler        = machine_generic_p1_handler,
@@ -9086,10 +11193,10 @@ const machine_t machines[] = {
         .cpu               = {
             .package     = CPU_PKG_SOCKET3,
             .block       = CPU_BLOCK_NONE,
-            .min_bus     = 0,
-            .max_bus     = 0,
-            .min_voltage = 0,
-            .max_voltage = 0,
+            .min_bus     = 20000000,
+            .max_bus     = 50000000,
+            .min_voltage = 3300,
+            .max_voltage = 5000,
             .min_multi   = 0,
             .max_multi   = 0
         },
@@ -9105,22 +11212,74 @@ const machine_t machines[] = {
         .default_jumpered_ecp_dma = -1,
         .kbc_device               = &kbc_at_device,
         .kbc_params               = KBC_VEN_AMI | KBC_FLAG_IS_CLONE | KBC_FLAG_IS_ASIC | 0x00004600,
+        .nvr_device               = &nvr_at_device,
+        .nvr_params               = NVR_AT,
+        .sio_device               = NULL,
+        .sio_params               = 0x00000000,
         .kbc_p1                   = 0x000004f0,
         .gpio                     = 0xffffffff,
         .gpio_acpi                = 0xffffffff,
         .device                   = NULL,
         .kbd_device               = NULL,
         .fdc_device               = NULL,
-        .sio_device               = NULL,
         .vid_device               = NULL,
         .snd_device               = NULL,
-        .net_device               = NULL
+        .net_device               = NULL,
+        .aliases                  = { "" }
+    },
+    /* TriGem AMIBIOS Pre-Color with TriGem AMI 'Z' keyboard controller */
+    {
+        .name              = "[SiS 471] TriGem 486G",
+        .internal_name     = "tg486g",
+        .type              = MACHINE_TYPE_SOCKET3,
+        .chipset           = MACHINE_CHIPSET_SIS_471,
+        .init              = machine_at_tg486g_init,
+        .p1_handler        = machine_generic_p1_handler,
+        .gpio_handler      = NULL,
+        .available_flag    = MACHINE_AVAILABLE,
+        .gpio_acpi_handler = NULL,
+        .cpu               = {
+            .package     = CPU_PKG_SOCKET3,
+            .block       = CPU_BLOCK_NONE,
+            .min_bus     = 25000000,
+            .max_bus     = 50000000,
+            .min_voltage = 3300,
+            .max_voltage = 5000,
+            .min_multi   = 0,
+            .max_multi   = 0
+        },
+        .bus_flags = MACHINE_PS2_VLB,
+        .flags     = MACHINE_IDE, /* Has internal video: Western Digital WD90C33-ZZ */
+        .ram       = {
+            .min  = 4096,
+            .max  = 40960,
+            .step = 4096
+        },
+        .nvrmask                  = 127,
+        .jumpered_ecp_dma         = 0,
+        .default_jumpered_ecp_dma = -1,
+        .kbc_device               = &kbc_at_device,
+        .kbc_params               = KBC_VEN_AMI_TRIGEM | 0x00005a00,
+        .nvr_device               = &nvr_at_device,
+        .nvr_params               = NVR_AT_ZERO_DEFAULT,
+        .sio_device               = NULL,
+        .sio_params               = 0x00000000,
+        .kbc_p1                   = 0x00000cf0,
+        .gpio                     = 0xffffffff,
+        .gpio_acpi                = 0xffffffff,
+        .device                   = NULL,
+        .kbd_device               = NULL,
+        .fdc_device               = NULL,
+        .vid_device               = NULL,
+        .snd_device               = NULL,
+        .net_device               = NULL,
+        .aliases                  = { "TriGem Olympia-K", "" }
     },
     /* Has MR BIOS V307UT KBC firmware, which, bizarrely enough, is actually  a genuine AMI 'H'. */
     {
-        .name              = "[SiS 471] SiS VL-BUS 471 REV. A1",
+        .name              = "[SiS 471] Unknown VL-BUS 471 REV. A1",
         .internal_name     = "px471",
-        .type              = MACHINE_TYPE_486_S3,
+        .type              = MACHINE_TYPE_SOCKET3,
         .chipset           = MACHINE_CHIPSET_SIS_471,
         .init              = machine_at_px471_init,
         .p1_handler        = machine_generic_p1_handler,
@@ -9130,10 +11289,10 @@ const machine_t machines[] = {
         .cpu               = {
             .package     = CPU_PKG_SOCKET3,
             .block       = CPU_BLOCK_NONE,
-            .min_bus     = 0,
-            .max_bus     = 0,
-            .min_voltage = 0,
-            .max_voltage = 0,
+            .min_bus     = 20000000, /* assumed */
+            .max_bus     = 50000000, /* assumed */
+            .min_voltage = 3300, /* assumed */
+            .max_voltage = 5000,
             .min_multi   = 0,
             .max_multi   = 0
         },
@@ -9149,24 +11308,28 @@ const machine_t machines[] = {
         .default_jumpered_ecp_dma = -1,
         .kbc_device               = &kbc_at_device,
         .kbc_params               = KBC_VEN_AMI | 0x00004800,
+        .nvr_device               = &nvr_at_device,
+        .nvr_params               = NVR_AT,
+        .sio_device               = NULL,
+        .sio_params               = 0x00000000,
         .kbc_p1                   = 0x000004f0,
         .gpio                     = 0xffffffff,
         .gpio_acpi                = 0xffffffff,
         .device                   = NULL,
         .kbd_device               = NULL,
         .fdc_device               = NULL,
-        .sio_device               = NULL,
         .vid_device               = NULL,
         .snd_device               = NULL,
-        .net_device               = NULL
+        .net_device               = NULL,
+        .aliases                  = { "" }
     },
-    /* TriGem AMIBIOS Pre-Color with TriGem AMI 'Z' keyboard controller */
+    /* Uses the AMIKey 'F' keyboard controller firmware. */
     {
-        .name              = "[SiS 471] TriGem 486G (Olympia-K)",
-        .internal_name     = "tg486g",
-        .type              = MACHINE_TYPE_486_S3,
+        .name              = "[Symphony SL82C460] Young Micro Systems VEGA VS486F-3VL",
+        .internal_name     = "vs486f3vl",
+        .type              = MACHINE_TYPE_SOCKET3,
         .chipset           = MACHINE_CHIPSET_SIS_471,
-        .init              = machine_at_tg486g_init,
+        .init              = machine_at_vs486f3vl_init,
         .p1_handler        = machine_generic_p1_handler,
         .gpio_handler      = NULL,
         .available_flag    = MACHINE_AVAILABLE,
@@ -9174,45 +11337,49 @@ const machine_t machines[] = {
         .cpu               = {
             .package     = CPU_PKG_SOCKET3,
             .block       = CPU_BLOCK_NONE,
-            .min_bus     = 0,
-            .max_bus     = 0,
-            .min_voltage = 0,
-            .max_voltage = 0,
+            .min_bus     = 25000000,
+            .max_bus     = 50000000,
+            .min_voltage = 5000,
+            .max_voltage = 5000,
             .min_multi   = 0,
             .max_multi   = 0
         },
-        .bus_flags = MACHINE_PS2_VLB,
-        .flags     = MACHINE_IDE | MACHINE_APM, /* Has internal video: Western Digital WD90C33-ZZ */
+        .bus_flags = MACHINE_VLB,
+        .flags     = MACHINE_FLAGS_NONE,
         .ram       = {
-            .min  = 4096,
-            .max  = 40960,
-            .step = 4096
+            .min  = 1024,
+            .max  = 65536,
+            .step = 1024
         },
         .nvrmask                  = 127,
         .jumpered_ecp_dma         = 0,
         .default_jumpered_ecp_dma = -1,
         .kbc_device               = &kbc_at_device,
-        .kbc_params               = KBC_VEN_AMI_TRIGEM | 0x00005a00,
-        .kbc_p1                   = 0x00000cf0,
+        .kbc_params               = KBC_VEN_AMI | 0x00004600,
+        .nvr_device               = &nvr_at_device,
+        .nvr_params               = NVR_AT,
+        .sio_device               = NULL,
+        .sio_params               = 0x00000000,
+        .kbc_p1                   = 0x000004f0,
         .gpio                     = 0xffffffff,
         .gpio_acpi                = 0xffffffff,
         .device                   = NULL,
         .kbd_device               = NULL,
         .fdc_device               = NULL,
-        .sio_device               = NULL,
         .vid_device               = NULL,
         .snd_device               = NULL,
-        .net_device               = NULL
+        .net_device               = NULL,
+        .aliases                  = { "VEGA MB-SYP243LV-V12", "" }
     },
 
-    /* 486 machines - Socket 3 PCI */
+    /* Socket 3 (PCI) machines */
     /* 486 machines which utilize the PCI bus */
     /* Machine with ALi M1429G chipset and M1435 southbridge */
     /* Has an AMIKEY-2 KBC which is type 'H'. */
     {
         .name              = "[ALi M1429G] MSI MS-4134",
         .internal_name     = "ms4134",
-        .type              = MACHINE_TYPE_486_S3_PCI,
+        .type              = MACHINE_TYPE_SOCKET3_PCI,
         .chipset           = MACHINE_CHIPSET_ALI_M1429G,
         .init              = machine_at_ms4134_init,
         .p1_handler        = machine_generic_p1_handler,
@@ -9222,10 +11389,10 @@ const machine_t machines[] = {
         .cpu               = {
             .package     = CPU_PKG_SOCKET3,
             .block       = CPU_BLOCK_NONE,
-            .min_bus     = 0,
-            .max_bus     = 0,
-            .min_voltage = 0,
-            .max_voltage = 0,
+            .min_bus     = 25000000,
+            .max_bus     = 40000000,
+            .min_voltage = 5000,
+            .max_voltage = 5000,
             .min_multi   = 0,
             .max_multi   = 0
         },
@@ -9241,22 +11408,26 @@ const machine_t machines[] = {
         .default_jumpered_ecp_dma = -1,
         .kbc_device               = &kbc_at_device,
         .kbc_params               = KBC_VEN_AMI | 0x00004800,
+        .nvr_device               = &nvr_at_device,
+        .nvr_params               = NVR_AT,
+        .sio_device               = NULL,
+        .sio_params               = 0x00000000,
         .kbc_p1                   = 0x00000cf0,
         .gpio                     = 0xffffffff,
         .gpio_acpi                = 0xffffffff,
         .device                   = NULL,
         .kbd_device               = NULL,
         .fdc_device               = NULL,
-        .sio_device               = NULL,
         .vid_device               = NULL,
         .snd_device               = NULL,
-        .net_device               = NULL
+        .net_device               = NULL,
+        .aliases                  = { "" }
     },
     /* TriGem machine with M1429G and PhoenixBIOS */
     {
-        .name              = "[ALi M1429G] TriGem 486GP (Talent)",
+        .name              = "[ALi M1429G] TriGem 486GP",
         .internal_name     = "tg486gp",
-        .type              = MACHINE_TYPE_486_S3_PCI,
+        .type              = MACHINE_TYPE_SOCKET3_PCI,
         .chipset           = MACHINE_CHIPSET_ALI_M1429G,
         .init              = machine_at_tg486gp_init,
         .p1_handler        = machine_generic_p1_handler,
@@ -9266,10 +11437,10 @@ const machine_t machines[] = {
         .cpu               = {
             .package     = CPU_PKG_SOCKET3,
             .block       = CPU_BLOCK_NONE,
-            .min_bus     = 0,
-            .max_bus     = 0,
-            .min_voltage = 0,
-            .max_voltage = 0,
+            .min_bus     = 25000000,
+            .max_bus     = 50000000,
+            .min_voltage = 3300,
+            .max_voltage = 5000,
             .min_multi   = 0,
             .max_multi   = 0
         },
@@ -9285,22 +11456,26 @@ const machine_t machines[] = {
         .default_jumpered_ecp_dma = 3,
         .kbc_device               = &kbc_at_device,
         .kbc_params               = KBC_VEN_AMI_TRIGEM | 0x00005a00,
+        .nvr_device               = &nvr_at_device,
+        .nvr_params               = NVR_AT,
+        .sio_device               = NULL,
+        .sio_params               = 0x00000000,
         .kbc_p1                   = 0x000004f0,
         .gpio                     = 0xffffffff,
         .gpio_acpi                = 0xffffffff,
         .device                   = NULL,
         .kbd_device               = NULL,
         .fdc_device               = NULL,
-        .sio_device               = NULL,
         .vid_device               = NULL,
         .snd_device               = NULL,
-        .net_device               = NULL
+        .net_device               = NULL,
+        .aliases                  = { "TriGem Talent", "" }
     },
     /* This has an AMIKey-2, which is an updated version of type 'H'. */
     {
         .name              = "[ALi M1489] AAEON SBC-490",
         .internal_name     = "sbc490",
-        .type              = MACHINE_TYPE_486_S3_PCI,
+        .type              = MACHINE_TYPE_SOCKET3_PCI,
         .chipset           = MACHINE_CHIPSET_ALI_M1489,
         .init              = machine_at_sbc490_init,
         .p1_handler        = machine_generic_p1_handler,
@@ -9310,10 +11485,10 @@ const machine_t machines[] = {
         .cpu               = {
             .package     = CPU_PKG_SOCKET3,
             .block       = CPU_BLOCK_NONE,
-            .min_bus     = 0,
-            .max_bus     = 0,
-            .min_voltage = 0,
-            .max_voltage = 0,
+            .min_bus     = 25000000,
+            .max_bus     = 50000000,
+            .min_voltage = 3300,
+            .max_voltage = 5000,
             .min_multi   = 0,
             .max_multi   = 0
         },
@@ -9321,7 +11496,7 @@ const machine_t machines[] = {
         .flags     = MACHINE_IDE_DUAL | MACHINE_VIDEO | MACHINE_APM,
         .ram       = {
             .min  = 1024,
-            .max  = 65536,
+            .max  = 131072,
             .step = 1024
         },
         .nvrmask                  = 255,
@@ -9329,23 +11504,27 @@ const machine_t machines[] = {
         .default_jumpered_ecp_dma = 3,
         .kbc_device               = &kbc_at_device,
         .kbc_params               = KBC_VEN_AMI | 0x00004800,
+        .nvr_device               = &nvr_at_device,
+        .nvr_params               = NVR_AT,
+        .sio_device               = NULL,
+        .sio_params               = 0x00000000,
         .kbc_p1                   = 0x00000cf0,
         .gpio                     = 0xffffffff,
         .gpio_acpi                = 0xffffffff,
         .device                   = NULL,
         .kbd_device               = NULL,
         .fdc_device               = NULL,
-        .sio_device               = NULL,
         .vid_device               = &tgui9440_onboard_pci_device,
         .snd_device               = NULL,
-        .net_device               = NULL
+        .net_device               = NULL,
+        .aliases                  = { "" }
     },
     /* Has the ALi M1487/9's on-chip keyboard controller which clones a standard AT
        KBC. */
     {
         .name              = "[ALi M1489] ABIT AB-PB4",
         .internal_name     = "abpb4",
-        .type              = MACHINE_TYPE_486_S3_PCI,
+        .type              = MACHINE_TYPE_SOCKET3_PCI,
         .chipset           = MACHINE_CHIPSET_ALI_M1489,
         .init              = machine_at_abpb4_init,
         .p1_handler        = machine_generic_p1_handler,
@@ -9355,10 +11534,10 @@ const machine_t machines[] = {
         .cpu               = {
             .package     = CPU_PKG_SOCKET3,
             .block       = CPU_BLOCK_NONE,
-            .min_bus     = 0,
-            .max_bus     = 0,
-            .min_voltage = 0,
-            .max_voltage = 0,
+            .min_bus     = 25000000,
+            .max_bus     = 50000000,
+            .min_voltage = 3300,
+            .max_voltage = 5000,
             .min_multi   = 0,
             .max_multi   = 0
         },
@@ -9374,22 +11553,26 @@ const machine_t machines[] = {
         .default_jumpered_ecp_dma = 3,
         .kbc_device               = &kbc_at_device,
         .kbc_params               = KBC_VEN_ALI | 0x00004600,
+        .nvr_device               = &nvr_at_device,
+        .nvr_params               = NVR_AT,
+        .sio_device               = NULL,
+        .sio_params               = 0x00000000,
         .kbc_p1                   = 0x000004f0,
         .gpio                     = 0xffffffff,
         .gpio_acpi                = 0xffffffff,
         .device                   = NULL,
         .kbd_device               = NULL,
         .fdc_device               = NULL,
-        .sio_device               = NULL,
         .vid_device               = NULL,
         .snd_device               = NULL,
-        .net_device               = NULL
+        .net_device               = NULL,
+        .aliases                  = { "" }
     },
     /* Has an ALi M5042 with phoenix firmware like the ESA TF-486. */
     {
         .name              = "[ALi M1489] Acrosser AR-B1476",
         .internal_name     = "arb1476",
-        .type              = MACHINE_TYPE_486_S3_PCI,
+        .type              = MACHINE_TYPE_SOCKET3_PCI,
         .chipset           = MACHINE_CHIPSET_ALI_M1489,
         .init              = machine_at_arb1476_init,
         .p1_handler        = machine_generic_p1_handler,
@@ -9399,15 +11582,15 @@ const machine_t machines[] = {
         .cpu               = {
             .package     = CPU_PKG_SOCKET3,
             .block       = CPU_BLOCK_NONE,
-            .min_bus     = 0,
-            .max_bus     = 0,
-            .min_voltage = 0,
-            .max_voltage = 0,
+            .min_bus     = 25000000,
+            .max_bus     = 50000000,
+            .min_voltage = 3300,
+            .max_voltage = 5000,
             .min_multi   = 0,
             .max_multi   = 0
         },
         .bus_flags = MACHINE_PS2,
-        .flags     = MACHINE_SUPER_IO | MACHINE_IDE | MACHINE_APM, /* Has onboard video: C&T F65545 */
+        .flags     = MACHINE_SUPER_IO | MACHINE_IDE, /* Has onboard video: C&T F65545 */
         .ram       = {
             .min  = 8192,
             .max  = 73728,
@@ -9418,70 +11601,26 @@ const machine_t machines[] = {
         .default_jumpered_ecp_dma = -1,
         .kbc_device               = &kbc_at_device,
         .kbc_params               = KBC_VEN_PHOENIX | 0x00014000, /* Guess. */
+        .nvr_device               = &nvr_at_device,
+        .nvr_params               = NVR_AT,
+        .sio_device               = NULL,
+        .sio_params               = 0x00000000,
         .kbc_p1                   = 0x00000cf0,
         .gpio                     = 0xffffffff,
         .gpio_acpi                = 0xffffffff,
         .device                   = NULL,
         .kbd_device               = NULL,
         .fdc_device               = NULL,
-        .sio_device               = NULL,
         .vid_device               = NULL,
         .snd_device               = NULL,
-        .net_device               = NULL
-    },
-    /* Has the ALi M1487/9's on-chip keyboard controller which clones a standard AT
-       KBC.
-       The BIOS string always ends in -U, but the BIOS will send AMIKey commands 0xCA
-       and 0xCB if command 0xA1 returns a letter in the 0x5x or 0x7x ranges, so I'm
-       going to give it an AMI 'U' KBC. */
-    {
-        .name              = "[ALi M1489] AMI WinBIOS 486 PCI",
-        .internal_name     = "win486pci",
-        .type              = MACHINE_TYPE_486_S3_PCI,
-        .chipset           = MACHINE_CHIPSET_ALI_M1489,
-        .init              = machine_at_win486pci_init,
-        .p1_handler        = machine_generic_p1_handler,
-        .gpio_handler      = NULL,
-        .available_flag    = MACHINE_AVAILABLE,
-        .gpio_acpi_handler = NULL,
-        .cpu               = {
-            .package     = CPU_PKG_SOCKET3,
-            .block       = CPU_BLOCK_NONE,
-            .min_bus     = 0,
-            .max_bus     = 0,
-            .min_voltage = 0,
-            .max_voltage = 0,
-            .min_multi   = 0,
-            .max_multi   = 0
-        },
-        .bus_flags = MACHINE_PCI,
-        .flags     = MACHINE_IDE_DUAL | MACHINE_APM,
-        .ram       = {
-            .min  = 1024,
-            .max  = 65536,
-            .step = 1024
-        },
-        .nvrmask                  = 255,
-        .jumpered_ecp_dma         = MACHINE_DMA_DISABLED | MACHINE_DMA_1 | MACHINE_DMA_3,
-        .default_jumpered_ecp_dma = 3,
-        .kbc_device               = NULL,
-        .kbc_params               = 0x00005500,
-        .kbc_p1                   = 0x000004f0,
-        .gpio                     = 0xffffffff,
-        .gpio_acpi                = 0xffffffff,
-        .device                   = NULL,
-        .kbd_device               = NULL,
-        .fdc_device               = NULL,
-        .sio_device               = NULL,
-        .vid_device               = NULL,
-        .snd_device               = NULL,
-        .net_device               = NULL
+        .net_device               = NULL,
+        .aliases                  = { "" }
     },
     /* Has an ALi M5042 keyboard controller with Phoenix MultiKey/42 v1.40 firmware. */
     {
         .name              = "[ALi M1489] ESA TF-486",
         .internal_name     = "tf486",
-        .type              = MACHINE_TYPE_486_S3_PCI,
+        .type              = MACHINE_TYPE_SOCKET3_PCI,
         .chipset           = MACHINE_CHIPSET_ALI_M1489,
         .init              = machine_at_tf486_init,
         .p1_handler        = machine_generic_p1_handler,
@@ -9491,10 +11630,10 @@ const machine_t machines[] = {
         .cpu               = {
             .package     = CPU_PKG_SOCKET3,
             .block       = CPU_BLOCK_NONE,
-            .min_bus     = 0,
-            .max_bus     = 0,
-            .min_voltage = 0,
-            .max_voltage = 0,
+            .min_bus     = 20000000,
+            .max_bus     = 50000000,
+            .min_voltage = 3300,
+            .max_voltage = 5000,
             .min_multi   = 0,
             .max_multi   = 0
         },
@@ -9510,16 +11649,20 @@ const machine_t machines[] = {
         .default_jumpered_ecp_dma = -1,
         .kbc_device               = &kbc_at_device,
         .kbc_params               = KBC_VEN_PHOENIX | 0x00014000,
+        .nvr_device               = &nvr_at_device,
+        .nvr_params               = NVR_AT,
+        .sio_device               = NULL,
+        .sio_params               = 0x00000000,
         .kbc_p1                   = 0x00000cf0,
         .gpio                     = 0xffffffff,
         .gpio_acpi                = 0xffffffff,
         .device                   = NULL,
         .kbd_device               = NULL,
         .fdc_device               = NULL,
-        .sio_device               = NULL,
         .vid_device               = NULL,
         .snd_device               = NULL,
-        .net_device               = NULL
+        .net_device               = NULL,
+        .aliases                  = { "" }
     },
     /* Has the ALi M1487/9's on-chip keyboard controller which clones a standard AT
        KBC.
@@ -9529,7 +11672,7 @@ const machine_t machines[] = {
     {
         .name              = "[ALi M1489] MSI MS-4145",
         .internal_name     = "ms4145",
-        .type              = MACHINE_TYPE_486_S3_PCI,
+        .type              = MACHINE_TYPE_SOCKET3_PCI,
         .chipset           = MACHINE_CHIPSET_ALI_M1489,
         .init              = machine_at_ms4145_init,
         .p1_handler        = machine_generic_p1_handler,
@@ -9539,10 +11682,10 @@ const machine_t machines[] = {
         .cpu               = {
             .package     = CPU_PKG_SOCKET3,
             .block       = CPU_BLOCK_NONE,
-            .min_bus     = 0,
-            .max_bus     = 0,
-            .min_voltage = 0,
-            .max_voltage = 0,
+            .min_bus     = 20000000,
+            .max_bus     = 50000000,
+            .min_voltage = 3300,
+            .max_voltage = 5000,
             .min_multi   = 0,
             .max_multi   = 0
         },
@@ -9558,22 +11701,78 @@ const machine_t machines[] = {
         .default_jumpered_ecp_dma = 3,
         .kbc_device               = &kbc_at_device,
         .kbc_params               = KBC_VEN_ALI | 0x00004600,
+        .nvr_device               = &nvr_at_device,
+        .nvr_params               = NVR_AT,
+        .sio_device               = NULL,
+        .sio_params               = 0x00000000,
         .kbc_p1                   = 0x000004f0,
         .gpio                     = 0xffffffff,
         .gpio_acpi                = 0xffffffff,
         .device                   = NULL,
         .kbd_device               = NULL,
         .fdc_device               = NULL,
-        .sio_device               = NULL,
         .vid_device               = NULL,
         .snd_device               = NULL,
-        .net_device               = NULL
+        .net_device               = NULL,
+        .aliases                  = { "" }
+    },
+    /* Has the ALi M1487/9's on-chip keyboard controller which clones a standard AT
+       KBC.
+       The BIOS string always ends in -U, but the BIOS will send AMIKey commands 0xCA
+       and 0xCB if command 0xA1 returns a letter in the 0x5x or 0x7x ranges, so I'm
+       going to give it an AMI 'U' KBC. */
+    {
+        .name              = "[ALi M1489] Unknown PCI486 V1-HJ3",
+        .internal_name     = "win486pci",
+        .type              = MACHINE_TYPE_SOCKET3_PCI,
+        .chipset           = MACHINE_CHIPSET_ALI_M1489,
+        .init              = machine_at_win486pci_init,
+        .p1_handler        = machine_generic_p1_handler,
+        .gpio_handler      = NULL,
+        .available_flag    = MACHINE_AVAILABLE,
+        .gpio_acpi_handler = NULL,
+        .cpu               = {
+            .package     = CPU_PKG_SOCKET3,
+            .block       = CPU_BLOCK_NONE,
+            .min_bus     = 20000000,
+            .max_bus     = 50000000,
+            .min_voltage = 3300,
+            .max_voltage = 5000,
+            .min_multi   = 0,
+            .max_multi   = 0
+        },
+        .bus_flags = MACHINE_PCI,
+        .flags     = MACHINE_IDE_DUAL | MACHINE_APM,
+        .ram       = {
+            .min  = 1024,
+            .max  = 65536,
+            .step = 1024
+        },
+        .nvrmask                  = 255,
+        .jumpered_ecp_dma         = MACHINE_DMA_DISABLED | MACHINE_DMA_1 | MACHINE_DMA_3,
+        .default_jumpered_ecp_dma = 3,
+        .kbc_device               = NULL,
+        .kbc_params               = 0x00005500,
+        .nvr_device               = &nvr_at_device,
+        .nvr_params               = NVR_AT,
+        .sio_device               = NULL,
+        .sio_params               = 0x00000000,
+        .kbc_p1                   = 0x000004f0,
+        .gpio                     = 0xffffffff,
+        .gpio_acpi                = 0xffffffff,
+        .device                   = NULL,
+        .kbd_device               = NULL,
+        .fdc_device               = NULL,
+        .vid_device               = NULL,
+        .snd_device               = NULL,
+        .net_device               = NULL,
+        .aliases                  = { "" }
     },
     /* This has an AMIKey-2, which is an updated version of type 'H'. */
     {
-        .name              = "[i420EX] Advanced Integration Research 486PI",
+        .name              = "[i420EX] AIR 486PI",
         .internal_name     = "486pi",
-        .type              = MACHINE_TYPE_486_S3_PCI,
+        .type              = MACHINE_TYPE_SOCKET3_PCI,
         .chipset           = MACHINE_CHIPSET_INTEL_420EX,
         .init              = machine_at_486pi_init,
         .p1_handler        = machine_generic_p1_handler,
@@ -9582,11 +11781,11 @@ const machine_t machines[] = {
         .gpio_acpi_handler = NULL,
         .cpu               = {
             .package     = CPU_PKG_SOCKET3,
-            .block       = CPU_BLOCK_NONE,
-            .min_bus     = 0,
-            .max_bus     = 0,
-            .min_voltage = 0,
-            .max_voltage = 0,
+            .block       = CPU_BLOCK(CPU_ENH_Am486DX, CPU_Cx486S, CPU_Cx486DX, CPU_Cx5x86),
+            .min_bus     = 25000000,
+            .max_bus     = 50000000,
+            .min_voltage = 3300,
+            .max_voltage = 5000,
             .min_multi   = 0,
             .max_multi   = 0
         },
@@ -9602,22 +11801,26 @@ const machine_t machines[] = {
         .default_jumpered_ecp_dma = -1,
         .kbc_device               = &kbc_at_device,
         .kbc_params               = KBC_VEN_AMI | 0x00004800,
+        .nvr_device               = &nvr_at_device,
+        .nvr_params               = NVR_AT,
+        .sio_device               = NULL,
+        .sio_params               = 0x00000000,
         .kbc_p1                   = 0x00000cf0,
         .gpio                     = 0xffffffff,
         .gpio_acpi                = 0xffffffff,
         .device                   = NULL,
         .kbd_device               = NULL,
         .fdc_device               = NULL,
-        .sio_device               = NULL,
         .vid_device               = NULL,
         .snd_device               = NULL,
-        .net_device               = NULL
+        .net_device               = NULL,
+        .aliases                  = { "Advanced Integration Research 486PI", "" }
     },
     /* Has Phoenix Multikey/42 PS/2 KBC, but unknown version */
     {
         .name              = "[i420EX] Anigma BAT4IP3e",
         .internal_name     = "bat4ip3e",
-        .type              = MACHINE_TYPE_486_S3_PCI,
+        .type              = MACHINE_TYPE_SOCKET3_PCI,
         .chipset           = MACHINE_CHIPSET_INTEL_420EX,
         .init              = machine_at_bat4ip3e_init,
         .p1_handler        = machine_generic_p1_handler,
@@ -9627,10 +11830,10 @@ const machine_t machines[] = {
         .cpu               = {
             .package     = CPU_PKG_SOCKET3,
             .block       = CPU_BLOCK_NONE,
-            .min_bus     = 0,
-            .max_bus     = 0,
-            .min_voltage = 0,
-            .max_voltage = 0,
+            .min_bus     = 33333333,
+            .max_bus     = 33333333,
+            .min_voltage = 3300,
+            .max_voltage = 5000,
             .min_multi   = 0,
             .max_multi   = 0
         },
@@ -9646,22 +11849,26 @@ const machine_t machines[] = {
         .default_jumpered_ecp_dma = 3,
         .kbc_device               = &kbc_at_device,
         .kbc_params               = KBC_VEN_PHOENIX | 0x00021400, /* Guess. */
+        .nvr_device               = &nvr_at_device,
+        .nvr_params               = NVR_AT,
+        .sio_device               = NULL,
+        .sio_params               = 0x00000000,
         .kbc_p1                   = 0x00000cf0,
         .gpio                     = 0xffffffff,
         .gpio_acpi                = 0xffffffff,
         .device                   = NULL,
         .kbd_device               = NULL,
         .fdc_device               = NULL,
-        .sio_device               = NULL,
         .vid_device               = NULL,
         .snd_device               = NULL,
-        .net_device               = NULL
+        .net_device               = NULL,
+        .aliases                  = { "" }
     },
     /* This has an AMIKey-2, which is an updated version of type 'H'. */
     {
         .name              = "[i420EX] ASUS PVI-486AP4",
         .internal_name     = "486ap4",
-        .type              = MACHINE_TYPE_486_S3_PCI,
+        .type              = MACHINE_TYPE_SOCKET3_PCI,
         .chipset           = MACHINE_CHIPSET_INTEL_420EX,
         .init              = machine_at_486ap4_init,
         .p1_handler        = machine_generic_p1_handler,
@@ -9671,10 +11878,10 @@ const machine_t machines[] = {
         .cpu               = {
             .package     = CPU_PKG_SOCKET3,
             .block       = CPU_BLOCK_NONE,
-            .min_bus     = 0,
-            .max_bus     = 0,
-            .min_voltage = 0,
-            .max_voltage = 0,
+            .min_bus     = 25000000,
+            .max_bus     = 40000000,
+            .min_voltage = 3300,
+            .max_voltage = 5000,
             .min_multi   = 0,
             .max_multi   = 0
         },
@@ -9690,66 +11897,26 @@ const machine_t machines[] = {
         .default_jumpered_ecp_dma = -1,
         .kbc_device               = &kbc_at_device,
         .kbc_params               = KBC_VEN_AMI | 0x00004800,
+        .nvr_device               = &nvr_at_device,
+        .nvr_params               = NVR_AT,
+        .sio_device               = NULL,
+        .sio_params               = 0x00000000,
         .kbc_p1                   = 0x00000cf0,
         .gpio                     = 0xffffffff,
         .gpio_acpi                = 0xffffffff,
         .device                   = NULL,
         .kbd_device               = NULL,
         .fdc_device               = NULL,
-        .sio_device               = NULL,
         .vid_device               = NULL,
         .snd_device               = NULL,
-        .net_device               = NULL
-    },
-    /* This has the Phoenix MultiKey KBC firmware. */
-    {
-        .name              = "[i420EX] Intel Classic/PCI ED (Ninja)",
-        .internal_name     = "ninja",
-        .type              = MACHINE_TYPE_486_S3_PCI,
-        .chipset           = MACHINE_CHIPSET_INTEL_420EX,
-        .init              = machine_at_ninja_init,
-        .p1_handler        = machine_generic_p1_handler,
-        .gpio_handler      = NULL,
-        .available_flag    = MACHINE_AVAILABLE,
-        .gpio_acpi_handler = NULL,
-        .cpu               = {
-            .package     = CPU_PKG_SOCKET3,
-            .block       = CPU_BLOCK_NONE,
-            .min_bus     = 0,
-            .max_bus     = 0,
-            .min_voltage = 0,
-            .max_voltage = 0,
-            .min_multi   = 0,
-            .max_multi   = 0
-        },
-        .bus_flags = MACHINE_PCI,
-        .flags     = MACHINE_PS2_KBC | MACHINE_IDE | MACHINE_APM,
-        .ram       = {
-            .min  = 1024,
-            .max  = 131072,
-            .step = 1024
-        },
-        .nvrmask                  = 127,
-        .jumpered_ecp_dma         = MACHINE_DMA_DISABLED,
-        .default_jumpered_ecp_dma = 4,
-        .kbc_device               = &kbc_at_device,
-        .kbc_params               = KBC_VEN_PHOENIX | 0x00012900, /* Guess. */
-        .kbc_p1                   = 0x00000cf0,
-        .gpio                     = 0xffffffff,
-        .gpio_acpi                = 0xffffffff,
-        .device                   = NULL,
-        .kbd_device               = NULL,
-        .fdc_device               = NULL,
-        .sio_device               = NULL,
-        .vid_device               = NULL,
-        .snd_device               = NULL,
-        .net_device               = NULL
+        .net_device               = NULL,
+        .aliases                  = { "" }
     },
     /* absolutely no KBC info */
     {
         .name              = "[i420EX] ICS SB486P",
         .internal_name     = "sb486p",
-        .type              = MACHINE_TYPE_486_S3_PCI,
+        .type              = MACHINE_TYPE_SOCKET3_PCI,
         .chipset           = MACHINE_CHIPSET_INTEL_420EX,
         .init              = machine_at_sb486p_init,
         .p1_handler        = machine_generic_p1_handler,
@@ -9759,10 +11926,10 @@ const machine_t machines[] = {
         .cpu               = {
             .package     = CPU_PKG_SOCKET3,
             .block       = CPU_BLOCK_NONE,
-            .min_bus     = 0,
-            .max_bus     = 0,
-            .min_voltage = 0,
-            .max_voltage = 0,
+            .min_bus     = 25000000,
+            .max_bus     = 33333333,
+            .min_voltage = 3300,
+            .max_voltage = 5000,
             .min_multi   = 0,
             .max_multi   = 0
         },
@@ -9778,22 +11945,74 @@ const machine_t machines[] = {
         .default_jumpered_ecp_dma = -1,
         .kbc_device               = &kbc_at_device,
         .kbc_params               = KBC_VEN_AMI | 0x00005200, /* Guess. */
+        .nvr_device               = &nvr_at_device,
+        .nvr_params               = NVR_AT,
+        .sio_device               = NULL,
+        .sio_params               = 0x00000000,
         .kbc_p1                   = 0x00000cf0,
         .gpio                     = 0xffffffff,
         .gpio_acpi                = 0xffffffff,
         .device                   = NULL,
         .kbd_device               = NULL,
         .fdc_device               = NULL,
-        .sio_device               = NULL,
         .vid_device               = NULL,
         .snd_device               = NULL,
-        .net_device               = NULL
+        .net_device               = NULL,
+        .aliases                  = { "" }
+    },
+    /* This has the Phoenix MultiKey KBC firmware. */
+    {
+        .name              = "[i420EX] Intel Classic/PCI ED",
+        .internal_name     = "ninja",
+        .type              = MACHINE_TYPE_SOCKET3_PCI,
+        .chipset           = MACHINE_CHIPSET_INTEL_420EX,
+        .init              = machine_at_ninja_init,
+        .p1_handler        = machine_generic_p1_handler,
+        .gpio_handler      = NULL,
+        .available_flag    = MACHINE_AVAILABLE,
+        .gpio_acpi_handler = NULL,
+        .cpu               = {
+            .package     = CPU_PKG_SOCKET3,
+            .block       = CPU_BLOCK_NONE,
+            .min_bus     = 25000000,
+            .max_bus     = 33333333,
+            .min_voltage = 3300,
+            .max_voltage = 5000,
+            .min_multi   = 0,
+            .max_multi   = 0
+        },
+        .bus_flags = MACHINE_PCI,
+        .flags     = MACHINE_PS2_KBC | MACHINE_IDE | MACHINE_APM,
+        .ram       = {
+            .min  = 1024,
+            .max  = 131072,
+            .step = 1024
+        },
+        .nvrmask                  = 127,
+        .jumpered_ecp_dma         = MACHINE_DMA_DISABLED,
+        .default_jumpered_ecp_dma = 4,
+        .kbc_device               = &kbc_at_device,
+        .kbc_params               = KBC_VEN_PHOENIX | 0x00012900, /* Guess. */
+        .nvr_device               = &nvr_at_device,
+        .nvr_params               = NVR_AT_ZERO_DEFAULT,
+        .sio_device               = NULL,
+        .sio_params               = 0x00000000,
+        .kbc_p1                   = 0x00000cf0,
+        .gpio                     = 0xffffffff,
+        .gpio_acpi                = 0xffffffff,
+        .device                   = NULL,
+        .kbd_device               = NULL,
+        .fdc_device               = NULL,
+        .vid_device               = NULL,
+        .snd_device               = NULL,
+        .net_device               = NULL,
+        .aliases                  = { "Intel Ninja", "Intel Classic/PCI Expandable Desktop", "" }
     },
     /* According to another string seen on the UH19 website, this has AMI 'H' KBC. */
     {
         .name              = "[i420TX] AMI Super Voyager PCI",
         .internal_name     = "amis76",
-        .type              = MACHINE_TYPE_486_S3_PCI,
+        .type              = MACHINE_TYPE_SOCKET3_PCI,
         .chipset           = MACHINE_CHIPSET_INTEL_420TX,
         .init              = machine_at_amis76_init,
         .p1_handler        = machine_generic_p1_handler,
@@ -9803,15 +12022,15 @@ const machine_t machines[] = {
         .cpu               = {
             .package     = CPU_PKG_SOCKET3,
             .block       = CPU_BLOCK_NONE,
-            .min_bus     = 0,
-            .max_bus     = 0,
-            .min_voltage = 0,
-            .max_voltage = 0,
+            .min_bus     = 25000000,
+            .max_bus     = 33333333,
+            .min_voltage = 5000,
+            .max_voltage = 5000,
             .min_multi   = 0,
             .max_multi   = 0
         },
         .bus_flags = MACHINE_PS2_PCI,
-        .flags     = MACHINE_SUPER_IO | MACHINE_IDE_DUAL | MACHINE_APM,
+        .flags     = MACHINE_SUPER_IO | MACHINE_IDE_DUAL,
         .ram       = {
             .min  = 1024,
             .max  = 131072,
@@ -9822,16 +12041,20 @@ const machine_t machines[] = {
         .default_jumpered_ecp_dma = -1,
         .kbc_device               = &kbc_at_device,
         .kbc_params               = KBC_VEN_AMI | 0x00004800,
+        .nvr_device               = &nvr_at_device,
+        .nvr_params               = NVR_AT,
+        .sio_device               = NULL,
+        .sio_params               = 0x00000000,
         .kbc_p1                   = 0x00000cf0,
         .gpio                     = 0xffffffff,
         .gpio_acpi                = 0xffffffff,
         .device                   = NULL,
         .kbd_device               = NULL,
         .fdc_device               = NULL,
-        .sio_device               = NULL,
         .vid_device               = NULL,
         .snd_device               = NULL,
-        .net_device               = NULL
+        .net_device               = NULL,
+        .aliases                  = { "AMI S76", "" }
     },
     /*
        This has an AMIKey (and an on-board NCR 53C810 PCI SCSI controller), thanks, eBay!
@@ -9840,7 +12063,7 @@ const machine_t machines[] = {
     {
         .name              = "[i420TX] ASUS PCI/I-486SP3",
         .internal_name     = "486sp3",
-        .type              = MACHINE_TYPE_486_S3_PCI,
+        .type              = MACHINE_TYPE_SOCKET3_PCI,
         .chipset           = MACHINE_CHIPSET_INTEL_420TX,
         .init              = machine_at_486sp3_init,
         .p1_handler        = machine_generic_p1_handler,
@@ -9850,15 +12073,15 @@ const machine_t machines[] = {
         .cpu               = {
             .package     = CPU_PKG_SOCKET3,
             .block       = CPU_BLOCK_NONE,
-            .min_bus     = 0,
-            .max_bus     = 0,
-            .min_voltage = 0,
-            .max_voltage = 0,
+            .min_bus     = 25000000,
+            .max_bus     = 33333333,
+            .min_voltage = 5000,
+            .max_voltage = 5000,
             .min_multi   = 0,
             .max_multi   = 0
         },
         .bus_flags = MACHINE_PCI,
-        .flags     = MACHINE_IDE | MACHINE_SCSI | MACHINE_APM,
+        .flags     = MACHINE_IDE | MACHINE_SCSI,
         .ram       = {
             .min  = 1024,
             .max  = 131072,
@@ -9869,22 +12092,26 @@ const machine_t machines[] = {
         .default_jumpered_ecp_dma = -1,
         .kbc_device               = &kbc_at_device,
         .kbc_params               = KBC_VEN_AMI | 0x00004800, /* Guess. */
+        .nvr_device               = &nvr_at_device,
+        .nvr_params               = NVR_AT,
+        .sio_device               = NULL,
+        .sio_params               = 0x00000000,
         .kbc_p1                   = 0x00000cf0,
         .gpio                     = 0xffffffff,
         .gpio_acpi                = 0xffffffff,
         .device                   = NULL,
         .kbd_device               = NULL,
         .fdc_device               = NULL,
-        .sio_device               = NULL,
         .vid_device               = NULL,
         .snd_device               = NULL,
-        .net_device               = NULL
+        .net_device               = NULL,
+        .aliases                  = { "" }
     },
     /* This has the Phoenix MultiKey KBC firmware. */
     {
-        .name              = "[i420TX] Intel Classic/PCI (Alfredo)",
+        .name              = "[i420TX] Intel Classic/PCI",
         .internal_name     = "alfredo",
-        .type              = MACHINE_TYPE_486_S3_PCI,
+        .type              = MACHINE_TYPE_SOCKET3_PCI,
         .chipset           = MACHINE_CHIPSET_INTEL_420TX,
         .init              = machine_at_alfredo_init,
         .p1_handler        = machine_generic_p1_handler,
@@ -9894,15 +12121,15 @@ const machine_t machines[] = {
         .cpu               = {
             .package     = CPU_PKG_SOCKET3,
             .block       = CPU_BLOCK_NONE,
-            .min_bus     = 0,
-            .max_bus     = 0,
-            .min_voltage = 0,
-            .max_voltage = 0,
+            .min_bus     = 33333333,
+            .max_bus     = 33333333,
+            .min_voltage = 3300,
+            .max_voltage = 5000,
             .min_multi   = 0,
             .max_multi   = 0
         },
         .bus_flags = MACHINE_PS2_PCI,
-        .flags     = MACHINE_IDE | MACHINE_APM,
+        .flags     = MACHINE_IDE,
         .ram       = {
             .min  = 2048,
             .max  = 131072,
@@ -9913,23 +12140,27 @@ const machine_t machines[] = {
         .default_jumpered_ecp_dma = -1,
         .kbc_device               = &kbc_at_device,
         .kbc_params               = KBC_VEN_PHOENIX | 0x00012900, /* Guess. */
+        .nvr_device               = &nvr_at_device,
+        .nvr_params               = NVR_AT,
+        .sio_device               = NULL,
+        .sio_params               = 0x00000000,
         .kbc_p1                   = 0x00000ce0,
         .gpio                     = 0xffffffff,
         .gpio_acpi                = 0xffffffff,
         .device                   = NULL,
         .kbd_device               = NULL,
         .fdc_device               = NULL,
-        .sio_device               = NULL,
         .vid_device               = NULL,
         .snd_device               = NULL,
-        .net_device               = NULL
+        .net_device               = NULL,
+        .aliases                  = { "Intel Alfredo", "" }
     },
     /* This has an AMIKey-2, which is an updated version of type 'H'. Also has a
        SST 29EE010 Flash chip. */
     {
         .name              = "[i420ZX] ASUS PCI/I-486SP3G",
         .internal_name     = "486sp3g",
-        .type              = MACHINE_TYPE_486_S3_PCI,
+        .type              = MACHINE_TYPE_SOCKET3_PCI,
         .chipset           = MACHINE_CHIPSET_INTEL_420ZX,
         .init              = machine_at_486sp3g_init,
         .p1_handler        = machine_generic_p1_handler,
@@ -9939,10 +12170,10 @@ const machine_t machines[] = {
         .cpu               = {
             .package     = CPU_PKG_SOCKET3,
             .block       = CPU_BLOCK_NONE,
-            .min_bus     = 0,
-            .max_bus     = 0,
-            .min_voltage = 0,
-            .max_voltage = 0,
+            .min_bus     = 25000000,
+            .max_bus     = 33333333,
+            .min_voltage = 3300,
+            .max_voltage = 5000,
             .min_multi   = 0,
             .max_multi   = 0
         },
@@ -9958,22 +12189,26 @@ const machine_t machines[] = {
         .default_jumpered_ecp_dma = 3,
         .kbc_device               = &kbc_at_device,
         .kbc_params               = KBC_VEN_AMI | 0x00004800,
+        .nvr_device               = &nvr_at_device,
+        .nvr_params               = NVR_AT,
+        .sio_device               = NULL,
+        .sio_params               = 0x00000000,
         .kbc_p1                   = 0x00000cf0,
         .gpio                     = 0xffffffff,
         .gpio_acpi                = 0xffffffff,
         .device                   = NULL,
         .kbd_device               = NULL,
         .fdc_device               = NULL,
-        .sio_device               = NULL,
         .vid_device               = NULL,
         .snd_device               = NULL,
-        .net_device               = NULL
+        .net_device               = NULL,
+        .aliases                  = { "" }
     },
     /* This has an AMI MEGAKey 'P' or 'R' keyboard controller. */
     {
         .name              = "[i420ZX] ICS SB486PV",
         .internal_name     = "sb486pv",
-        .type              = MACHINE_TYPE_486_S3_PCI,
+        .type              = MACHINE_TYPE_SOCKET3_PCI,
         .chipset           = MACHINE_CHIPSET_INTEL_420ZX,
         .init              = machine_at_sb486pv_init,
         .p1_handler        = machine_generic_p1_handler,
@@ -9983,16 +12218,16 @@ const machine_t machines[] = {
         .cpu               = {
             .package     = CPU_PKG_SOCKET3,
             .block       = CPU_BLOCK_NONE,
-            .min_bus     = 0,
-            .max_bus     = 0,
-            .min_voltage = 0,
-            .max_voltage = 0,
+            .min_bus     = 25000000,
+            .max_bus     = 33333333,
+            .min_voltage = 3300,
+            .max_voltage = 5000,
             .min_multi   = 0,
             .max_multi   = 0
         },
         /* Has PCI but no user-facing slots. */
         .bus_flags = MACHINE_PCI,
-        .flags     = MACHINE_PS2_KBC | MACHINE_IDE | MACHINE_VIDEO | MACHINE_APM | MACHINE_PCI_INTERNAL,
+        .flags     = MACHINE_PS2_KBC | MACHINE_IDE | MACHINE_VIDEO | MACHINE_PCI_INTERNAL,
         .ram       = {
             .min  = 2048,
             .max  = 65536,
@@ -10003,22 +12238,26 @@ const machine_t machines[] = {
         .default_jumpered_ecp_dma = 3,
         .kbc_device               = &kbc_at_device,
         .kbc_params               = KBC_VEN_AMI | 0x00005000,
+        .nvr_device               = &nvr_at_device,
+        .nvr_params               = NVR_AT,
+        .sio_device               = NULL,
+        .sio_params               = 0x00000000,
         .kbc_p1                   = 0x00000cf0,
         .gpio                     = 0xffffffff,
         .gpio_acpi                = 0xffffffff,
         .device                   = &sb486pv_device,
         .kbd_device               = NULL,
         .fdc_device               = NULL,
-        .sio_device               = NULL,
-        .vid_device               = &gd5436_onboard_pci_device,
+        .vid_device               = &gd5436_onboard_pci_ics_device,
         .snd_device               = NULL,
-        .net_device               = NULL
+        .net_device               = NULL,
+        .aliases                  = { "" }
     },
     /* This most likely has a standalone AMI Megakey 1993, which is type 'P', like the below Tekram board. */
     {
         .name              = "[IMS 8848] J-Bond PCI400C-B",
         .internal_name     = "pci400cb",
-        .type              = MACHINE_TYPE_486_S3_PCI,
+        .type              = MACHINE_TYPE_SOCKET3_PCI,
         .chipset           = MACHINE_CHIPSET_IMS_8848,
         .init              = machine_at_pci400cb_init,
         .p1_handler        = machine_generic_p1_handler,
@@ -10028,10 +12267,10 @@ const machine_t machines[] = {
         .cpu               = {
             .package     = CPU_PKG_SOCKET3,
             .block       = CPU_BLOCK_NONE,
-            .min_bus     = 0,
-            .max_bus     = 0,
-            .min_voltage = 0,
-            .max_voltage = 0,
+            .min_bus     = 25000000, /* assumed */
+            .max_bus     = 33333333, /* assumed */
+            .min_voltage = 3300,
+            .max_voltage = 5000,
             .min_multi   = 0,
             .max_multi   = 0
         },
@@ -10047,22 +12286,26 @@ const machine_t machines[] = {
         .default_jumpered_ecp_dma = -1,
         .kbc_device               = &kbc_at_device,
         .kbc_params               = KBC_VEN_AMI | 0x00005000, /* Guess. */
+        .nvr_device               = &nvr_at_device,
+        .nvr_params               = NVR_AMI_1994,
+        .sio_device               = NULL,
+        .sio_params               = 0x00000000,
         .kbc_p1                   = 0x00000cf0,
         .gpio                     = 0xffffffff,
         .gpio_acpi                = 0xffffffff,
-        .device                   = NULL,
+        .device                   = &pci400cb_device,
         .kbd_device               = NULL,
         .fdc_device               = NULL,
-        .sio_device               = NULL,
         .vid_device               = NULL,
         .snd_device               = NULL,
-        .net_device               = NULL
+        .net_device               = NULL,
+        .aliases                  = { "" }
     },
     /* Has IBM PS/2 Type 1 KBC firmware. */
     {
         .name              = "[OPTi 802G] IBM PC 330 (type 6573)",
         .internal_name     = "pc330_6573",
-        .type              = MACHINE_TYPE_486_S3_PCI,
+        .type              = MACHINE_TYPE_SOCKET3_PCI,
         .chipset           = MACHINE_CHIPSET_OPTI_895_802G,
         .init              = machine_at_pc330_6573_init,
         .p1_handler        = machine_generic_p1_handler,
@@ -10072,14 +12315,16 @@ const machine_t machines[] = {
         .cpu               = {
             .package     = CPU_PKG_SOCKET3_PC330,
             .block       = CPU_BLOCK_NONE,
-            .min_bus     = 25000000,
-            .max_bus     = 33333333,
-            .min_voltage = 0,
-            .max_voltage = 0,
+            .min_bus     = 20000000,
+            .max_bus     = 50000000,
+            .min_voltage = 3300,
+            .max_voltage = 5000,
             .min_multi   = 2.0,
             .max_multi   = 3.0
         },
         .bus_flags = MACHINE_PS2_PCI,
+        /* Machine has custom (currently unemulated) power management harware
+           needed for the APM interface to function */
         .flags     = MACHINE_IDE | MACHINE_VIDEO | MACHINE_APM,
         .ram       = {
             .min  = 1024,
@@ -10091,22 +12336,27 @@ const machine_t machines[] = {
         .default_jumpered_ecp_dma = -1,
         .kbc_device               = &kbc_at_device,
         .kbc_params               = 0x00000000,
+        /* The NVR is on the OPTi 82c602. */
+        .nvr_device               = NULL,
+        .nvr_params               = 0x00000000,
+        .sio_device               = NULL,
+        .sio_params               = 0x00000000,
         .kbc_p1                   = 0x00000cf0,
         .gpio                     = 0xffffffff,
         .gpio_acpi                = 0xffffffff,
         .device                   = &pc330_6573_device,
         .kbd_device               = NULL,
         .fdc_device               = NULL,
-        .sio_device               = NULL,
         .vid_device               = &gd5430_onboard_vlb_device,
         .snd_device               = NULL,
-        .net_device               = NULL
+        .net_device               = NULL,
+        .aliases                  = { "Aptiva 510", "Aptiva 710", "Aptiva Vision", "" }
     },
     /* has a Phoenix PLCC Multikey copyrighted 1993, version unknown. */
     {
-        .name              = "[OPTi 895] Packard Bell PB450 (Firehawk)",
+        .name              = "[OPTi 895] Packard Bell PB450",
         .internal_name     = "pb450",
-        .type              = MACHINE_TYPE_486_S3_PCI,
+        .type              = MACHINE_TYPE_SOCKET3_PCI,
         .chipset           = MACHINE_CHIPSET_OPTI_895_802G,
         .init              = machine_at_pb450_init,
         .p1_handler        = machine_generic_p1_handler,
@@ -10116,10 +12366,10 @@ const machine_t machines[] = {
         .cpu               = {
             .package     = CPU_PKG_SOCKET3,
             .block       = CPU_BLOCK_NONE,
-            .min_bus     = 0,
-            .max_bus     = 0,
-            .min_voltage = 0,
-            .max_voltage = 0,
+            .min_bus     = 25000000,
+            .max_bus     = 33333333,
+            .min_voltage = 3300,
+            .max_voltage = 5000,
             .min_multi   = 0,
             .max_multi   = 0
         },
@@ -10135,22 +12385,27 @@ const machine_t machines[] = {
         .default_jumpered_ecp_dma = -1,
         .kbc_device               = &kbc_at_device,
         .kbc_params               = KBC_VEN_PHOENIX | 0x00021400, /* Guess. */
+        /* The NVR is on the OPTi 82c602. */
+        .nvr_device               = NULL,
+        .nvr_params               = 0x00000000,
+        .sio_device               = NULL,
+        .sio_params               = 0x00000000,
         .kbc_p1                   = 0x00000cf0,
         .gpio                     = 0xffffffff,
         .gpio_acpi                = 0xffffffff,
         .device                   = &pb450_device,
         .kbd_device               = NULL,
         .fdc_device               = NULL,
-        .sio_device               = NULL,
-        .vid_device               = &gd5428_vlb_onboard_device,
+        .vid_device               = &gd5428_vlb_onboard_pb450_device,
         .snd_device               = NULL,
-        .net_device               = NULL
+        .net_device               = NULL,
+        .aliases                  = { "Packard Bell Firehawk", "" }
     },
     /* Has Acer KBC firmware. */
     {
         .name              = "[SiS 496] Acer P3",
         .internal_name     = "acerp3",
-        .type              = MACHINE_TYPE_486_S3_PCI,
+        .type              = MACHINE_TYPE_SOCKET3_PCI,
         .chipset           = MACHINE_CHIPSET_SIS_496,
         .init              = machine_at_acerp3_init,
         .p1_handler        = machine_generic_p1_handler,
@@ -10160,10 +12415,10 @@ const machine_t machines[] = {
         .cpu               = {
             .package     = CPU_PKG_SOCKET3,
             .block       = CPU_BLOCK_NONE,
-            .min_bus     = 0,
-            .max_bus     = 0,
-            .min_voltage = 0,
-            .max_voltage = 0,
+            .min_bus     = 20000000,
+            .max_bus     = 33333333,
+            .min_voltage = 3300,
+            .max_voltage = 5000,
             .min_multi   = 0,
             .max_multi   = 0
         },
@@ -10179,22 +12434,26 @@ const machine_t machines[] = {
         .default_jumpered_ecp_dma = 3,
         .kbc_device               = &kbc_at_device,
         .kbc_params               = KBC_VEN_ACER | 0x00004200,
+        .nvr_device               = NULL,
+        .nvr_params               = 0x00000000,
+        .sio_device               = NULL,
+        .sio_params               = 0x00000000,
         .kbc_p1                   = 0x004008f0,
         .gpio                     = 0xffffffff,
         .gpio_acpi                = 0xffffffff,
         .device                   = NULL,
         .kbd_device               = NULL,
         .fdc_device               = NULL,
-        .sio_device               = NULL,
         .vid_device               = &gd5434_onboard_pci_device,
         .snd_device               = NULL,
-        .net_device               = NULL
+        .net_device               = NULL,
+        .aliases                  = { "" }
     },
     /* This has an AMIKey-2, which is type 'H'. */
     {
-        .name              = "[SiS 496] ASUS PVI-486SP3C",
+        .name              = "[SiS 496] ASUS PVI-486SP3",
         .internal_name     = "486sp3c",
-        .type              = MACHINE_TYPE_486_S3_PCI,
+        .type              = MACHINE_TYPE_SOCKET3_PCI,
         .chipset           = MACHINE_CHIPSET_SIS_496,
         .init              = machine_at_486sp3c_init,
         .p1_handler        = machine_generic_p1_handler,
@@ -10204,10 +12463,10 @@ const machine_t machines[] = {
         .cpu               = {
             .package     = CPU_PKG_SOCKET3,
             .block       = CPU_BLOCK_NONE,
-            .min_bus     = 0,
-            .max_bus     = 0,
-            .min_voltage = 0,
-            .max_voltage = 0,
+            .min_bus     = 25000000,
+            .max_bus     = 40000000,
+            .min_voltage = 3300,
+            .max_voltage = 5000,
             .min_multi   = 0,
             .max_multi   = 0
         },
@@ -10223,22 +12482,26 @@ const machine_t machines[] = {
         .default_jumpered_ecp_dma = 3,
         .kbc_device               = &kbc_at_device,
         .kbc_params               = KBC_VEN_AMI | 0x00004800,
+        .nvr_device               = NULL,
+        .nvr_params               = 0x00000000,
+        .sio_device               = NULL,
+        .sio_params               = 0x00000000,
         .kbc_p1                   = 0x00000cf0,
         .gpio                     = 0xffffffff,
         .gpio_acpi                = 0xffffffff,
         .device                   = NULL,
         .kbd_device               = NULL,
         .fdc_device               = NULL,
-        .sio_device               = NULL,
         .vid_device               = NULL,
         .snd_device               = NULL,
-        .net_device               = NULL
+        .net_device               = NULL,
+        .aliases                  = { "" }
     },
     /* This has an AMIKey-2, which is an updated version of type 'H'. */
     {
         .name              = "[SiS 496] Lucky Star LS-486E",
         .internal_name     = "ls486e",
-        .type              = MACHINE_TYPE_486_S3_PCI,
+        .type              = MACHINE_TYPE_SOCKET3_PCI,
         .chipset           = MACHINE_CHIPSET_SIS_496,
         .init              = machine_at_ls486e_init,
         .p1_handler        = machine_generic_p1_handler,
@@ -10248,17 +12511,17 @@ const machine_t machines[] = {
         .cpu               = {
             .package     = CPU_PKG_SOCKET3,
             .block       = CPU_BLOCK_NONE,
-            .min_bus     = 0,
-            .max_bus     = 0,
-            .min_voltage = 0,
-            .max_voltage = 0,
+            .min_bus     = 25000000,
+            .max_bus     = 50000000,
+            .min_voltage = 3300,
+            .max_voltage = 5000,
             .min_multi   = 0,
             .max_multi   = 0
         },
         .bus_flags = MACHINE_PCI,
         .flags     = MACHINE_PS2_KBC | MACHINE_IDE_DUAL | MACHINE_APM,
         .ram       = {
-            .min  = 1024,
+            .min  = 2048,
             .max  = 131072,
             .step = 1024
         },
@@ -10267,22 +12530,26 @@ const machine_t machines[] = {
         .default_jumpered_ecp_dma = 3,
         .kbc_device               = &kbc_at_device,
         .kbc_params               = KBC_VEN_AMI | 0x00004800,
+        .nvr_device               = NULL,
+        .nvr_params               = 0x00000000,
+        .sio_device               = NULL,
+        .sio_params               = 0x00000000,
         .kbc_p1                   = 0x00000cf0,
         .gpio                     = 0xffffffff,
         .gpio_acpi                = 0xffffffff,
         .device                   = NULL,
         .kbd_device               = NULL,
         .fdc_device               = NULL,
-        .sio_device               = NULL,
         .vid_device               = NULL,
         .snd_device               = NULL,
-        .net_device               = NULL
+        .net_device               = NULL,
+        .aliases                  = { "" }
     },
     /* Has a VIA VT82C42N KBC. */
     {
         .name              = "[SiS 496] Micronics M4Li",
         .internal_name     = "m4li",
-        .type              = MACHINE_TYPE_486_S3_PCI,
+        .type              = MACHINE_TYPE_SOCKET3_PCI,
         .chipset           = MACHINE_CHIPSET_SIS_496,
         .init              = machine_at_m4li_init,
         .p1_handler        = machine_generic_p1_handler,
@@ -10292,10 +12559,10 @@ const machine_t machines[] = {
         .cpu               = {
             .package     = CPU_PKG_SOCKET3,
             .block       = CPU_BLOCK_NONE,
-            .min_bus     = 0,
-            .max_bus     = 0,
-            .min_voltage = 0,
-            .max_voltage = 0,
+            .min_bus     = 25000000,
+            .max_bus     = 40000000,
+            .min_voltage = 3300,
+            .max_voltage = 5000,
             .min_multi   = 0,
             .max_multi   = 0
         },
@@ -10311,22 +12578,26 @@ const machine_t machines[] = {
         .default_jumpered_ecp_dma = 3,
         .kbc_device               = &kbc_at_device,
         .kbc_params               = KBC_VEN_VIA | 0x00424600,
+        .nvr_device               = NULL,
+        .nvr_params               = 0x00000000,
+        .sio_device               = NULL,
+        .sio_params               = 0x00000000,
         .kbc_p1                   = 0x00000cf0,
         .gpio                     = 0xffffffff,
         .gpio_acpi                = 0xffffffff,
-        .device                   = NULL,
+        .device                   = &m4li_device,
         .kbd_device               = NULL,
         .fdc_device               = NULL,
-        .sio_device               = NULL,
         .vid_device               = NULL,
         .snd_device               = NULL,
-        .net_device               = NULL
+        .net_device               = NULL,
+        .aliases                  = { "Micron MBD001035-xx", "" }
     },
     /* AMIKEY-2 */
     {
         .name              = "[SiS 496] MSI MS-4144",
         .internal_name     = "ms4144",
-        .type              = MACHINE_TYPE_486_S3_PCI,
+        .type              = MACHINE_TYPE_SOCKET3_PCI,
         .chipset           = MACHINE_CHIPSET_SIS_496,
         .init              = machine_at_ms4144_init,
         .p1_handler        = machine_generic_p1_handler,
@@ -10336,10 +12607,10 @@ const machine_t machines[] = {
         .cpu               = {
             .package     = CPU_PKG_SOCKET3,
             .block       = CPU_BLOCK_NONE,
-            .min_bus     = 0,
-            .max_bus     = 0,
-            .min_voltage = 0,
-            .max_voltage = 0,
+            .min_bus     = 25000000,
+            .max_bus     = 50000000,
+            .min_voltage = 3300,
+            .max_voltage = 5000,
             .min_multi   = 0,
             .max_multi   = 0
         },
@@ -10355,23 +12626,27 @@ const machine_t machines[] = {
         .default_jumpered_ecp_dma = 3,
         .kbc_device               = &kbc_at_device,
         .kbc_params               = KBC_VEN_AMI | 0x00004800,
+        .nvr_device               = NULL,
+        .nvr_params               = 0x00000000,
+        .sio_device               = NULL,
+        .sio_params               = 0x00000000,
         .kbc_p1                   = 0x000004f0,
         .gpio                     = 0xffffffff,
         .gpio_acpi                = 0xffffffff,
         .device                   = NULL,
         .kbd_device               = NULL,
         .fdc_device               = NULL,
-        .sio_device               = NULL,
         .vid_device               = NULL,
         .snd_device               = NULL,
-        .net_device               = NULL
+        .net_device               = NULL,
+        .aliases                  = { "" }
     },
     /* Revision 1 has a Lance LT38C41L, revision 2 has a Holtek HT6542B.
        Another variant with a Bestkey KBC might exist as well. */
     {
         .name              = "[SiS 496] Rise Computer R418",
         .internal_name     = "r418",
-        .type              = MACHINE_TYPE_486_S3_PCI,
+        .type              = MACHINE_TYPE_SOCKET3_PCI,
         .chipset           = MACHINE_CHIPSET_SIS_496,
         .init              = machine_at_r418_init,
         .p1_handler        = machine_generic_p1_handler,
@@ -10381,10 +12656,10 @@ const machine_t machines[] = {
         .cpu               = {
             .package     = CPU_PKG_SOCKET3,
             .block       = CPU_BLOCK_NONE,
-            .min_bus     = 0,
-            .max_bus     = 0,
-            .min_voltage = 0,
-            .max_voltage = 0,
+            .min_bus     = 25000000,
+            .max_bus     = 50000000,
+            .min_voltage = 3300,
+            .max_voltage = 5000,
             .min_multi   = 0,
             .max_multi   = 0
         },
@@ -10400,23 +12675,27 @@ const machine_t machines[] = {
         .default_jumpered_ecp_dma = 3,
         .kbc_device               = &kbc_at_device,
         .kbc_params               = KBC_VEN_HOLTEK | 0x00004800,
+        .nvr_device               = NULL,
+        .nvr_params               = 0x00000000,
+        .sio_device               = NULL,
+        .sio_params               = 0x00000000,
         .kbc_p1                   = 0x00000cf0,
         .gpio                     = 0xffffffff,
         .gpio_acpi                = 0xffffffff,
         .device                   = NULL,
         .kbd_device               = NULL,
         .fdc_device               = NULL,
-        .sio_device               = NULL,
         .vid_device               = NULL,
         .snd_device               = NULL,
-        .net_device               = NULL
+        .net_device               = NULL,
+        .aliases                  = { "" }
     },
     /* This has a Holtek HT6542B KBC and the BIOS does not send a single non-standard KBC command.
        The Holtek is an ASIC clone of AMI 'H' with a Holtek copyright string. */
     {
         .name              = "[SiS 496] Soyo 4SAW2",
         .internal_name     = "4saw2",
-        .type              = MACHINE_TYPE_486_S3_PCI,
+        .type              = MACHINE_TYPE_SOCKET3_PCI,
         .chipset           = MACHINE_CHIPSET_SIS_496,
         .init              = machine_at_4saw2_init,
         .p1_handler        = machine_generic_p1_handler,
@@ -10426,10 +12705,10 @@ const machine_t machines[] = {
         .cpu               = {
             .package     = CPU_PKG_SOCKET3,
             .block       = CPU_BLOCK(CPU_i486SX, CPU_i486DX, CPU_Am486SX, CPU_Am486DX),
-            .min_bus     = 0,
-            .max_bus     = 0,
-            .min_voltage = 0,
-            .max_voltage = 0,
+            .min_bus     = 25000000,
+            .max_bus     = 50000000,
+            .min_voltage = 3300,
+            .max_voltage = 5000,
             .min_multi   = 0,
             .max_multi   = 0
         },
@@ -10445,23 +12724,27 @@ const machine_t machines[] = {
         .default_jumpered_ecp_dma = 3,
         .kbc_device               = &kbc_at_device,
         .kbc_params               = KBC_VEN_HOLTEK | 0x00004800,
+        .nvr_device               = NULL,
+        .nvr_params               = 0x00000000,
+        .sio_device               = NULL,
+        .sio_params               = 0x00000000,
         .kbc_p1                   = 0x00000cf0,
         .gpio                     = 0xffffffff,
         .gpio_acpi                = 0xffffffff,
         .device                   = NULL,
         .kbd_device               = NULL,
         .fdc_device               = NULL,
-        .sio_device               = NULL,
         .vid_device               = NULL,
         .snd_device               = NULL,
-        .net_device               = NULL
+        .net_device               = NULL,
+        .aliases                  = { "" }
     },
     /* According to MrKsoft, his real 4DPS has an AMIKey-2, which is an updated version
        of type 'H'. There are other variants of the board with Holtek HT6542B KBCs. */
     {
-        .name              = "[SiS 496] Zida Tomato 4DP",
+        .name              = "[SiS 496] Zida Tomato 4DPS",
         .internal_name     = "4dps",
-        .type              = MACHINE_TYPE_486_S3_PCI,
+        .type              = MACHINE_TYPE_SOCKET3_PCI,
         .chipset           = MACHINE_CHIPSET_SIS_496,
         .init              = machine_at_4dps_init,
         .p1_handler        = machine_generic_p1_handler,
@@ -10471,10 +12754,10 @@ const machine_t machines[] = {
         .cpu               = {
             .package     = CPU_PKG_SOCKET3,
             .block       = CPU_BLOCK_NONE,
-            .min_bus     = 0,
-            .max_bus     = 0,
-            .min_voltage = 0,
-            .max_voltage = 0,
+            .min_bus     = 25000000,
+            .max_bus     = 50000000,
+            .min_voltage = 3300,
+            .max_voltage = 5000,
             .min_multi   = 0,
             .max_multi   = 0
         },
@@ -10490,22 +12773,26 @@ const machine_t machines[] = {
         .default_jumpered_ecp_dma = 3,
         .kbc_device               = &kbc_at_device,
         .kbc_params               = KBC_VEN_AMI | 0x00004800,
+        .nvr_device               = NULL,
+        .nvr_params               = 0x00000000,
+        .sio_device               = NULL,
+        .sio_params               = 0x00000000,
         .kbc_p1                   = 0x00000cf0,
         .gpio                     = 0xffffffff,
         .gpio_acpi                = 0xffffffff,
         .device                   = NULL,
         .kbd_device               = NULL,
         .fdc_device               = NULL,
-        .sio_device               = NULL,
         .vid_device               = NULL,
         .snd_device               = NULL,
-        .net_device               = NULL
+        .net_device               = NULL,
+        .aliases                  = { "" }
     },
     /* This has the UMC 88xx on-chip KBC. */
     {
         .name              = "[UMC 8881] A-Trend ATC-1415",
         .internal_name     = "atc1415",
-        .type              = MACHINE_TYPE_486_S3_PCI,
+        .type              = MACHINE_TYPE_SOCKET3_PCI,
         .chipset           = MACHINE_CHIPSET_UMC_UM8881,
         .init              = machine_at_atc1415_init,
         .p1_handler        = machine_generic_p1_handler,
@@ -10515,10 +12802,10 @@ const machine_t machines[] = {
         .cpu               = {
             .package     = CPU_PKG_SOCKET3,
             .block       = CPU_BLOCK_NONE,
-            .min_bus     = 0,
-            .max_bus     = 0,
-            .min_voltage = 0,
-            .max_voltage = 0,
+            .min_bus     = 25000000,
+            .max_bus     = 50000000,
+            .min_voltage = 3300,
+            .max_voltage = 5000,
             .min_multi   = 0,
             .max_multi   = 0
         },
@@ -10534,23 +12821,27 @@ const machine_t machines[] = {
         .default_jumpered_ecp_dma = -1,
         .kbc_device               = NULL, /* UMC UM8886 on-chip KBC. */
         .kbc_params               = 0x00000000,
+        .nvr_device               = &nvr_at_device,
+        .nvr_params               = NVR_AT,
+        .sio_device               = NULL,
+        .sio_params               = 0x00000000,
         .kbc_p1                   = 0x000004f0,
         .gpio                     = 0xffffffff,
         .gpio_acpi                = 0xffffffff,
         .device                   = NULL,
         .kbd_device               = NULL,
         .fdc_device               = NULL,
-        .sio_device               = NULL,
         .vid_device               = NULL,
         .snd_device               = NULL,
-        .net_device               = NULL
+        .net_device               = NULL,
+        .aliases                  = { "" }
     },
     /* This has the UMC 88xx on-chip KBC. All the copies of the BIOS string I can find, end in
        in -H, so the UMC on-chip KBC likely emulates the AMI 'H' KBC firmware. */
     {
         .name              = "[UMC 8881] Biostar MB-84xxUUD-A",
         .internal_name     = "84xxuuda",
-        .type              = MACHINE_TYPE_486_S3_PCI,
+        .type              = MACHINE_TYPE_SOCKET3_PCI,
         .chipset           = MACHINE_CHIPSET_UMC_UM8881,
         .init              = machine_at_84xxuuda_init,
         .p1_handler        = machine_generic_p1_handler,
@@ -10560,10 +12851,10 @@ const machine_t machines[] = {
         .cpu               = {
             .package     = CPU_PKG_SOCKET3,
             .block       = CPU_BLOCK_NONE,
-            .min_bus     = 0,
-            .max_bus     = 0,
-            .min_voltage = 0,
-            .max_voltage = 0,
+            .min_bus     = 20000000,
+            .max_bus     = 50000000,
+            .min_voltage = 3300,
+            .max_voltage = 5000,
             .min_multi   = 0,
             .max_multi   = 0
         },
@@ -10579,23 +12870,27 @@ const machine_t machines[] = {
         .default_jumpered_ecp_dma = 3,
         .kbc_device               = NULL,
         .kbc_params               = 0x00004800,
+        .nvr_device               = &nvr_at_device,
+        .nvr_params               = NVR_AT,
+        .sio_device               = NULL,
+        .sio_params               = 0x00000000,
         .kbc_p1                   = 0x00000cf0,
         .gpio                     = 0xffffffff,
         .gpio_acpi                = 0xffffffff,
         .device                   = NULL,
         .kbd_device               = NULL,
         .fdc_device               = NULL,
-        .sio_device               = NULL,
         .vid_device               = NULL,
         .snd_device               = NULL,
-        .net_device               = NULL
+        .net_device               = NULL,
+        .aliases                  = { "" }
     },
     /* Compaq Presario 7100 Series, using MiTAC/Trigon PL4600C (486). */
     /* Has a VIA VT82C42N KBC. */
     {
         .name              = "[UMC 8881] Compaq Presario 7100 Series 486",
         .internal_name     = "pl4600c",
-        .type              = MACHINE_TYPE_486_S3_PCI,
+        .type              = MACHINE_TYPE_SOCKET3_PCI,
         .chipset           = MACHINE_CHIPSET_UMC_UM8881,
         .init              = machine_at_pl4600c_init,
         .p1_handler        = machine_generic_p1_handler,
@@ -10605,10 +12900,10 @@ const machine_t machines[] = {
         .cpu               = {
             .package     = CPU_PKG_SOCKET3,
             .block       = CPU_BLOCK_NONE,
-            .min_bus     = 0,
-            .max_bus     = 0,
-            .min_voltage = 0,
-            .max_voltage = 0,
+            .min_bus     = 20000000,
+            .max_bus     = 50000000,
+            .min_voltage = 3300,
+            .max_voltage = 5000,
             .min_multi   = 0,
             .max_multi   = 0
         },
@@ -10624,22 +12919,26 @@ const machine_t machines[] = {
         .default_jumpered_ecp_dma = 3,
         .kbc_device               = &kbc_at_device,
         .kbc_params               = KBC_VEN_VIA | 0x00424600,
+        .nvr_device               = &nvr_at_device,
+        .nvr_params               = NVR_AT,
+        .sio_device               = NULL,
+        .sio_params               = 0x00000000,
         .kbc_p1                   = 0x00000cf0,
         .gpio                     = 0xffffffff,
         .gpio_acpi                = 0xffffffff,
         .device                   = NULL,
         .kbd_device               = NULL,
         .fdc_device               = NULL,
-        .sio_device               = NULL,
         .vid_device               = &gd5430_onboard_pci_device,
-        .snd_device               = &ess_1688_device, /* Onboard variant not yet emulated */
-        .net_device               = NULL
+        .snd_device               = &ess_1688_compaq_device,
+        .net_device               = NULL,
+        .aliases                  = { "MiTAC/Trigon PL4600C", "" }
     },
     /* This has an AMIKey-2, which is an updated version of type 'H'. */
     {
         .name              = "[UMC 8881] ECS Elite UM8810P-AIO",
         .internal_name     = "ecs486",
-        .type              = MACHINE_TYPE_486_S3_PCI,
+        .type              = MACHINE_TYPE_SOCKET3_PCI,
         .chipset           = MACHINE_CHIPSET_UMC_UM8881,
         .init              = machine_at_ecs486_init,
         .p1_handler        = machine_generic_p1_handler,
@@ -10649,15 +12948,15 @@ const machine_t machines[] = {
         .cpu               = {
             .package     = CPU_PKG_SOCKET3,
             .block       = CPU_BLOCK_NONE,
-            .min_bus     = 0,
-            .max_bus     = 0,
-            .min_voltage = 0,
-            .max_voltage = 0,
+            .min_bus     = 25000000,
+            .max_bus     = 50000000,
+            .min_voltage = 3300,
+            .max_voltage = 5000,
             .min_multi   = 0,
             .max_multi   = 0
         },
-        .bus_flags = MACHINE_PCI,
-        .flags     = MACHINE_PS2_KBC | MACHINE_IDE_DUAL | MACHINE_APM,
+        .bus_flags = MACHINE_PS2_PCI,
+        .flags     = MACHINE_IDE_DUAL | MACHINE_APM,
         .ram       = {
             .min  = 1024,
             .max  = 131072,
@@ -10668,22 +12967,26 @@ const machine_t machines[] = {
         .default_jumpered_ecp_dma = 3,
         .kbc_device               = &kbc_at_device,
         .kbc_params               = KBC_VEN_AMI | 0x00004800,
+        .nvr_device               = &nvr_at_device,
+        .nvr_params               = NVR_AT,
+        .sio_device               = NULL,
+        .sio_params               = 0x00000000,
         .kbc_p1                   = 0x00000cf0,
         .gpio                     = 0xffffffff,
         .gpio_acpi                = 0xffffffff,
         .device                   = NULL,
         .kbd_device               = NULL,
         .fdc_device               = NULL,
-        .sio_device               = NULL,
         .vid_device               = NULL,
         .snd_device               = NULL,
-        .net_device               = NULL
+        .net_device               = NULL,
+        .aliases                  = { "" }
     },
     /* Has AMIKey Z(!) KBC firmware. */
     {
         .name              = "[UMC 8881] Epson ActionPC 2600",
         .internal_name     = "actionpc2600",
-        .type              = MACHINE_TYPE_486_S3_PCI,
+        .type              = MACHINE_TYPE_SOCKET3_PCI,
         .chipset           = MACHINE_CHIPSET_UMC_UM8881,
         .init              = machine_at_actionpc2600_init,
         .p1_handler        = machine_generic_p1_handler,
@@ -10693,10 +12996,10 @@ const machine_t machines[] = {
         .cpu               = {
             .package     = CPU_PKG_SOCKET3,
             .block       = CPU_BLOCK_NONE,
-            .min_bus     = 0,
-            .max_bus     = 0,
-            .min_voltage = 0,
-            .max_voltage = 0,
+            .min_bus     = 25000000,
+            .max_bus     = 33333333,
+            .min_voltage = 3300,
+            .max_voltage = 5000,
             .min_multi   = 0,
             .max_multi   = 0
         },
@@ -10712,23 +13015,27 @@ const machine_t machines[] = {
         .default_jumpered_ecp_dma = 3,
         .kbc_device               = &kbc_at_device,
         .kbc_params               = KBC_VEN_AMI_TRIGEM | 0x00005a00,
+        .nvr_device               = &nvr_at_device,
+        .nvr_params               = NVR_AT,
+        .sio_device               = NULL,
+        .sio_params               = 0x00000000,
         .kbc_p1                   = 0x000004f0,
         .gpio                     = 0xffffffff,
         .gpio_acpi                = 0xffffffff,
         .device                   = NULL,
         .kbd_device               = NULL,
         .fdc_device               = NULL,
-        .sio_device               = NULL,
         .vid_device               = &tgui9440_onboard_pci_device,
         .snd_device               = NULL,
-        .net_device               = NULL
+        .net_device               = NULL,
+        .aliases                  = { "Epson ActionPC 5500", "Epson Endeavor II", "TriGem SanJose" "TriGem TG486AP", "" }
     },
     /* This has the UMC 88xx on-chip KBC. All the copies of the BIOS string I can find, end in
        in -H, so the UMC on-chip KBC likely emulates the AMI 'H' KBC firmware. */
     {
-        .name              = "[UMC 8881] Epson ActionTower 8400",
+        .name              = "[UMC 8881] Epson ActionTower 7x00",
         .internal_name     = "actiontower8400",
-        .type              = MACHINE_TYPE_486_S3_PCI,
+        .type              = MACHINE_TYPE_SOCKET3_PCI,
         .chipset           = MACHINE_CHIPSET_UMC_UM8881,
         .init              = machine_at_actiontower8400_init,
         .p1_handler        = machine_generic_p1_handler,
@@ -10738,10 +13045,10 @@ const machine_t machines[] = {
         .cpu               = {
             .package     = CPU_PKG_SOCKET3,
             .block       = CPU_BLOCK_NONE,
-            .min_bus     = 0,
-            .max_bus     = 0,
-            .min_voltage = 0,
-            .max_voltage = 0,
+            .min_bus     = 25000000, /* assumed */
+            .max_bus     = 50000000, /* assumed */
+            .min_voltage = 3300, /* assumed */
+            .max_voltage = 5000,
             .min_multi   = 0,
             .max_multi   = 0
         },
@@ -10757,23 +13064,27 @@ const machine_t machines[] = {
         .default_jumpered_ecp_dma = 3,
         .kbc_device               = &kbc_at_device,
         .kbc_params               = KBC_VEN_AMI_TRIGEM | 0x00005a00, /* Guess. */
+        .nvr_device               = &nvr_at_device,
+        .nvr_params               = NVR_AT,
+        .sio_device               = NULL,
+        .sio_params               = 0x00000000,
         .kbc_p1                   = 0x00000cf0,
         .gpio                     = 0xffffffff,
         .gpio_acpi                = 0xffffffff,
         .device                   = NULL,
         .kbd_device               = NULL,
         .fdc_device               = NULL,
-        .sio_device               = NULL,
         .vid_device               = &gd5430_onboard_pci_device,
         .snd_device               = NULL,
-        .net_device               = NULL
+        .net_device               = NULL,
+        .aliases                  = { "Epson ActionTower 7300", "Epson ActionTower 7500", "Epson ActionTower 8400", "" }
     },
     /* This has the UMC 88xx on-chip KBC. All the copies of the BIOS string I can find, end in
        in -H, so the UMC on-chip KBC likely emulates the AMI 'H' KBC firmware. */
     {
         .name              = "[UMC 8881] PC Chips M919",
         .internal_name     = "m919",
-        .type              = MACHINE_TYPE_486_S3_PCI,
+        .type              = MACHINE_TYPE_SOCKET3_PCI,
         .chipset           = MACHINE_CHIPSET_UMC_UM8881,
         .init              = machine_at_m919_init,
         .p1_handler        = machine_generic_p1_handler,
@@ -10783,10 +13094,10 @@ const machine_t machines[] = {
         .cpu               = {
             .package     = CPU_PKG_SOCKET3,
             .block       = CPU_BLOCK_NONE,
-            .min_bus     = 0,
-            .max_bus     = 0,
-            .min_voltage = 0,
-            .max_voltage = 0,
+            .min_bus     = 25000000,
+            .max_bus     = 50000000,
+            .min_voltage = 3300,
+            .max_voltage = 5000,
             .min_multi   = 0,
             .max_multi   = 0
         },
@@ -10802,22 +13113,26 @@ const machine_t machines[] = {
         .default_jumpered_ecp_dma = 3,
         .kbc_device               = NULL, /* UMC UM8886 on-chip KBC. */
         .kbc_params               = 0x00004800,
+        .nvr_device               = &nvr_at_device,
+        .nvr_params               = NVR_AT,
+        .sio_device               = NULL,
+        .sio_params               = 0x00000000,
         .kbc_p1                   = 0x000004f0,
         .gpio                     = 0xffffffff,
         .gpio_acpi                = 0xffffffff,
         .device                   = NULL,
         .kbd_device               = NULL,
         .fdc_device               = NULL,
-        .sio_device               = NULL,
         .vid_device               = NULL,
         .snd_device               = NULL,
-        .net_device               = NULL
+        .net_device               = NULL,
+        .aliases                  = { "" }
     },
     /* Has IBM PS/2 Type 1 KBC firmware. Uses a mysterious I/O port C05. */
     {
         .name              = "[UMC 8881] Samsung SPC7700P-LW",
         .internal_name     = "spc7700plw",
-        .type              = MACHINE_TYPE_486_S3_PCI,
+        .type              = MACHINE_TYPE_SOCKET3_PCI,
         .chipset           = MACHINE_CHIPSET_UMC_UM8881,
         .init              = machine_at_spc7700plw_init,
         .p1_handler        = machine_generic_p1_handler,
@@ -10827,10 +13142,10 @@ const machine_t machines[] = {
         .cpu               = {
             .package     = CPU_PKG_SOCKET3,
             .block       = CPU_BLOCK_NONE,
-            .min_bus     = 0,
-            .max_bus     = 0,
-            .min_voltage = 0,
-            .max_voltage = 0,
+            .min_bus     = 25000000, /* assumed */
+            .max_bus     = 50000000, /* assumed */
+            .min_voltage = 3300, /* assumed */
+            .max_voltage = 5000,
             .min_multi   = 0,
             .max_multi   = 0
         },
@@ -10846,22 +13161,26 @@ const machine_t machines[] = {
         .default_jumpered_ecp_dma = 3,
         .kbc_device               = NULL, /* UMC UM8886 on-chip KBC. */
         .kbc_params               = 0x00004800,
+        .nvr_device               = &nvr_at_device,
+        .nvr_params               = NVR_AT,
+        .sio_device               = NULL,
+        .sio_params               = 0x00000000,
         .kbc_p1                   = 0x00000cf0,
         .gpio                     = 0xffffffff,
         .gpio_acpi                = 0xffffffff,
         .device                   = NULL,
         .kbd_device               = NULL,
         .fdc_device               = NULL,
-        .sio_device               = NULL,
         .vid_device               = NULL,
         .snd_device               = NULL,
-        .net_device               = NULL
+        .net_device               = NULL,
+        .aliases                  = { "" }
     },
     /* This has a Holtek KBC. */
     {
         .name              = "[UMC 8881] Shuttle HOT-433A",
         .internal_name     = "hot433a",
-        .type              = MACHINE_TYPE_486_S3_PCI,
+        .type              = MACHINE_TYPE_SOCKET3_PCI,
         .chipset           = MACHINE_CHIPSET_UMC_UM8881,
         .init              = machine_at_hot433a_init,
         .p1_handler        = machine_generic_p1_handler,
@@ -10871,10 +13190,10 @@ const machine_t machines[] = {
         .cpu               = {
             .package     = CPU_PKG_SOCKET3,
             .block       = CPU_BLOCK_NONE,
-            .min_bus     = 0,
-            .max_bus     = 0,
-            .min_voltage = 0,
-            .max_voltage = 0,
+            .min_bus     = 25000000,
+            .max_bus     = 50000000,
+            .min_voltage = 3300,
+            .max_voltage = 5000,
             .min_multi   = 0,
             .max_multi   = 0
         },
@@ -10890,22 +13209,27 @@ const machine_t machines[] = {
         .default_jumpered_ecp_dma = -1,
         .kbc_device               = &kbc_at_device,
         .kbc_params               = KBC_VEN_HOLTEK | 0x00004800,
+        /* TODO: Per-BIOS NVR parameters. */
+        .nvr_device               = NULL,
+        .nvr_params               = 0x00000000,
+        .sio_device               = NULL,
+        .sio_params               = 0x00000000,
         .kbc_p1                   = 0x00000cf0,
         .gpio                     = 0xffffffff,
         .gpio_acpi                = 0xffffffff,
         .device                   = &hot433a_device,
         .kbd_device               = NULL,
         .fdc_device               = NULL,
-        .sio_device               = NULL,
         .vid_device               = NULL,
         .snd_device               = NULL,
-        .net_device               = NULL
+        .net_device               = NULL,
+        .aliases                  = { "" }
     },
     /* Has a VIA VT82C406 KBC+RTC that likely has identical commands to the VT82C42N. */
     {
         .name              = "[VIA VT82C496G] DFI G486VPA",
         .internal_name     = "g486vpa",
-        .type              = MACHINE_TYPE_486_S3_PCI,
+        .type              = MACHINE_TYPE_SOCKET3_PCI,
         .chipset           = MACHINE_CHIPSET_VIA_VT82C496G,
         .init              = machine_at_g486vpa_init,
         .p1_handler        = machine_generic_p1_handler,
@@ -10915,10 +13239,10 @@ const machine_t machines[] = {
         .cpu               = {
             .package     = CPU_PKG_SOCKET3,
             .block       = CPU_BLOCK_NONE,
-            .min_bus     = 0,
-            .max_bus     = 0,
-            .min_voltage = 0,
-            .max_voltage = 0,
+            .min_bus     = 25000000,
+            .max_bus     = 50000000,
+            .min_voltage = 3300,
+            .max_voltage = 5000,
             .min_multi   = 0,
             .max_multi   = 0
         },
@@ -10934,22 +13258,26 @@ const machine_t machines[] = {
         .default_jumpered_ecp_dma = 3,
         .kbc_device               = &kbc_at_device,
         .kbc_params               = KBC_VEN_VIA | 0x00424600,
+        .nvr_device               = &nvr_at_device,
+        .nvr_params               = NVR_AT,
+        .sio_device               = NULL,
+        .sio_params               = 0x00000000,
         .kbc_p1                   = 0x00000cf0,
         .gpio                     = 0xffffffff,
         .gpio_acpi                = 0xffffffff,
         .device                   = NULL,
         .kbd_device               = NULL,
         .fdc_device               = NULL,
-        .sio_device               = NULL,
         .vid_device               = NULL,
         .snd_device               = NULL,
-        .net_device               = NULL
+        .net_device               = NULL,
+        .aliases                  = { "" }
     },
     /* Has a VIA VT82C42N KBC. */
     {
-        .name              = "[VIA VT82C496G] FIC VIP-IO2",
+        .name              = "[VIA VT82C496G] FIC 486-VIP-IO2",
         .internal_name     = "486vipio2",
-        .type              = MACHINE_TYPE_486_S3_PCI,
+        .type              = MACHINE_TYPE_SOCKET3_PCI,
         .chipset           = MACHINE_CHIPSET_VIA_VT82C496G,
         .init              = machine_at_486vipio2_init,
         .p1_handler        = machine_generic_p1_handler,
@@ -10959,10 +13287,10 @@ const machine_t machines[] = {
         .cpu               = {
             .package     = CPU_PKG_SOCKET3,
             .block       = CPU_BLOCK_NONE,
-            .min_bus     = 0,
-            .max_bus     = 0,
-            .min_voltage = 0,
-            .max_voltage = 0,
+            .min_bus     = 25000000,
+            .max_bus     = 50000000,
+            .min_voltage = 3300,
+            .max_voltage = 5000,
             .min_multi   = 0,
             .max_multi   = 0
         },
@@ -10978,26 +13306,30 @@ const machine_t machines[] = {
         .default_jumpered_ecp_dma = 3,
         .kbc_device               = &kbc_at_device,
         .kbc_params               = KBC_VEN_VIA | 0x00424600,
+        .nvr_device               = &nvr_at_device,
+        .nvr_params               = NVR_AT,
+        .sio_device               = NULL,
+        .sio_params               = 0x00000000,
         .kbc_p1                   = 0x00000cf0,
         .gpio                     = 0xffffffff,
         .gpio_acpi                = 0xffffffff,
         .device                   = NULL,
         .kbd_device               = NULL,
         .fdc_device               = NULL,
-        .sio_device               = NULL,
         .vid_device               = NULL,
         .snd_device               = NULL,
-        .net_device               = NULL
+        .net_device               = NULL,
+        .aliases                  = { "" }
     },
 
-    /* 486 machines - Miscellaneous */
+    /* STMicroelectronics STPC machines */
     /* 486 machines which utilize the PCI bus */
     /* Has a Winbond W83977F Super I/O chip with on-chip KBC with AMIKey-2 KBC
        firmware. */
     {
         .name              = "[STPC Client] ITOX STAR",
         .internal_name     = "itoxstar",
-        .type              = MACHINE_TYPE_486_MISC,
+        .type              = MACHINE_TYPE_STPC,
         .chipset           = MACHINE_CHIPSET_STPC_CLIENT,
         .init              = machine_at_itoxstar_init,
         .p1_handler        = machine_generic_p1_handler,
@@ -11008,7 +13340,7 @@ const machine_t machines[] = {
             .package     = CPU_PKG_STPC,
             .block       = CPU_BLOCK_NONE,
             .min_bus     = 66666667,
-            .max_bus     = 75000000,
+            .max_bus     = 66666667,
             .min_voltage = 0,
             .max_voltage = 0,
             .min_multi   = 1.0,
@@ -11026,23 +13358,27 @@ const machine_t machines[] = {
         .default_jumpered_ecp_dma = -1,
         .kbc_device               = NULL,
         .kbc_params               = 0x00004800,
+        .nvr_device               = NULL,
+        .nvr_params               = 0x00000000,
+        .sio_device               = NULL,
+        .sio_params               = 0x00000000,
         .kbc_p1                   = 0x00000cf0,
         .gpio                     = 0xffffffff,
         .gpio_acpi                = 0xffffffff,
         .device                   = NULL,
         .kbd_device               = NULL,
         .fdc_device               = NULL,
-        .sio_device               = NULL,
         .vid_device               = NULL,
         .snd_device               = NULL,
-        .net_device               = NULL
+        .net_device               = NULL,
+        .aliases                  = { "" }
     },
     /* Has a Winbond W83977F Super I/O chip with on-chip KBC with AMIKey-2 KBC
        firmware. */
     {
         .name              = "[STPC Consumer-II] Acrosser AR-B1423C",
         .internal_name     = "arb1423c",
-        .type              = MACHINE_TYPE_486_MISC,
+        .type              = MACHINE_TYPE_STPC,
         .chipset           = MACHINE_CHIPSET_STPC_CONSUMER_II,
         .init              = machine_at_arb1423c_init,
         .p1_handler        = machine_generic_p1_handler,
@@ -11062,8 +13398,8 @@ const machine_t machines[] = {
         .bus_flags = MACHINE_PS2_PCI,
         .flags     = MACHINE_IDE_DUAL | MACHINE_APM | MACHINE_PCI_INTERNAL, /* Machine has internal video: ST STPC Atlas */
         .ram       = {
-            .min  = 32768,
-            .max  = 163840,
+            .min  = 8192,
+            .max  = 131072,
             .step = 8192
         },
         .nvrmask                  = 255,
@@ -11071,23 +13407,27 @@ const machine_t machines[] = {
         .default_jumpered_ecp_dma = -1,
         .kbc_device               = NULL,
         .kbc_params               = 0x00004800,
+        .nvr_device               = NULL,
+        .nvr_params               = 0x00000000,
+        .sio_device               = NULL,
+        .sio_params               = 0x00000000,
         .kbc_p1                   = 0x00000cf0,
         .gpio                     = 0xffffffff,
         .gpio_acpi                = 0xffffffff,
         .device                   = NULL,
         .kbd_device               = NULL,
         .fdc_device               = NULL,
-        .sio_device               = NULL,
         .vid_device               = NULL,
         .snd_device               = NULL,
-        .net_device               = NULL
+        .net_device               = NULL,
+        .aliases                  = { "" }
     },
     /* Has a Winbond W83977F Super I/O chip with on-chip KBC with AMIKey-2 KBC
        firmware. */
     {
         .name              = "[STPC Consumer-II] Acrosser AR-B1479",
         .internal_name     = "arb1479",
-        .type              = MACHINE_TYPE_486_MISC,
+        .type              = MACHINE_TYPE_STPC,
         .chipset           = MACHINE_CHIPSET_STPC_CONSUMER_II,
         .init              = machine_at_arb1479_init,
         .p1_handler        = machine_generic_p1_handler,
@@ -11105,34 +13445,39 @@ const machine_t machines[] = {
             .max_multi   = 2.0
         },
         .bus_flags = MACHINE_PS2_PCI | MACHINE_BUS_USB,
-        .flags     = MACHINE_IDE_DUAL | MACHINE_APM | MACHINE_PCI_INTERNAL | MACHINE_USB, /* Machine has internal video: ST STPC Atlas */
+        .flags     = MACHINE_IDE_DUAL | MACHINE_APM | MACHINE_PCI_INTERNAL | MACHINE_USB, /* Machine has internal video: ST STPC Atlas, NIC: Realtek RTL8100B */
         .ram       = {
+            /* 32 MB soldered SDRAM, neither upgradable nor other known configurations exist. */
             .min  = 32768,
-            .max  = 163840,
-            .step = 8192
+            .max  = 32768,
+            .step = 32768
         },
         .nvrmask                  = 255,
         .jumpered_ecp_dma         = 0,
         .default_jumpered_ecp_dma = -1,
         .kbc_device               = NULL,
         .kbc_params               = 0x00004800,
+        .nvr_device               = NULL,
+        .nvr_params               = 0x00000000,
+        .sio_device               = NULL,
+        .sio_params               = 0x00000000,
         .kbc_p1                   = 0x00000cf0,
         .gpio                     = 0xffffffff,
         .gpio_acpi                = 0xffffffff,
-        .device                   = NULL,
+        .device                   = &arb1479_device,
         .kbd_device               = NULL,
         .fdc_device               = NULL,
-        .sio_device               = NULL,
         .vid_device               = NULL,
         .snd_device               = NULL,
-        .net_device               = NULL
+        .net_device               = NULL,
+        .aliases                  = { "" }
     },
     /* Has a Winbond W83977F Super I/O chip with on-chip KBC with AMIKey-2 KBC
        firmware. */
     {
         .name              = "[STPC Consumer-II] Lanner Electronics IAC-H488",
         .internal_name     = "iach488",
-        .type              = MACHINE_TYPE_486_MISC,
+        .type              = MACHINE_TYPE_STPC,
         .chipset           = MACHINE_CHIPSET_STPC_CONSUMER_II,
         .init              = machine_at_iach488_init,
         .p1_handler        = machine_generic_p1_handler,
@@ -11152,32 +13497,36 @@ const machine_t machines[] = {
         .bus_flags = MACHINE_PS2,
         .flags     = MACHINE_IDE | MACHINE_APM | MACHINE_PCI_INTERNAL, /* Machine has internal video: ST STPC Atlas and NIC: Realtek RTL8139C+ */
         .ram       = {
-            .min  = 32768,
+            .min  = 8192,
             .max  = 131072,
-            .step = 32768
+            .step = 8192
         },
         .nvrmask                  = 255,
         .jumpered_ecp_dma         = 0,
         .default_jumpered_ecp_dma = -1,
         .kbc_device               = NULL,
         .kbc_params               = 0x00004800,
+        .nvr_device               = NULL,
+        .nvr_params               = 0x00000000,
+        .sio_device               = NULL,
+        .sio_params               = 0x00000000,
         .kbc_p1                   = 0x00000cf0,
         .gpio                     = 0xffffffff,
         .gpio_acpi                = 0xffffffff,
         .device                   = NULL,
         .kbd_device               = NULL,
         .fdc_device               = NULL,
-        .sio_device               = NULL,
         .vid_device               = NULL,
         .snd_device               = NULL,
-        .net_device               = NULL
+        .net_device               = NULL,
+        .aliases                  = { "" }
     },
     /* Has a Winbond W83977F Super I/O chip with on-chip KBC with AMIKey-2 KBC
        firmware. */
     {
         .name              = "[STPC Elite] Advantech PCM-9340",
         .internal_name     = "pcm9340",
-        .type              = MACHINE_TYPE_486_MISC,
+        .type              = MACHINE_TYPE_STPC,
         .chipset           = MACHINE_CHIPSET_STPC_ELITE,
         .init              = machine_at_pcm9340_init,
         .p1_handler        = machine_generic_p1_handler,
@@ -11206,23 +13555,27 @@ const machine_t machines[] = {
         .default_jumpered_ecp_dma = -1,
         .kbc_device               = NULL,
         .kbc_params               = 0x00004800,
+        .nvr_device               = NULL,
+        .nvr_params               = 0x00000000,
+        .sio_device               = NULL,
+        .sio_params               = 0x00000000,
         .kbc_p1                   = 0x00000cf0,
         .gpio                     = 0xffffffff,
         .gpio_acpi                = 0xffffffff,
         .device                   = NULL,
         .kbd_device               = NULL,
         .fdc_device               = NULL,
-        .sio_device               = NULL,
         .vid_device               = NULL,
         .snd_device               = NULL,
-        .net_device               = NULL
+        .net_device               = NULL,
+        .aliases                  = { "" }
     },
     /* Has a Winbond W83977F Super I/O chip with on-chip KBC with AMIKey-2 KBC
        firmware. */
     {
         .name              = "[STPC Atlas] AAEON PCM-5330",
         .internal_name     = "pcm5330",
-        .type              = MACHINE_TYPE_486_MISC,
+        .type              = MACHINE_TYPE_STPC,
         .chipset           = MACHINE_CHIPSET_STPC_ATLAS,
         .init              = machine_at_pcm5330_init,
         .p1_handler        = machine_generic_p1_handler,
@@ -11251,16 +13604,72 @@ const machine_t machines[] = {
         .default_jumpered_ecp_dma = -1,
         .kbc_device               = NULL,
         .kbc_params               = 0x00004800,
+        .nvr_device               = NULL,
+        .nvr_params               = 0x00000000,
+        .sio_device               = NULL,
+        .sio_params               = 0x00000000,
         .kbc_p1                   = 0x00000cf0,
         .gpio                     = 0xffffffff,
         .gpio_acpi                = 0xffffffff,
         .device                   = NULL,
         .kbd_device               = NULL,
         .fdc_device               = NULL,
-        .sio_device               = NULL,
         .vid_device               = NULL,
         .snd_device               = NULL,
-        .net_device               = NULL
+        .net_device               = NULL,
+        .aliases                  = { "" }
+    },
+
+    /* Socket 3/4 machines */
+    /* OPTi 571/572 */
+    /* The BIOS string reports AMIKEY-2 'H' KBC firmware, yet the actual board
+       seems to have an AMIKEY 'F' based on the only available picture  */
+    {
+        .name              = "[OPTi 571] TMC PAT45PV",
+        .internal_name     = "pat45pv",
+        .type              = MACHINE_TYPE_SOCKET3_4,
+        .chipset           = MACHINE_CHIPSET_OPTI_571,
+        .init              = machine_at_pat45pv_init,
+        .p1_handler        = machine_generic_p1_handler,
+        .gpio_handler      = NULL,
+        .available_flag    = MACHINE_AVAILABLE,
+        .gpio_acpi_handler = NULL,
+        .cpu               = {
+            .package     = CPU_PKG_SOCKET3 | CPU_PKG_SOCKET4,
+            .block       = CPU_BLOCK_NONE,
+            .min_bus     = 33333333,
+            .max_bus     = 66666667,
+            .min_voltage = 5000,
+            .max_voltage = 5000,
+            .min_multi   = 0,
+            .max_multi   = 0
+        },
+        .bus_flags = MACHINE_VLB,
+        .flags     = MACHINE_FLAGS_NONE,
+        .ram       = {
+            .min  = 2048,
+            .max  = 65536, /* neither DOS nor Windows recognizes more than this amount */
+            .step = 2048
+        },
+        .nvrmask                  = 127,
+        .jumpered_ecp_dma         = 0,
+        .default_jumpered_ecp_dma = -1,
+        .kbc_device               = &kbc_at_device,
+        .kbc_params               = KBC_VEN_AMI | 0x00004600,
+        .nvr_device               = &nvr_at_device,
+        .nvr_params               = NVR_AT,
+        .sio_device               = NULL,
+        .sio_params               = 0x00000000,
+        .kbc_p1                   = 0x000004f0,
+        .gpio                     = 0xffffffff,
+        .gpio_acpi                = 0xffffffff,
+        .device                   = NULL,
+        .kbd_device               = NULL,
+        .fdc_device               = NULL,
+        .vid_device               = NULL,
+        .snd_device               = NULL,
+        .net_device               = NULL,
+        .aliases                  = { "" }
     },
 
     /* Socket 4 machines */
@@ -11287,7 +13696,7 @@ const machine_t machines[] = {
             .max_multi   = MACHINE_MULTIPLIER_FIXED
         },
         .bus_flags = MACHINE_PS2_PCI,
-        .flags     = MACHINE_IDE | MACHINE_APM,
+        .flags     = MACHINE_IDE,
         .ram       = {
             .min  = 2048,
             .max  = 196608,
@@ -11298,16 +13707,20 @@ const machine_t machines[] = {
         .default_jumpered_ecp_dma = -1,
         .kbc_device               = &kbc_at_device,
         .kbc_params               = KBC_VEN_ACER | 0x00000000,
+        .nvr_device               = &nvr_at_device,
+        .nvr_params               = NVR_AT,
+        .sio_device               = NULL,
+        .sio_params               = 0x00000000,
         .kbc_p1                   = 0x004008f0,
         .gpio                     = 0xffffffff,
         .gpio_acpi                = 0xffffffff,
         .device                   = &v12p_device,
         .kbd_device               = NULL,
         .fdc_device               = NULL,
-        .sio_device               = NULL,
         .vid_device               = NULL,
         .snd_device               = NULL,
-        .net_device               = NULL
+        .net_device               = NULL,
+        .aliases                  = { "" }
     },
     /* Has AMIKey H KBC firmware (AMIKey-2), per POST screen with BIOS string
        shown in the manual. Has PS/2 mouse support with serial-style (DB9)
@@ -11335,7 +13748,7 @@ const machine_t machines[] = {
             .max_multi   = MACHINE_MULTIPLIER_FIXED
         },
         .bus_flags = MACHINE_PS2_PCI,
-        .flags     = MACHINE_IDE | MACHINE_APM, /* Machine has internal SCSI */
+        .flags     = MACHINE_IDE, /* Machine has internal SCSI */
         .ram       = {
             .min  = 2048,
             .max  = 131072,
@@ -11346,16 +13759,20 @@ const machine_t machines[] = {
         .default_jumpered_ecp_dma = -1,
         .kbc_device               = &kbc_at_device,
         .kbc_params               = KBC_VEN_AMI | 0x00004800,
+        .nvr_device               = &nvr_at_device,
+        .nvr_params               = NVR_AT,
+        .sio_device               = NULL,
+        .sio_params               = 0x00000000,
         .kbc_p1                   = 0x00000cf0,
         .gpio                     = 0xffffffff,
         .gpio_acpi                = 0xffffffff,
         .device                   = NULL,
         .kbd_device               = NULL,
         .fdc_device               = NULL,
-        .sio_device               = NULL,
         .vid_device               = NULL,
         .snd_device               = NULL,
-        .net_device               = NULL
+        .net_device               = NULL,
+        .aliases                  = { "AMI S701", "" }
     },
     /* Has AMIKey F KBC firmware (AMIKey). */
     {
@@ -11379,7 +13796,7 @@ const machine_t machines[] = {
             .max_multi   = MACHINE_MULTIPLIER_FIXED
         },
         .bus_flags = MACHINE_PCI,
-        .flags     = MACHINE_PS2_KBC | MACHINE_APM,
+        .flags     = MACHINE_PS2_KBC,
         .ram       = {
             .min  = 2048,
             .max  = 196608,
@@ -11390,16 +13807,20 @@ const machine_t machines[] = {
         .default_jumpered_ecp_dma = -1,
         .kbc_device               = &kbc_at_device,
         .kbc_params               = KBC_VEN_AMI | 0x00004600,
+        .nvr_device               = &nvr_at_device,
+        .nvr_params               = NVR_AT,
+        .sio_device               = NULL,
+        .sio_params               = 0x00000000,
         .kbc_p1                   = 0x00000cf0,
         .gpio                     = 0xffffffff,
         .gpio_acpi                = 0xffffffff,
         .device                   = &p5mp3_device,
         .kbd_device               = NULL,
         .fdc_device               = NULL,
-        .sio_device               = NULL,
         .vid_device               = NULL,
         .snd_device               = NULL,
-        .net_device               = NULL
+        .net_device               = NULL,
+        .aliases                  = { "" }
     },
     /* Has IBM PS/2 Type 1 KBC firmware. */
     {
@@ -11416,14 +13837,14 @@ const machine_t machines[] = {
             .package     = CPU_PKG_SOCKET4,
             .block       = CPU_BLOCK_NONE,
             .min_bus     = 60000000,
-            .max_bus     = 66666667,
+            .max_bus     = 60000000,
             .min_voltage = 5000,
             .max_voltage = 5000,
             .min_multi   = MACHINE_MULTIPLIER_FIXED,
             .max_multi   = MACHINE_MULTIPLIER_FIXED
         },
         .bus_flags = MACHINE_PS2_PCI,
-        .flags     = MACHINE_IDE | MACHINE_APM,
+        .flags     = MACHINE_IDE | MACHINE_APM, /* Machine has internal video: Cirrus Logic GD5430 */
         .ram       = {
             .min  = 2048,
             .max  = 131072,
@@ -11434,16 +13855,20 @@ const machine_t machines[] = {
         .default_jumpered_ecp_dma = -1,
         .kbc_device               = &kbc_at_device,
         .kbc_params               = KBC_VEN_PHOENIX | 0x00012900,
+        .nvr_device               = &nvr_at_device,
+        .nvr_params               = NVR_AT_ZERO_DEFAULT,
+        .sio_device               = NULL,
+        .sio_params               = 0x00000000,
         .kbc_p1                   = 0x00000cf0,
         .gpio                     = 0xffffffff,
         .gpio_acpi                = 0xffffffff,
         .device                   = NULL,
         .kbd_device               = NULL,
         .fdc_device               = NULL,
-        .sio_device               = NULL,
         .vid_device               = NULL,
         .snd_device               = NULL,
-        .net_device               = NULL
+        .net_device               = NULL,
+        .aliases                  = { "" }
     },
     /* Has AMI MegaKey 'H' KBC firmware. */
     {
@@ -11467,10 +13892,10 @@ const machine_t machines[] = {
             .max_multi   = MACHINE_MULTIPLIER_FIXED
         },
         .bus_flags = MACHINE_PCI,
-        .flags     = MACHINE_APM,
+        .flags     = MACHINE_FLAGS_NONE,
         .ram       = {
             .min  = 2048,
-            .max  = 131072,
+            .max  = 196608,
             .step = 2048
         },
         .nvrmask                  = 127,
@@ -11478,20 +13903,24 @@ const machine_t machines[] = {
         .default_jumpered_ecp_dma = -1,
         .kbc_device               = &kbc_at_device,
         .kbc_params               = KBC_VEN_AMI | 0x00004800,
+        .nvr_device               = &nvr_at_device,
+        .nvr_params               = NVR_AT,
+        .sio_device               = NULL,
+        .sio_params               = 0x00000000,
         .kbc_p1                   = 0x000004f0,
         .gpio                     = 0xffffffff,
         .gpio_acpi                = 0xffffffff,
         .device                   = NULL,
         .kbd_device               = NULL,
         .fdc_device               = NULL,
-        .sio_device               = NULL,
         .vid_device               = NULL,
         .snd_device               = NULL,
-        .net_device               = NULL
+        .net_device               = NULL,
+        .aliases                  = { "Gigabyte GA-5IS", "" }
     },
     /* Has IBM PS/2 Type 1 KBC firmware. */
     {
-        .name              = "[i430LX] IBM PS/ValuePoint P60 (Robin ACE)",
+        .name              = "[i430LX] IBM PS/ValuePoint P60",
         .internal_name     = "valuepointp60",
         .type              = MACHINE_TYPE_SOCKET4,
         .chipset           = MACHINE_CHIPSET_INTEL_430LX,
@@ -11504,14 +13933,14 @@ const machine_t machines[] = {
             .package     = CPU_PKG_SOCKET4,
             .block       = CPU_BLOCK_NONE,
             .min_bus     = 60000000,
-            .max_bus     = 66666667,
+            .max_bus     = 60000000,
             .min_voltage = 5000,
             .max_voltage = 5000,
             .min_multi   = MACHINE_MULTIPLIER_FIXED,
             .max_multi   = MACHINE_MULTIPLIER_FIXED
         },
         .bus_flags = MACHINE_PS2_PCI,
-        .flags     = MACHINE_IDE_DUAL | MACHINE_VIDEO | MACHINE_VIDEO_8514A | MACHINE_APM,
+        .flags     = MACHINE_IDE_DUAL | MACHINE_VIDEO | MACHINE_VIDEO_8514A,
         .ram       = {
             .min  = 2048,
             .max  = 131072,
@@ -11522,20 +13951,24 @@ const machine_t machines[] = {
         .default_jumpered_ecp_dma = 3,
         .kbc_device               = &kbc_at_device,
         .kbc_params               = 0x00000000,
+        .nvr_device               = &nvr_at_device,
+        .nvr_params               = NVR_AT,
+        .sio_device               = NULL,
+        .sio_params               = 0x00000000,
         .kbc_p1                   = 0x000004f0,
         .gpio                     = 0xffffffff,
         .gpio_acpi                = 0xffffffff,
         .device                   = NULL,
         .kbd_device               = NULL,
         .fdc_device               = NULL,
-        .sio_device               = NULL,
         .vid_device               = &mach32_onboard_pci_device,
         .snd_device               = NULL,
-        .net_device               = NULL
+        .net_device               = NULL,
+        .aliases                  = { "Intel Robin ACE", "" }
     },
     /* This has the Phoenix MultiKey KBC firmware. */
     {
-        .name              = "[i430LX] Intel Premiere/PCI (Batman)",
+        .name              = "[i430LX] Intel Premiere/PCI",
         .internal_name     = "batman",
         .type              = MACHINE_TYPE_SOCKET4,
         .chipset           = MACHINE_CHIPSET_INTEL_430LX,
@@ -11555,7 +13988,7 @@ const machine_t machines[] = {
             .max_multi   = MACHINE_MULTIPLIER_FIXED
         },
         .bus_flags = MACHINE_PS2_PCI,
-        .flags     = MACHINE_IDE | MACHINE_APM,
+        .flags     = MACHINE_IDE,
         .ram       = {
             .min  = 2048,
             .max  = 131072,
@@ -11566,20 +13999,24 @@ const machine_t machines[] = {
         .default_jumpered_ecp_dma = 3,
         .kbc_device               = &kbc_at_device,
         .kbc_params               = KBC_VEN_PHOENIX | 0x00012900,
+        .nvr_device               = &nvr_at_device,
+        .nvr_params               = NVR_AT_ZERO_DEFAULT,
+        .sio_device               = NULL,
+        .sio_params               = 0x00000000,
         .kbc_p1                   = 0x00001030,
         .gpio                     = 0xffffffff,
         .gpio_acpi                = 0xffffffff,
         .device                   = &batman_device,
         .kbd_device               = NULL,
         .fdc_device               = NULL,
-        .sio_device               = NULL,
         .vid_device               = NULL,
         .snd_device               = NULL,
-        .net_device               = NULL
+        .net_device               = NULL,
+        .aliases                  = { "Intel Batman", "Dell Dimension XPS P60", "AMBRA DP60 PCI", "" }
     },
     /* This has the Phoenix MultiKey KBC firmware. */
     {
-        .name              = "[i430LX] Intel Premiere/PCI (Batman's Revenge)",
+        .name              = "[i430LX] Intel Premiere/PCI ED",
         .internal_name     = "revenge",
         .type              = MACHINE_TYPE_SOCKET4,
         .chipset           = MACHINE_CHIPSET_INTEL_430LX,
@@ -11599,7 +14036,7 @@ const machine_t machines[] = {
             .max_multi   = MACHINE_MULTIPLIER_FIXED
         },
         .bus_flags = MACHINE_PS2_PCI,
-        .flags     = MACHINE_IDE_DUAL | MACHINE_APM,
+        .flags     = MACHINE_IDE_DUAL,
         .ram       = {
             .min  = 2048,
             .max  = 131072,
@@ -11610,16 +14047,20 @@ const machine_t machines[] = {
         .default_jumpered_ecp_dma = 3,
         .kbc_device               = &kbc_at_device,
         .kbc_params               = KBC_VEN_PHOENIX | 0x00012900,
+        .nvr_device               = &nvr_at_device,
+        .nvr_params               = NVR_AT_ZERO_DEFAULT,
+        .sio_device               = NULL,
+        .sio_params               = 0x00000000,
         .kbc_p1                   = 0x00000cf0,
         .gpio                     = 0xffffffff,
         .gpio_acpi                = 0xffffffff,
         .device                   = NULL,
         .kbd_device               = NULL,
         .fdc_device               = NULL,
-        .sio_device               = NULL,
         .vid_device               = NULL,
         .snd_device               = NULL,
-        .net_device               = NULL
+        .net_device               = NULL,
+        .aliases                  = { "Intel Batman's Revenge", "Intel Premiere/PCI Expandable Desktop", "" }
     },
     /* The M5Pi appears to have a Phoenix MultiKey KBC firmware according to photos. */
     {
@@ -11643,7 +14084,7 @@ const machine_t machines[] = {
             .max_multi   = MACHINE_MULTIPLIER_FIXED
         },
         .bus_flags = MACHINE_PCI,
-        .flags     = MACHINE_IDE_DUAL | MACHINE_APM,
+        .flags     = MACHINE_IDE_DUAL,
         .ram       = {
             .min  = 2048,
             .max  = 131072,
@@ -11654,20 +14095,24 @@ const machine_t machines[] = {
         .default_jumpered_ecp_dma = 3,
         .kbc_device               = &kbc_at_device,
         .kbc_params               = KBC_VEN_PHOENIX | 0x00012900,    /* Guess. */
+        .nvr_device               = &nvr_at_device,
+        .nvr_params               = NVR_AT,
+        .sio_device               = NULL,
+        .sio_params               = 0x00000000,
         .kbc_p1                   = 0x00000cf0,
         .gpio                     = 0xffffffff,
         .gpio_acpi                = 0xffffffff,
         .device                   = NULL,
         .kbd_device               = NULL,
         .fdc_device               = NULL,
-        .sio_device               = NULL,
         .vid_device               = NULL,
         .snd_device               = NULL,
-        .net_device               = NULL
+        .net_device               = NULL,
+        .aliases                  = { "" }
     },
     /* This has the Phoenix MultiKey KBC firmware. */
     {
-        .name              = "[i430LX] Packard Bell Robin LC (PB520R)",
+        .name              = "[i430LX] Packard Bell PB520R",
         .internal_name     = "pb520r",
         .type              = MACHINE_TYPE_SOCKET4,
         .chipset           = MACHINE_CHIPSET_INTEL_430LX,
@@ -11698,16 +14143,20 @@ const machine_t machines[] = {
         .default_jumpered_ecp_dma = -1,
         .kbc_device               = &kbc_at_device,
         .kbc_params               = KBC_VEN_PHOENIX | 0x00012900,
+        .nvr_device               = &nvr_at_device,
+        .nvr_params               = NVR_AT,
+        .sio_device               = NULL,
+        .sio_params               = 0x00000000,
         .kbc_p1                   = 0x00000cf0,
         .gpio                     = 0xffffffff,
         .gpio_acpi                = 0xffffffff,
         .device                   = NULL,
         .kbd_device               = NULL,
         .fdc_device               = NULL,
-        .sio_device               = NULL,
         .vid_device               = &gd5434_onboard_pci_device,
         .snd_device               = NULL,
-        .net_device               = NULL
+        .net_device               = NULL,
+        .aliases                  = { "Packard Bell Robin LC", "Intel Robin LC", "" }
     },
 
     /* OPTi 596/597 */
@@ -11718,7 +14167,7 @@ const machine_t machines[] = {
         .name              = "[OPTi 597] AMI Excalibur VLB",
         .internal_name     = "excalibur",
         .type              = MACHINE_TYPE_SOCKET4,
-        .chipset           = MACHINE_CHIPSET_OPTI_547_597,
+        .chipset           = MACHINE_CHIPSET_OPTI_597,
         .init              = machine_at_excalibur_init,
         .p1_handler        = machine_generic_p1_handler,
         .gpio_handler      = NULL,
@@ -11735,10 +14184,10 @@ const machine_t machines[] = {
             .max_multi   = MACHINE_MULTIPLIER_FIXED
         },
         .bus_flags = MACHINE_PS2_VLB,
-        .flags     = MACHINE_IDE | MACHINE_APM,
+        .flags     = MACHINE_IDE,
         .ram       = {
             .min  = 2048,
-            .max  = 65536,
+            .max  = 65536, /* AMIBIOS revision 080893 cannot handle more than 64MB despite being detected as 128MB (the machine's maximum memory) */
             .step = 2048
         },
         .nvrmask                  = 127,
@@ -11746,16 +14195,20 @@ const machine_t machines[] = {
         .default_jumpered_ecp_dma = -1,
         .kbc_device               = &kbc_at_device,
         .kbc_params               = KBC_VEN_AMI | 0x00005000,    /* Guess. */
+        .nvr_device               = &nvr_at_device,
+        .nvr_params               = NVR_AT,
+        .sio_device               = NULL,
+        .sio_params               = 0x00000000,
         .kbc_p1                   = 0x000044f0,
         .gpio                     = 0xffffffff,
         .gpio_acpi                = 0xffffffff,
         .device                   = NULL,
         .kbd_device               = NULL,
         .fdc_device               = NULL,
-        .sio_device               = NULL,
         .vid_device               = NULL,
         .snd_device               = NULL,
-        .net_device               = NULL
+        .net_device               = NULL,
+        .aliases                  = { "AMI S75", "" }
     },
 
     /* OPTi 596/597/822 */
@@ -11764,7 +14217,7 @@ const machine_t machines[] = {
         .name              = "[OPTi 597] AT&T Globalyst 330 (Pentium)",
         .internal_name     = "globalyst330_p5",
         .type              = MACHINE_TYPE_SOCKET4,
-        .chipset           = MACHINE_CHIPSET_OPTI_547_597,
+        .chipset           = MACHINE_CHIPSET_OPTI_597,
         .init              = machine_at_globalyst330_p5_init,
         .p1_handler        = machine_generic_p1_handler,
         .gpio_handler      = NULL,
@@ -11783,32 +14236,36 @@ const machine_t machines[] = {
         .bus_flags = MACHINE_PCIV,
         .flags     = MACHINE_APM,
         .ram       = {
-            .min  = 8192,
+            .min  = 2048,
             .max  = 65536,
-            .step = 8192
+            .step = 2048
         },
         .nvrmask                  = 127,
         .jumpered_ecp_dma         = 0,
         .default_jumpered_ecp_dma = -1,
         .kbc_device               = &kbc_at_device,
         .kbc_params               = KBC_VEN_VIA | 0x00424600,
+        .nvr_device               = &nvr_at_device,
+        .nvr_params               = NVR_AT,
+        .sio_device               = NULL,
+        .sio_params               = 0x00000000,
         .kbc_p1                   = 0x000004f0,
         .gpio                     = 0xffffffff,
         .gpio_acpi                = 0xffffffff,
         .device                   = NULL,
         .kbd_device               = NULL,
         .fdc_device               = NULL,
-        .sio_device               = NULL,
         .vid_device               = NULL,
         .snd_device               = NULL,
-        .net_device               = NULL
+        .net_device               = NULL,
+        .aliases                  = { "" }
     },
     /* This has AMIKey 'F' KBC firmware. */
     {
         .name              = "[OPTi 597] Supermicro P5VL-PCI",
         .internal_name     = "p5vl",
         .type              = MACHINE_TYPE_SOCKET4,
-        .chipset           = MACHINE_CHIPSET_OPTI_547_597,
+        .chipset           = MACHINE_CHIPSET_OPTI_597,
         .init              = machine_at_p5vl_init,
         .p1_handler        = machine_generic_p1_handler,
         .gpio_handler      = NULL,
@@ -11825,27 +14282,31 @@ const machine_t machines[] = {
             .max_multi   = MACHINE_MULTIPLIER_FIXED
         },
         .bus_flags = MACHINE_PCIV,
-        .flags     = MACHINE_APM,
+        .flags     = MACHINE_FLAGS_NONE,
         .ram       = {
-            .min  = 8192,
+            .min  = 2048,
             .max  = 131072,
-            .step = 8192
+            .step = 2048
         },
         .nvrmask                  = 127,
         .jumpered_ecp_dma         = 0,
         .default_jumpered_ecp_dma = -1,
         .kbc_device               = &kbc_at_device,
         .kbc_params               = KBC_VEN_AMI | 0x00004600,
+        .nvr_device               = &nvr_at_device,
+        .nvr_params               = NVR_AT,
+        .sio_device               = NULL,
+        .sio_params               = 0x00000000,
         .kbc_p1                   = 0x000004f0,
         .gpio                     = 0xffffffff,
         .gpio_acpi                = 0xffffffff,
         .device                   = NULL,
         .kbd_device               = NULL,
         .fdc_device               = NULL,
-        .sio_device               = NULL,
         .vid_device               = NULL,
         .snd_device               = NULL,
-        .net_device               = NULL
+        .net_device               = NULL,
+        .aliases                  = { "" }
     },
 
     /* SiS 50x */
@@ -11873,25 +14334,29 @@ const machine_t machines[] = {
         .bus_flags = MACHINE_PS2_PCI,
         .flags     = MACHINE_IDE_DUAL | MACHINE_APM,
         .ram       = {
-            .min  = 8192,
+            .min  = 2048,
             .max  = 131072,
-            .step = 8192
+            .step = 2048
         },
         .nvrmask                  = 127,
         .jumpered_ecp_dma         = MACHINE_DMA_0 | MACHINE_DMA_1 | MACHINE_DMA_3,
         .default_jumpered_ecp_dma = 3,
         .kbc_device               = &kbc_at_device,
         .kbc_params               = KBC_VEN_AMI | 0x00005200,    /* Guess. */
+        .nvr_device               = &nvr_at_device,
+        .nvr_params               = NVR_AMI_1994,
+        .sio_device               = NULL,
+        .sio_params               = 0x00000000,
         .kbc_p1                   = 0x00000cf0,
         .gpio                     = 0xffffffff,
         .gpio_acpi                = 0xffffffff,
         .device                   = NULL,
         .kbd_device               = NULL,
         .fdc_device               = NULL,
-        .sio_device               = NULL,
         .vid_device               = NULL,
         .snd_device               = NULL,
-        .net_device               = NULL
+        .net_device               = NULL,
+        .aliases                  = { "AMI S722", "" }
     },
     /* This has an AMIKey-2, which is type 'H'. */
     {
@@ -11917,25 +14382,29 @@ const machine_t machines[] = {
         .bus_flags = MACHINE_PS2_PCI,
         .flags     = MACHINE_IDE_DUAL | MACHINE_APM,
         .ram       = {
-            .min  = 8192,
+            .min  = 2048,
             .max  = 131072,
-            .step = 8192
+            .step = 2048
         },
         .nvrmask                  = 127,
         .jumpered_ecp_dma         = MACHINE_DMA_DISABLED | MACHINE_DMA_1 | MACHINE_DMA_3,
         .default_jumpered_ecp_dma = 3,
         .kbc_device               = &kbc_at_device,
         .kbc_params               = KBC_VEN_AMI | 0x00004800,
+        .nvr_device               = &nvr_at_device,
+        .nvr_params               = NVR_AT,
+        .sio_device               = NULL,
+        .sio_params               = 0x00000000,
         .kbc_p1                   = 0x00000cf0,
         .gpio                     = 0xffffffff,
         .gpio_acpi                = 0xffffffff,
         .device                   = NULL,
         .kbd_device               = NULL,
         .fdc_device               = NULL,
-        .sio_device               = NULL,
         .vid_device               = NULL,
         .snd_device               = NULL,
-        .net_device               = NULL
+        .net_device               = NULL,
+        .aliases                  = { "" }
     },
     /* This has an AMIKey-2, which is type 'H'. */
     {
@@ -11959,37 +14428,41 @@ const machine_t machines[] = {
             .max_multi   = MACHINE_MULTIPLIER_FIXED
         },
         .bus_flags = MACHINE_PS2_PCI,
-        .flags     = MACHINE_IDE_DUAL | MACHINE_APM,
+        .flags     = MACHINE_IDE_DUAL,
         .ram       = {
-            .min  = 8192,
+            .min  = 2048,
             .max  = 131072,
-            .step = 8192
+            .step = 2048
         },
         .nvrmask                  = 127,
         .jumpered_ecp_dma         = MACHINE_DMA_DISABLED | MACHINE_DMA_1 | MACHINE_DMA_3,
         .default_jumpered_ecp_dma = 3,
         .kbc_device               = &kbc_at_device,
         .kbc_params               = KBC_VEN_AMI | 0x00004800,
+        .nvr_device               = &nvr_at_device,
+        .nvr_params               = NVR_AT,
+        .sio_device               = NULL,
+        .sio_params               = 0x00000000,
         .kbc_p1                   = 0x00000cf0,
         .gpio                     = 0xffffffff,
         .gpio_acpi                = 0xffffffff,
         .device                   = NULL,
         .kbd_device               = NULL,
         .fdc_device               = NULL,
-        .sio_device               = NULL,
         .vid_device               = NULL,
         .snd_device               = NULL,
-        .net_device               = NULL
+        .net_device               = NULL,
+        .aliases                  = { "" }
     },
 
     /* Socket 4/5 machines */
-    /* OPTi 596/597 */
+    /* OPTi 571/572 */
     /* This has AMIKey-2 'H' KBC firmware. */
     {
-        .name              = "[OPTi 597] Taken PCI560-01",
+        .name              = "[OPTi 571] Taken PCI560-01",
         .internal_name     = "pci56001",
         .type              = MACHINE_TYPE_SOCKET4_5,
-        .chipset           = MACHINE_CHIPSET_OPTI_547_597,
+        .chipset           = MACHINE_CHIPSET_OPTI_571,
         .init              = machine_at_pci56001_init,
         .p1_handler        = machine_generic_p1_handler,
         .gpio_handler      = NULL,
@@ -12006,27 +14479,31 @@ const machine_t machines[] = {
             .max_multi   = 1.5
         },
         .bus_flags = MACHINE_PCI,
-        .flags     = MACHINE_APM,
+        .flags     = MACHINE_FLAGS_NONE,
         .ram       = {
-            .min  = 8192,
+            .min  = 2048,
             .max  = 131072,
-            .step = 8192
+            .step = 2048
         },
         .nvrmask                  = 127,
         .jumpered_ecp_dma         = 0,
         .default_jumpered_ecp_dma = -1,
         .kbc_device               = &kbc_at_device,
         .kbc_params               = KBC_VEN_AMI | 0x00004800,
+        .nvr_device               = &nvr_at_device,
+        .nvr_params               = NVR_AT,
+        .sio_device               = NULL,
+        .sio_params               = 0x00000000,
         .kbc_p1                   = 0x000004f0,
         .gpio                     = 0xffffffff,
         .gpio_acpi                = 0xffffffff,
         .device                   = NULL,
         .kbd_device               = NULL,
         .fdc_device               = NULL,
-        .sio_device               = NULL,
         .vid_device               = NULL,
         .snd_device               = NULL,
-        .net_device               = NULL
+        .net_device               = NULL,
+        .aliases                  = { "" }
     },
     /* VLSI SuperCore */
     /* This has Phoenix KBC firmware. */
@@ -12051,10 +14528,10 @@ const machine_t machines[] = {
             .max_multi   = 2.0
         },
         .bus_flags = MACHINE_PS2_PCI,
-        .flags     = MACHINE_IDE_DUAL | MACHINE_APM | MACHINE_VIDEO,
+        .flags     = MACHINE_IDE_DUAL | MACHINE_APM,
         .ram       = {
             .min  = 4096,
-            .max  = 131072,
+            .max  = 262144,
             .step = 4096
         },
         .nvrmask                  = 127,
@@ -12062,16 +14539,22 @@ const machine_t machines[] = {
         .default_jumpered_ecp_dma = 3,
         .kbc_device               = &kbc_at_device,
         .kbc_params               = KBC_VEN_PHOENIX | 0x00021400, /* Guess */
+        /* NVR is on the chipset. */
+        .nvr_device               = NULL,
+        .nvr_params               = 0x00000000,
+        .sio_device               = NULL,
+        .sio_params               = 0x00000000,
         .kbc_p1                   = 0x00000cf0,
         .gpio                     = 0xffffffff,
         .gpio_acpi                = 0xffffffff,
         .device                   = NULL,
         .kbd_device               = NULL,
         .fdc_device               = NULL,
-        .sio_device               = NULL,
-        .vid_device               = &s3_phoenix_vision864_pci_device,  /* Onboard variant not yet emulated */
+        // .vid_device               = &s3_phoenix_vision864_pci_device,  /* Onboard variant not yet emulated */
+        .vid_device               = NULL,
         .snd_device               = NULL,
-        .net_device               = NULL
+        .net_device               = NULL,
+        .aliases                  = { "" }
     },
 
     /* Socket 5 machines */
@@ -12109,16 +14592,20 @@ const machine_t machines[] = {
         .default_jumpered_ecp_dma = 3,
         .kbc_device               = &kbc_at_device,
         .kbc_params               = KBC_VEN_AMI | 0x00004800,
+        .nvr_device               = &nvr_at_device,
+        .nvr_params               = NVR_AT,
+        .sio_device               = NULL,
+        .sio_params               = 0x00000000,
         .kbc_p1                   = 0x00000cf0,
         .gpio                     = 0xffffffff,
         .gpio_acpi                = 0xffffffff,
         .device                   = NULL,
         .kbd_device               = NULL,
         .fdc_device               = NULL,
-        .sio_device               = NULL,
         .vid_device               = NULL,
         .snd_device               = NULL,
-        .net_device               = NULL
+        .net_device               = NULL,
+        .aliases                  = { "" }
     },
     /* Has AMI 'H' KBC firmware. */
     {
@@ -12142,7 +14629,7 @@ const machine_t machines[] = {
             .max_multi   = 1.5
         },
         .bus_flags = MACHINE_PCI,
-        .flags     = MACHINE_APM,
+        .flags     = MACHINE_FLAGS_NONE,
         .ram       = {
             .min  = 2048,
             .max  = 262144,
@@ -12153,20 +14640,24 @@ const machine_t machines[] = {
         .default_jumpered_ecp_dma = -1,
         .kbc_device               = &kbc_at_device,
         .kbc_params               = KBC_VEN_AMI | 0x00004800,
+        .nvr_device               = &nvr_at_device,
+        .nvr_params               = NVR_AT,
+        .sio_device               = NULL,
+        .sio_params               = 0x00000000,
         .kbc_p1                   = 0x000004f0,
         .gpio                     = 0xffffffff,
         .gpio_acpi                = 0xffffffff,
         .device                   = NULL,
         .kbd_device               = NULL,
         .fdc_device               = NULL,
-        .sio_device               = NULL,
         .vid_device               = NULL,
         .snd_device               = NULL,
-        .net_device               = NULL
+        .net_device               = NULL,
+        .aliases                  = { "" }
     },
     /* This has the Phoenix MultiKey KBC firmware. */
     {
-        .name              = "[i430NX] Intel Premiere/PCI II (Plato)",
+        .name              = "[i430NX] Intel Premiere/PCI II",
         .internal_name     = "plato",
         .type              = MACHINE_TYPE_SOCKET5,
         .chipset           = MACHINE_CHIPSET_INTEL_430NX,
@@ -12197,16 +14688,20 @@ const machine_t machines[] = {
         .default_jumpered_ecp_dma = 3,
         .kbc_device               = &kbc_at_device,
         .kbc_params               = KBC_VEN_PHOENIX | 0x00012900,
+        .nvr_device               = &nvr_at_device,
+        .nvr_params               = NVR_AT_ZERO_DEFAULT,
+        .sio_device               = NULL,
+        .sio_params               = 0x00000000,
         .kbc_p1                   = 0x00001030,
         .gpio                     = 0xffffffff,
         .gpio_acpi                = 0xffffffff,
         .device                   = &plato_device,
         .kbd_device               = NULL,
         .fdc_device               = NULL,
-        .sio_device               = NULL,
         .vid_device               = NULL,
         .snd_device               = NULL,
-        .net_device               = NULL
+        .net_device               = NULL,
+        .aliases                  = { "Intel Plato", "Dell Dimension XPS P___", "Ambra DP90 PCI", "" }
     },
     /* Has unknown KBC firmware. */
     {
@@ -12241,16 +14736,20 @@ const machine_t machines[] = {
         .default_jumpered_ecp_dma = 3,
         .kbc_device               = &kbc_at_device,
         .kbc_params               = 0x00000000,
+        .nvr_device               = &nvr_at_device,
+        .nvr_params               = NVR_AT,
+        .sio_device               = NULL,
+        .sio_params               = 0x00000000,
         .kbc_p1                   = 0x00000cf0,
         .gpio                     = 0xffffffff,
         .gpio_acpi                = 0xffffffff,
         .device                   = &d842_device,
         .kbd_device               = NULL,
         .fdc_device               = NULL,
-        .sio_device               = NULL,
         .vid_device               = NULL,
         .snd_device               = NULL,
-        .net_device               = NULL
+        .net_device               = NULL,
+        .aliases                  = { "" }
     },
     /* Has AMI MegaKey KBC firmware. */
     {
@@ -12285,16 +14784,20 @@ const machine_t machines[] = {
         .default_jumpered_ecp_dma = -1,
         .kbc_device               = &kbc_at_device,
         .kbc_params               = KBC_VEN_AMI | 0x00005200,    /* Guess. */
+        .nvr_device               = &nvr_at_device,
+        .nvr_params               = NVR_AT,
+        .sio_device               = NULL,
+        .sio_params               = 0x00000000,
         .kbc_p1                   = 0x000044f0,
         .gpio                     = 0xffffffff,
         .gpio_acpi                = 0xffffffff,
         .device                   = NULL,
         .kbd_device               = NULL,
         .fdc_device               = NULL,
-        .sio_device               = NULL,
         .vid_device               = NULL,
         .snd_device               = NULL,
-        .net_device               = NULL
+        .net_device               = NULL,
+        .aliases                  = { "" }
     },
 
     /* 430FX */
@@ -12331,16 +14834,20 @@ const machine_t machines[] = {
         .default_jumpered_ecp_dma = 3,
         .kbc_device               = &kbc_at_device,
         .kbc_params               = KBC_VEN_ACER | 0x00000000,
+        .nvr_device               = &nvr_at_device,
+        .nvr_params               = NVR_AT,
+        .sio_device               = NULL,
+        .sio_params               = 0x00000000,
         .kbc_p1                   = 0x004008f0,
         .gpio                     = 0xffffffff,
         .gpio_acpi                = 0xffffffff,
         .device                   = NULL,
         .kbd_device               = NULL,
         .fdc_device               = NULL,
-        .sio_device               = NULL,
         .vid_device               = NULL,
         .snd_device               = NULL,
-        .net_device               = NULL
+        .net_device               = NULL,
+        .aliases                  = { "" }
     },
     /* Has AMIKey F KBC firmware. */
     {
@@ -12375,16 +14882,20 @@ const machine_t machines[] = {
         .default_jumpered_ecp_dma = -1,
         .kbc_device               = &kbc_at_device,
         .kbc_params               = KBC_VEN_AMI | 0x00004600,
+        .nvr_device               = &nvr_at_device,
+        .nvr_params               = NVR_AMI_1995,
+        .sio_device               = NULL,
+        .sio_params               = 0x00000000,
         .kbc_p1                   = 0x00000cf0,
         .gpio                     = 0xffffffff,
         .gpio_acpi                = 0xffffffff,
         .device                   = NULL,
         .kbd_device               = NULL,
         .fdc_device               = NULL,
-        .sio_device               = NULL,
         .vid_device               = NULL,
         .snd_device               = NULL,
-        .net_device               = NULL
+        .net_device               = NULL,
+        .aliases                  = { "AMI S728", "" }
     },
     /* Has Dell KBC firmware. */
     {
@@ -12419,16 +14930,20 @@ const machine_t machines[] = {
         .default_jumpered_ecp_dma = -1,
         .kbc_device               = &kbc_at_device,
         .kbc_params               = 0x00000000,
-        .kbc_p1                   = 0x00000cf0,
+        .nvr_device               = &nvr_at_device,
+        .nvr_params               = NVR_AT_ZERO_DEFAULT,
+        .sio_device               = NULL,
+        .sio_params               = 0x00000000,
+        .kbc_p1                   = 0x000004f0,
         .gpio                     = 0xffffffff,
         .gpio_acpi                = 0xffffffff,
         .device                   = NULL,
         .kbd_device               = NULL,
         .fdc_device               = NULL,
-        .sio_device               = NULL,
-        .vid_device               = &s3_phoenix_trio64vplus_onboard_pci_device,
+        .vid_device               = &s3_trio64vplus_onboard_pci_device,
         .snd_device               = &sb_vibra16s_onboard_device,
-        .net_device               = NULL /* not yet emulated */
+        .net_device               = NULL, /* not yet emulated */
+        .aliases                  = { "" }
     },
     /* KBC On-Chip the VT82C406MV. */
     {
@@ -12463,22 +14978,26 @@ const machine_t machines[] = {
         .default_jumpered_ecp_dma = -1,
         .kbc_device               = &kbc_at_device,
         .kbc_params               = KBC_VEN_VIA | 0x00424600,
+        .nvr_device               = &nvr_at_device,
+        .nvr_params               = NVR_AT,
+        .sio_device               = NULL,
+        .sio_params               = 0x00000000,
         .kbc_p1                   = 0x00000cf0,
         .gpio                     = 0xffffffff,
         .gpio_acpi                = 0xffffffff,
         .device                   = &pt2000_device,
         .kbd_device               = NULL,
         .fdc_device               = NULL,
-        .sio_device               = NULL,
         .vid_device               = NULL,
         .snd_device               = NULL,
-        .net_device               = NULL
+        .net_device               = NULL,
+        .aliases                  = { "" }
     },
     /* According to tests from real hardware: This has AMI MegaKey KBC firmware on the
        PC87306 Super I/O chip, command 0xA1 returns '5'.
        Command 0xA0 copyright string: (C)1994 AMI . */
     {
-        .name              = "[i430FX] HP Pavilion 50x0/70xx (Morrison32)",
+        .name              = "[i430FX] HP Pavilion 50x0/70xx",
         .internal_name     = "morrison32",
         .type              = MACHINE_TYPE_SOCKET5,
         .chipset           = MACHINE_CHIPSET_INTEL_430FX,
@@ -12509,19 +15028,24 @@ const machine_t machines[] = {
         .default_jumpered_ecp_dma = 3,
         .kbc_device               = NULL,
         .kbc_params               = 0x00000000,
+        /* NVR is on the Super I/O chip. */
+        .nvr_device               = NULL,
+        .nvr_params               = 0x00000000,
+        .sio_device               = NULL,
+        .sio_params               = 0x00000000,
         .kbc_p1                   = 0x000044f0,
         .gpio                     = 0xffffffff,
         .gpio_acpi                = 0xffffffff,
         .device                   = NULL,
         .kbd_device               = NULL,
         .fdc_device               = NULL,
-        .sio_device               = NULL,
-        .vid_device               = &s3_phoenix_trio32_onboard_pci_device,
+        .vid_device               = &s3_trio32_onboard_pci_device,
         .snd_device               = &cs4232_onboard_device,
-        .net_device               = NULL
+        .net_device               = NULL,
+        .aliases                  = { "Intel Morrison32", "" }
     },
     {
-        .name              = "[i430FX] IBM PC 3x0 (type 65x6) (Morrison64)",
+        .name              = "[i430FX] IBM PC 3x0 (type 65x6)",
         .internal_name     = "pc330_65x6",
         .type              = MACHINE_TYPE_SOCKET5,
         .chipset           = MACHINE_CHIPSET_INTEL_430FX,
@@ -12552,22 +15076,27 @@ const machine_t machines[] = {
         .default_jumpered_ecp_dma = 3,
         .kbc_device               = NULL,
         .kbc_params               = 0x00000000,
+        /* NVR is on the Super I/O chip. */
+        .nvr_device               = NULL,
+        .nvr_params               = 0x00000000,
+        .sio_device               = NULL,
+        .sio_params               = 0x00000000,
         .kbc_p1                   = 0x000044f0,
         .gpio                     = 0xffffffff,
         .gpio_acpi                = 0xffffffff,
         .device                   = NULL,
-		.kbd_device               = NULL,
+        .kbd_device               = NULL,
         .fdc_device               = NULL,
-        .sio_device               = NULL,
-        .vid_device               = &s3_phoenix_trio64_onboard_pci_device,
+        .vid_device               = &s3_trio64_onboard_pci_device,
         .snd_device               = NULL,
-        .net_device               = NULL
+        .net_device               = NULL,
+        .aliases                  = { "Intel Morrison64", "" }
     },
     /* According to tests from real hardware: This has AMI MegaKey KBC firmware on the
        PC87306 Super I/O chip, command 0xA1 returns '5'.
        Command 0xA0 copyright string: (C)1994 AMI . */
     {
-        .name              = "[i430FX] Intel Advanced/ZP (Zappa)",
+        .name              = "[i430FX] Intel Advanced/ZP",
         .internal_name     = "zappa",
         .type              = MACHINE_TYPE_SOCKET5,
         .chipset           = MACHINE_CHIPSET_INTEL_430FX,
@@ -12598,23 +15127,28 @@ const machine_t machines[] = {
         .default_jumpered_ecp_dma = 3,
         .kbc_device               = NULL,
         .kbc_params               = 0x00000000,
+        /* NVR is on the Super I/O chip. */
+        .nvr_device               = NULL,
+        .nvr_params               = 0x00000000,
+        .sio_device               = NULL,
+        .sio_params               = 0x00000000,
         .kbc_p1                   = 0x000044f0,
         .gpio                     = 0xffffffff,
         .gpio_acpi                = 0xffffffff,
         .device                   = &zappa_device,
         .kbd_device               = NULL,
         .fdc_device               = NULL,
-        .sio_device               = NULL,
         .vid_device               = NULL,
         .snd_device               = NULL,
-        .net_device               = NULL
+        .net_device               = NULL,
+        .aliases                  = { "Intel Zappa", "Gateway 2000 Zappa", "" }
     },
     /*
        The BIOS sends KBC command B3 which indicates an AMI (or VIA VT82C42N) KBC.
        The board turns out to be a BCM FM540 which has an AMI 'H' KBC.
      */
     {
-        .name              = "[i430FX] NEC PowerMate Vxxx (BCM FM540)",
+        .name              = "[i430FX] NEC PowerMate Vxxx",
         .internal_name     = "powermatev",
         .type              = MACHINE_TYPE_SOCKET5,
         .chipset           = MACHINE_CHIPSET_INTEL_430FX,
@@ -12645,16 +15179,68 @@ const machine_t machines[] = {
         .default_jumpered_ecp_dma = -1,
         .kbc_device               = &kbc_at_device,
         .kbc_params               = KBC_VEN_AMI | 0x00004800,
+        .nvr_device               = &nvr_at_device,
+        .nvr_params               = NVR_AT,
+        .sio_device               = NULL,
+        .sio_params               = 0x00000000,
         .kbc_p1                   = 0x00000cf0,
         .gpio                     = 0xffffffff,
         .gpio_acpi                = 0xffffffff,
         .device                   = &powermatev_device,
         .kbd_device               = NULL,
         .fdc_device               = NULL,
-        .sio_device               = NULL,
         .vid_device               = NULL,
         .snd_device               = &opti_82c930_device,
-        .net_device               = NULL
+        .net_device               = NULL,
+        .aliases                  = { "BCM FM540", "" }
+    },
+    /* Has AMIKEY-2 KBC firmware. */
+    {
+        .name              = "[i430FX] Suk Jung SJ-P54CSR-100",
+        .internal_name     = "sjp54csr",
+        .type              = MACHINE_TYPE_SOCKET5,
+        .chipset           = MACHINE_CHIPSET_INTEL_430FX,
+        .init              = machine_at_sjp54csr_init,
+        .p1_handler        = machine_generic_p1_handler,
+        .gpio_handler      = NULL,
+        .available_flag    = MACHINE_AVAILABLE,
+        .gpio_acpi_handler = NULL,
+        .cpu               = {
+            .package     = CPU_PKG_SOCKET5_7,
+            .block       = CPU_BLOCK_NONE,
+            .min_bus     = 50000000,
+            .max_bus     = 66666667,
+            .min_voltage = 3380,
+            .max_voltage = 3520,
+            .min_multi   = 1.5,
+            .max_multi   = 2.0
+        },
+        .bus_flags = MACHINE_PS2_PCI,
+        .flags     = MACHINE_IDE_DUAL | MACHINE_APM,
+        .ram       = {
+            .min  = 8192,
+            .max  = 131072,
+            .step = 8192
+        },
+        .nvrmask                  = 127,
+        .jumpered_ecp_dma         = 0,
+        .default_jumpered_ecp_dma = -1,
+        .kbc_device               = &kbc_at_device,
+        .kbc_params               = KBC_VEN_AMI | 0x00004800,
+        .nvr_device               = &nvr_at_device,
+        .nvr_params               = NVR_AT,
+        .sio_device               = NULL,
+        .sio_params               = 0x00000000,
+        .kbc_p1                   = 0x00000cf0,
+        .gpio                     = 0xffffffff,
+        .gpio_acpi                = 0xffffffff,
+        .device                   = NULL,
+        .kbd_device               = NULL,
+        .fdc_device               = NULL,
+        .vid_device               = NULL,
+        .snd_device               = NULL,
+        .net_device               = NULL,
+        .aliases                  = { "" }
     },
     /* Has AMIKey Z(!) KBC firmware. */
     {
@@ -12689,25 +15275,29 @@ const machine_t machines[] = {
         .default_jumpered_ecp_dma = -1,
         .kbc_device               = &kbc_at_device,
         .kbc_params               = KBC_VEN_AMI_TRIGEM | KBC_FLAG_IS_GREEN | 0x00005a00,
+        .nvr_device               = &nvr_at_device,
+        .nvr_params               = NVR_AMI_1994,
+        .sio_device               = NULL,
+        .sio_params               = 0x00000000,
         .kbc_p1                   = 0x00000cf0,
         .gpio                     = 0xffffffff,
         .gpio_acpi                = 0xffffffff,
         .device                   = NULL,
         .kbd_device               = NULL,
         .fdc_device               = NULL,
-        .sio_device               = NULL,
         .vid_device               = NULL,
         .snd_device               = NULL,
-        .net_device               = NULL
+        .net_device               = NULL,
+        .aliases                  = { "TriGem GEM4570", "TriGem TG2304", "" }
     },
 
-    /* OPTi 596/597 */
+    /* OPTi 546/547 */
     /* Has unknown KBC firmware. */
     {
-        .name              = "[OPTi 597] Northgate Computer Systems Elegance Pentium 90",
+        .name              = "[OPTi 547] NCS Elegance Pentium 90",
         .internal_name     = "ncselp90",
         .type              = MACHINE_TYPE_SOCKET5,
-        .chipset           = MACHINE_CHIPSET_OPTI_547_597,
+        .chipset           = MACHINE_CHIPSET_OPTI_547,
         .init              = machine_at_ncselp90_init,
         .p1_handler        = machine_generic_p1_handler,
         .gpio_handler      = NULL,
@@ -12724,34 +15314,40 @@ const machine_t machines[] = {
             .max_multi   = 2.0
         },
         .bus_flags = MACHINE_PS2_PCIV,
-        .flags     = MACHINE_APM | MACHINE_IDE_DUAL | MACHINE_SUPER_IO,
+        .flags     = MACHINE_IDE_DUAL | MACHINE_SUPER_IO,
         .ram       = {
-            .min  = 8192,
+            .min  = 2048,
             .max  = 131072,
-            .step = 8192
+            .step = 2048
         },
         .nvrmask                  = 127,
         .jumpered_ecp_dma         = MACHINE_DMA_DISABLED | MACHINE_DMA_1 | MACHINE_DMA_3,
         .default_jumpered_ecp_dma = 3,
         .kbc_device               = &kbc_at_device,
         .kbc_params               = KBC_VEN_AMI | 0x00004d00,    /* Guess */
+        .nvr_device               = &nvr_at_device,
+        .nvr_params               = NVR_AT,
+        .sio_device               = NULL,
+        .sio_params               = 0x00000000,
         .kbc_p1                   = 0x00000cf0,
         .gpio                     = 0xffffffff,
         .gpio_acpi                = 0xffffffff,
         .device                   = NULL,
         .kbd_device               = NULL,
         .fdc_device               = NULL,
-        .sio_device               = NULL,
         .vid_device               = NULL,
         .snd_device               = NULL,
-        .net_device               = NULL
+        .net_device               = NULL,
+        .aliases                  = { "Northgate Computer Systems Elegance Pentium 90", "" }
     },
+
+    /* OPTi 596/597 */
     /* Has unknown KBC firmware. */
     {
         .name              = "[OPTi 597] Shuttle HOT-543",
         .internal_name     = "hot543",
         .type              = MACHINE_TYPE_SOCKET5,
-        .chipset           = MACHINE_CHIPSET_OPTI_547_597,
+        .chipset           = MACHINE_CHIPSET_OPTI_597,
         .init              = machine_at_hot543_init,
         .p1_handler        = machine_generic_p1_handler,
         .gpio_handler      = NULL,
@@ -12768,27 +15364,31 @@ const machine_t machines[] = {
             .max_multi   = 2.0
         },
         .bus_flags = MACHINE_PCIV,
-        .flags     = MACHINE_APM,
+        .flags     = MACHINE_FLAGS_NONE,
         .ram       = {
-            .min  = 8192,
+            .min  = 2048,
             .max  = 131072,
-            .step = 8192
+            .step = 2048
         },
         .nvrmask                  = 127,
         .jumpered_ecp_dma         = 0,
         .default_jumpered_ecp_dma = -1,
         .kbc_device               = &kbc_at_device,
         .kbc_params               = 0x00000000,
+        .nvr_device               = &nvr_at_device,
+        .nvr_params               = NVR_AT,
+        .sio_device               = NULL,
+        .sio_params               = 0x00000000,
         .kbc_p1                   = 0x000004f0,
         .gpio                     = 0xffffffff,
         .gpio_acpi                = 0xffffffff,
         .device                   = NULL,
         .kbd_device               = NULL,
         .fdc_device               = NULL,
-        .sio_device               = NULL,
         .vid_device               = NULL,
         .snd_device               = NULL,
-        .net_device               = NULL
+        .net_device               = NULL,
+        .aliases                  = { "" }
     },
     /* This uses an AMI KBC firmware in PS/2 mode (it sends command A5 with the
        PS/2 "Load Security" meaning), most likely MegaKey as it sends command AF
@@ -12797,7 +15397,7 @@ const machine_t machines[] = {
         .name              = "[OPTi 597] TMC PAT54PV",
         .internal_name     = "pat54pv",
         .type              = MACHINE_TYPE_SOCKET5,
-        .chipset           = MACHINE_CHIPSET_OPTI_547_597,
+        .chipset           = MACHINE_CHIPSET_OPTI_597,
         .init              = machine_at_pat54pv_init,
         .p1_handler        = machine_generic_p1_handler,
         .gpio_handler      = NULL,
@@ -12814,10 +15414,10 @@ const machine_t machines[] = {
             .max_multi   = 1.5
         },
         .bus_flags = MACHINE_VLB,
-        .flags     = MACHINE_PS2_KBC | MACHINE_APM,
+        .flags     = MACHINE_PS2_KBC,
         .ram       = {
             .min  = 2048,
-            .max  = 65536,
+            .max  = 65536, /* AMIBIOS revision 080893 cannot handle more than 64MB despite being detected as 128MB (the machine's maximum memory) */
             .step = 2048
         },
         .nvrmask                  = 127,
@@ -12825,16 +15425,167 @@ const machine_t machines[] = {
         .default_jumpered_ecp_dma = -1,
         .kbc_device               = &kbc_at_device,
         .kbc_params               = KBC_VEN_AMI | 0x00005000,    /* Guess. */
+        .nvr_device               = &nvr_at_device,
+        .nvr_params               = NVR_AT,
+        .sio_device               = NULL,
+        .sio_params               = 0x00000000,
         .kbc_p1                   = 0x000044f0,
         .gpio                     = 0xffffffff,
         .gpio_acpi                = 0xffffffff,
         .device                   = NULL,
         .kbd_device               = NULL,
         .fdc_device               = NULL,
-        .sio_device               = NULL,
         .vid_device               = NULL,
         .snd_device               = NULL,
-        .net_device               = NULL
+        .net_device               = NULL,
+        .aliases                  = { "Canon PAT54PV", "Canon Computer Systems PAT54PV", "" }
+    },
+
+    /* OPTi Viper */
+    /* Has Acer KBC firmware */
+    {
+        .name              = "[OPTi Viper] Acer M1",
+        .internal_name     = "acerm1",
+        .type              = MACHINE_TYPE_SOCKET5,
+        .chipset           = MACHINE_CHIPSET_OPTI_VIPER,
+        .init              = machine_at_acerm1_init,
+        .p1_handler        = machine_generic_p1_handler,
+        .gpio_handler      = NULL,
+        .available_flag    = MACHINE_AVAILABLE,
+        .gpio_acpi_handler = NULL,
+        .cpu               = {
+            .package     = CPU_PKG_SOCKET5_7,
+            .block       = CPU_BLOCK(CPU_Cx6x86),
+            .min_bus     = 50000000,
+            .max_bus     = 66666667,
+            .min_voltage = 3520,
+            .max_voltage = 3520,
+            .min_multi   = 1.5,
+            .max_multi   = 2.0
+        },
+        .bus_flags = MACHINE_PS2_PCI,
+        .flags     = MACHINE_IDE_DUAL | MACHINE_SUPER_IO | MACHINE_APM, /* Machine has internal SCSI: Adaptec AIC-7850 */
+        .ram       = {
+            .min  = 4096,
+            .max  = 524288,
+            .step = 4096
+        },
+        .nvrmask                  = 127,
+        .jumpered_ecp_dma         = 0,
+        .default_jumpered_ecp_dma = -1,
+        .kbc_device               = &kbc_at_device,
+        .kbc_params               = KBC_VEN_ACER,
+        .nvr_device               = &nvr_at_device,
+        .nvr_params               = NVR_AT_ZERO_DEFAULT,
+        .sio_device               = NULL,
+        .sio_params               = 0x00000000,
+        .kbc_p1                   = 0x004008f0,
+        .gpio                     = 0xffffffff,
+        .gpio_acpi                = 0xffffffff,
+        .device                   = NULL,
+        .kbd_device               = NULL,
+        .fdc_device               = NULL,
+        .vid_device               = NULL,
+        .snd_device               = NULL,
+        .net_device               = NULL,
+        .aliases                  = { "" }
+    },
+    /* This uses a VIA VT82C42N KBC, which is a clone of type 'F' with additional commands.
+       It's really an ASIC clone of the Award KBC, which is itself an extended clone of AMI 'F'. */
+    {
+        .name              = "[OPTi Viper] DFI G586OPA",
+        .internal_name     = "g586opa",
+        .type              = MACHINE_TYPE_SOCKET5,
+        .chipset           = MACHINE_CHIPSET_OPTI_VIPER,
+        .init              = machine_at_g586opa_init,
+        .p1_handler        = machine_generic_p1_handler,
+        .gpio_handler      = NULL,
+        .available_flag    = MACHINE_AVAILABLE,
+        .gpio_acpi_handler = NULL,
+        .cpu               = {
+            .package     = CPU_PKG_SOCKET5_7,
+            .block       = CPU_BLOCK(CPU_Cx6x86),
+            .min_bus     = 50000000,
+            .max_bus     = 66666667,
+            .min_voltage = 3520,
+            .max_voltage = 3520,
+            .min_multi   = 1.5,
+            .max_multi   = 2.0
+        },
+        .bus_flags = MACHINE_PS2_PCI,
+        .flags     = MACHINE_IDE_DUAL | MACHINE_SUPER_IO | MACHINE_APM,
+        .ram       = {
+            .min  = 4096,
+            .max  = 131072,
+            .step = 4096
+        },
+        .nvrmask                  = 127,
+        .jumpered_ecp_dma         = MACHINE_DMA_1 | MACHINE_DMA_3,
+        .default_jumpered_ecp_dma = 3,
+        .kbc_device               = &kbc_at_device,
+        .kbc_params               = KBC_VEN_VIA | 0x00424600,
+        .nvr_device               = &nvr_at_device,
+        .nvr_params               = NVR_AT,
+        .sio_device               = NULL,
+        .sio_params               = 0x00000000,
+        .kbc_p1                   = 0x00000cf0,
+        .gpio                     = 0xffffffff,
+        .gpio_acpi                = 0xffffffff,
+        .device                   = NULL,
+        .kbd_device               = NULL,
+        .fdc_device               = NULL,
+        .vid_device               = NULL,
+        .snd_device               = NULL,
+        .net_device               = NULL,
+        .aliases                  = { "" }
+    },
+    /* Has TriGem AMI KBC firmware */
+    {
+        .name              = "[OPTi Viper] TriGem Bristol",
+        .internal_name     = "bristol",
+        .type              = MACHINE_TYPE_SOCKET5,
+        .chipset           = MACHINE_CHIPSET_OPTI_VIPER,
+        .init              = machine_at_bristol_init,
+        .p1_handler        = machine_generic_p1_handler,
+        .gpio_handler      = NULL,
+        .available_flag    = MACHINE_AVAILABLE,
+        .gpio_acpi_handler = NULL,
+        .cpu               = {
+            .package     = CPU_PKG_SOCKET5_7,
+            .block       = CPU_BLOCK(CPU_WINCHIP, CPU_WINCHIP2, CPU_Cx6x86),
+            .min_bus     = 50000000,
+            .max_bus     = 66666667,
+            .min_voltage = 3520,
+            .max_voltage = 3520,
+            .min_multi   = 1.5,
+            .max_multi   = 2.0
+        },
+        .bus_flags = MACHINE_PS2_PCI,
+        .flags     = MACHINE_IDE_DUAL | MACHINE_SUPER_IO | MACHINE_APM,
+        .ram       = {
+            .min  = 4096,
+            .max  = 131072,
+            .step = 4096
+        },
+        .nvrmask                  = 127,
+        .jumpered_ecp_dma         = MACHINE_DMA_1 | MACHINE_DMA_3,
+        .default_jumpered_ecp_dma = 3,
+        .kbc_device               = &kbc_at_device,
+        .kbc_params               = KBC_VEN_AMI_TRIGEM | 0x00005a00,
+        .nvr_device               = &nvr_at_device,
+        .nvr_params               = NVR_AT,
+        .sio_device               = NULL,
+        .sio_params               = 0x00000000,
+        .kbc_p1                   = 0x00000cf0,
+        .gpio                     = 0xffffffff,
+        .gpio_acpi                = 0xffffffff,
+        .device                   = NULL,
+        .kbd_device               = NULL,
+        .fdc_device               = NULL,
+        .vid_device               = NULL,
+        .snd_device               = NULL,
+        .net_device               = NULL,
+        .aliases                  = { "TriGem GEM4530", "" }
     },
 
     /* SiS 85C50x */
@@ -12862,25 +15613,29 @@ const machine_t machines[] = {
         .bus_flags = MACHINE_PS2_PCI,
         .flags     = MACHINE_IDE_DUAL | MACHINE_APM,
         .ram       = {
-            .min  = 8192,
+            .min  = 2048,
             .max  = 131072,
-            .step = 8192
+            .step = 2048
         },
         .nvrmask                  = 127,
         .jumpered_ecp_dma         = 0,
         .default_jumpered_ecp_dma = -1,
         .kbc_device               = &kbc_at_device,
         .kbc_params               = KBC_VEN_AMI | 0x00004800,
+        .nvr_device               = &nvr_at_device,
+        .nvr_params               = NVR_AT,
+        .sio_device               = NULL,
+        .sio_params               = 0x00000000,
         .kbc_p1                   = 0x00000cf0,
         .gpio                     = 0xffffffff,
         .gpio_acpi                = 0xffffffff,
         .device                   = NULL,
         .kbd_device               = NULL,
         .fdc_device               = NULL,
-        .sio_device               = NULL,
         .vid_device               = NULL,
         .snd_device               = NULL,
-        .net_device               = NULL
+        .net_device               = NULL,
+        .aliases                  = { "President Technology P54SP4", "" }
     },
     /* This has an AMIKey-2, which is type 'H'. */
     {
@@ -12906,25 +15661,29 @@ const machine_t machines[] = {
         .bus_flags = MACHINE_PS2_PCI,
         .flags     = MACHINE_IDE_DUAL | MACHINE_APM,
         .ram       = {
-            .min  = 8192,
+            .min  = 2048,
             .max  = 131072,
-            .step = 8192
+            .step = 2048
         },
         .nvrmask                  = 127,
         .jumpered_ecp_dma         = MACHINE_DMA_3,
         .default_jumpered_ecp_dma = 3,
         .kbc_device               = &kbc_at_device,
         .kbc_params               = KBC_VEN_AMI | 0x00004800,
+        .nvr_device               = &nvr_at_device,
+        .nvr_params               = NVR_AT,
+        .sio_device               = NULL,
+        .sio_params               = 0x00000000,
         .kbc_p1                   = 0x00000cf0,
         .gpio                     = 0xffffffff,
         .gpio_acpi                = 0xffffffff,
         .device                   = NULL,
         .kbd_device               = NULL,
         .fdc_device               = NULL,
-        .sio_device               = NULL,
         .vid_device               = NULL,
         .snd_device               = NULL,
-        .net_device               = NULL
+        .net_device               = NULL,
+        .aliases                  = { "" }
     },
     /* This machine has a Winbond W83C842 KBC */
     {
@@ -12939,7 +15698,7 @@ const machine_t machines[] = {
         .gpio_acpi_handler = NULL,
         .cpu               = {
             .package     = CPU_PKG_SOCKET5_7,
-        CPU_BLOCK(CPU_PENTIUMMMX),
+            .block       = CPU_BLOCK(CPU_PENTIUMMMX),
             .min_bus     = 50000000,
             .max_bus     = 66666667,
             .min_voltage = 3520,
@@ -12950,32 +15709,36 @@ const machine_t machines[] = {
         .bus_flags = MACHINE_PCI,
         .flags     = MACHINE_IDE_DUAL | MACHINE_APM,
         .ram       = {
-            .min  = 8192,
+            .min  = 2048,
             .max  = 131072,
-            .step = 8192
+            .step = 2048
         },
         .nvrmask                  = 127,
         .jumpered_ecp_dma         = MACHINE_DMA_DISABLED | MACHINE_DMA_1 | MACHINE_DMA_3,
         .default_jumpered_ecp_dma = 3,
         .kbc_device               = &kbc_at_device,
         .kbc_params               = KBC_VEN_PHOENIX | 0x00021400,    /* Guess. */
+        .nvr_device               = &nvr_at_device,
+        .nvr_params               = NVR_AT,
+        .sio_device               = NULL,
+        .sio_params               = 0x00000000,
         .kbc_p1                   = 0x000004f0,
         .gpio                     = 0xffffffff,
         .gpio_acpi                = 0xffffffff,
         .device                   = NULL,
         .kbd_device               = NULL,
         .fdc_device               = NULL,
-        .sio_device               = NULL,
         .vid_device               = NULL,
         .snd_device               = NULL,
-        .net_device               = NULL
+        .net_device               = NULL,
+        .aliases                  = { "" }
     },
     /* This has an AMIKey-2, which is type 'H'. */
     {
-        .name              = "[SiS 5501] MSI MS-5109",
+        .name              = "[SiS 501] MSI MS-5109",
         .internal_name     = "ms5109",
         .type              = MACHINE_TYPE_SOCKET5,
-        .chipset           = MACHINE_CHIPSET_SIS_5501,
+        .chipset           = MACHINE_CHIPSET_SIS_501,
         .init              = machine_at_ms5109_init,
         .p1_handler        = machine_generic_p1_handler,
         .gpio_handler      = NULL,
@@ -12983,7 +15746,7 @@ const machine_t machines[] = {
         .gpio_acpi_handler = NULL,
         .cpu               = {
             .package     = CPU_PKG_SOCKET5_7,
-        CPU_BLOCK(CPU_PENTIUMMMX),
+            .block       = CPU_BLOCK(CPU_PENTIUMMMX),
             .min_bus     = 50000000,
             .max_bus     = 66666667,
             .min_voltage = 3520,
@@ -12992,31 +15755,35 @@ const machine_t machines[] = {
             .max_multi   = 1.5
         },
         .bus_flags = MACHINE_PS2_PCI,
-        .flags     = MACHINE_IDE_DUAL | MACHINE_APM,
+        .flags     = MACHINE_IDE_DUAL,
         .ram       = {
-            .min  = 8192,
+            .min  = 2048,
             .max  = 131072,
-            .step = 8192
+            .step = 1024
         },
         .nvrmask                  = 127,
         .jumpered_ecp_dma         = MACHINE_DMA_DISABLED | MACHINE_DMA_0 | MACHINE_DMA_1 | MACHINE_DMA_3,
         .default_jumpered_ecp_dma = 3,
         .kbc_device               = &kbc_at_device,
         .kbc_params               = KBC_VEN_AMI | 0x00004800,
+        .nvr_device               = &nvr_at_device,
+        .nvr_params               = NVR_AMI_1994,
+        .sio_device               = NULL,
+        .sio_params               = 0x00000000,
         .kbc_p1                   = 0x00000cf0,
         .gpio                     = 0xffffffff,
         .gpio_acpi                = 0xffffffff,
         .device                   = NULL,
         .kbd_device               = NULL,
         .fdc_device               = NULL,
-        .sio_device               = NULL,
         .vid_device               = NULL,
         .snd_device               = NULL,
-        .net_device               = NULL
+        .net_device               = NULL,
+        .aliases                  = { "" }
     },
     /* Has AMIKey Z(!) KBC firmware. */
     {
-        .name              = "[SiS 5501] Olivetti (TriGem) Torino",
+        .name              = "[SiS 5501] Olivetti Torino",
         .internal_name     = "torino",
         .type              = MACHINE_TYPE_SOCKET5,
         .chipset           = MACHINE_CHIPSET_SIS_5501,
@@ -13027,7 +15794,7 @@ const machine_t machines[] = {
         .gpio_acpi_handler = NULL,
         .cpu               = {
             .package     = CPU_PKG_SOCKET5_7,
-        CPU_BLOCK(CPU_PENTIUMMMX),
+            .block       = CPU_BLOCK(CPU_PENTIUMMMX),
             .min_bus     = 50000000,
             .max_bus     = 66666667,
             .min_voltage = 3520,
@@ -13040,26 +15807,79 @@ const machine_t machines[] = {
         .ram       = {
             .min  = 8192,
             .max  = 131072,
-            .step = 8192
+            .step = 4096
         },
         .nvrmask                  = 127,
         .jumpered_ecp_dma         = MACHINE_DMA_3,
         .default_jumpered_ecp_dma = 3,
         .kbc_device               = &kbc_at_device,
         .kbc_params               = KBC_VEN_AMI_TRIGEM | KBC_FLAG_IS_GREEN | 0x00005a00,
+        .nvr_device               = &nvr_at_device,
+        .nvr_params               = NVR_AMI_1994,
+        .sio_device               = NULL,
+        .sio_params               = 0x00000000,
         .kbc_p1                   = 0x000004f0,
         .gpio                     = 0xffffffff,
         .gpio_acpi                = 0xffffffff,
         .device                   = NULL,
         .kbd_device               = NULL,
         .fdc_device               = NULL,
-        .sio_device               = NULL,
         .vid_device               = &tgui9660_onboard_pci_device,
         .snd_device               = NULL,
-        .net_device               = NULL
+        .net_device               = NULL,
+        .aliases                  = { "TriGem Torino", "Olivetti BA2199", "Olivetti BA2259", "Olivetti M4-xxx", "" }
     },
 
     /* UMC 889x */
+    /* Compaq Presario 7100 Series, using MiTAC/Trigon PL5600D (586). */
+    /* Has a VIA VT82C42N KBC. */
+    {
+        .name              = "[UMC 889x] Compaq Presario 7100 Series 586",
+        .internal_name     = "pl5600d",
+        .type              = MACHINE_TYPE_SOCKET5,
+        .chipset           = MACHINE_CHIPSET_UMC_UM8890BF,
+        .init              = machine_at_pl5600d_init,
+        .p1_handler        = machine_generic_p1_handler,
+        .gpio_handler      = NULL,
+        .available_flag    = MACHINE_AVAILABLE,
+        .gpio_acpi_handler = NULL,
+        .cpu               = {
+            .package     = CPU_PKG_SOCKET5_7,
+            .block       = CPU_BLOCK_NONE,
+            .min_bus     = 40000000,
+            .max_bus     = 66666667,
+            .min_voltage = 3380,
+            .max_voltage = 3600,
+            .min_multi   = 1.5,
+            .max_multi   = 2.0
+        },
+        .bus_flags = MACHINE_PS2_PCI,
+        .flags     = MACHINE_IDE_DUAL | MACHINE_VIDEO | MACHINE_SOUND | MACHINE_APM,
+        .ram       = {
+            .min  = 2048,
+            .max  = 131072,
+            .step = 2048
+        },
+        .nvrmask                  = 127,
+        .jumpered_ecp_dma         = MACHINE_DMA_DISABLED | MACHINE_DMA_1 | MACHINE_DMA_3,
+        .default_jumpered_ecp_dma = 3,
+        .kbc_device               = &kbc_at_device,
+        .kbc_params               = KBC_VEN_VIA | 0x00424600,
+        .nvr_device               = &nvr_at_device,
+        .nvr_params               = NVR_AT,
+        .sio_device               = NULL,
+        .sio_params               = 0x00000000,
+        .kbc_p1                   = 0x00000cf0,
+        .gpio                     = 0xffffffff,
+        .gpio_acpi                = 0xffffffff,
+        .device                   = NULL,
+        .kbd_device               = NULL,
+        .fdc_device               = NULL,
+        .vid_device               = &s3_trio64_onboard_pci_device,
+        .snd_device               = &ess_1688_compaq_device,
+        .net_device               = NULL,
+        .aliases                  = { "MiTAC/Trigon PL5600D-I", "" }
+    },
     /* This has an AMIKey-2, which is type 'H'. */
     {
         .name              = "[UMC 889x] Shuttle HOT-539",
@@ -13084,32 +15904,36 @@ const machine_t machines[] = {
         .bus_flags = MACHINE_PS2_PCI,
         .flags     = MACHINE_IDE_DUAL | MACHINE_APM,
         .ram       = {
-            .min  = 8192,
+            .min  = 2048,
             .max  = 262144,
-            .step = 8192
+            .step = 1024
         },
         .nvrmask                  = 127,
         .jumpered_ecp_dma         = 0,
         .default_jumpered_ecp_dma = -1,
         .kbc_device               = &kbc_at_device,
         .kbc_params               = KBC_VEN_AMI | 0x00004800,
+        .nvr_device               = &nvr_at_device,
+        .nvr_params               = NVR_AT,
+        .sio_device               = NULL,
+        .sio_params               = 0x00000000,
         .kbc_p1                   = 0x00000cf0,
         .gpio                     = 0xffffffff,
         .gpio_acpi                = 0xffffffff,
         .device                   = NULL,
         .kbd_device               = NULL,
         .fdc_device               = NULL,
-        .sio_device               = NULL,
         .vid_device               = NULL,
         .snd_device               = NULL,
-        .net_device               = NULL
+        .net_device               = NULL,
+        .aliases                  = { "" }
     },
 
     /* VLSI SuperCore */
     /* This has AST KBC firmware, likely a Phoenix variant since the BIOS */
     /* calls KBC command D5h to read the KBC revision. */
     {
-        .name              = "[VLSI SuperCore] AST Bravo MS P/90",
+        .name              = "[VLSI SuperCore] AST Bravo MS",
         .internal_name     = "bravoms586",
         .type              = MACHINE_TYPE_SOCKET5,
         .chipset           = MACHINE_CHIPSET_VLSI_SUPERCORE,
@@ -13132,7 +15956,7 @@ const machine_t machines[] = {
         .flags     = MACHINE_IDE_DUAL | MACHINE_APM | MACHINE_VIDEO,
         .ram       = {
             .min  = 4096,
-            .max  = 131072,
+            .max  = 262144,
             .step = 4096
         },
         .nvrmask                  = 127,
@@ -13140,60 +15964,21 @@ const machine_t machines[] = {
         .default_jumpered_ecp_dma = -1,
         .kbc_device               = &kbc_at_device,
         .kbc_params               = KBC_VEN_PHOENIX | 0x00021400, /* Guess */
+        /* NVR is on the chipset. */
+        .nvr_device               = NULL,
+        .nvr_params               = 0x00000000,
+        .sio_device               = NULL,
+        .sio_params               = 0x00000000,
         .kbc_p1                   = 0x00000cf0,
         .gpio                     = 0xffffffff,
         .gpio_acpi                = 0xffffffff,
-        .device                   = NULL,
+        .device                   = &bravoms586_device,
         .kbd_device               = NULL,
         .fdc_device               = NULL,
-        .sio_device               = NULL,
         .vid_device               = &gd5434_onboard_pci_device,
         .snd_device               = NULL,
-        .net_device               = NULL
-    },
-    /* Has a VIA KBC chip */
-    {
-        .name              = "[VLSI SuperCore] DFI G586VPM (rev. C)",
-        .internal_name     = "g586vpmc",
-        .type              = MACHINE_TYPE_SOCKET5,
-        .chipset           = MACHINE_CHIPSET_VLSI_SUPERCORE,
-        .init              = machine_at_g586vpmc_init,
-        .p1_handler        = machine_generic_p1_handler,
-        .gpio_handler      = NULL,
-        .available_flag    = MACHINE_AVAILABLE,
-        .gpio_acpi_handler = NULL,
-        .cpu               = {
-            .package     = CPU_PKG_SOCKET5_7,
-            .block       = CPU_BLOCK_NONE,
-            .min_bus     = 50000000,
-            .max_bus     = 66666667,
-            .min_voltage = 3520,
-            .max_voltage = 3520,
-            .min_multi   = 1.5,
-            .max_multi   = 2.0
-        },
-        .bus_flags = MACHINE_PS2_PCI,
-        .flags     = MACHINE_IDE_DUAL | MACHINE_APM,
-        .ram       = {
-            .min  = 4096,
-            .max  = 262144,
-            .step = 4096
-        },
-        .nvrmask                  = 127,
-        .jumpered_ecp_dma         = MACHINE_DMA_1 | MACHINE_DMA_3,
-        .default_jumpered_ecp_dma = 1,
-        .kbc_device               = &kbc_at_device,
-        .kbc_params               = KBC_VEN_VIA | 0x00424600, /* Guess */
-        .kbc_p1                   = 0x00000cf0,
-        .gpio                     = 0xffffffff,
-        .gpio_acpi                = 0xffffffff,
-        .device                   = NULL,
-        .kbd_device               = NULL,
-        .fdc_device               = NULL,
-        .sio_device               = NULL,
-        .vid_device               = NULL,
-        .snd_device               = NULL,
-        .net_device               = NULL
+        .net_device               = NULL,
+        .aliases                  = { "AST Bravo MS-T", "AST Bravo MS-L", "AST Rattler", "" }
     },
     /* KBC firmware is unknown. No commands outside of the base PS/2 */
     /* KBC command set are used. */
@@ -13221,7 +16006,7 @@ const machine_t machines[] = {
         .flags     = MACHINE_IDE_DUAL | MACHINE_APM,
         .ram       = {
             .min  = 4096,
-            .max  = 131072,
+            .max  = 262144,
             .step = 4096
         },
         .nvrmask                  = 127,
@@ -13229,20 +16014,25 @@ const machine_t machines[] = {
         .default_jumpered_ecp_dma = 4,
         .kbc_device               = &kbc_at_device,
         .kbc_params               = KBC_VEN_PHOENIX | 0x00021400, /* Guess */
+        /* NVR is on the chipset. */
+        .nvr_device               = NULL,
+        .nvr_params               = 0x00000000,
+        .sio_device               = NULL,
+        .sio_params               = 0x00000000,
         .kbc_p1                   = 0x00000cf0,
         .gpio                     = 0xffffffff,
         .gpio_acpi                = 0xffffffff,
-        .device                   = NULL,
+        .device                   = &m54si_device,
         .kbd_device               = NULL,
         .fdc_device               = NULL,
-        .sio_device               = NULL,
         .vid_device               = NULL,
         .snd_device               = NULL,
-        .net_device               = NULL
+        .net_device               = NULL,
+        .aliases                  = { "Micron Diablo", "Micron MBD001013-xx", "" }
     },
     /* This has Phoenix KBC firmware. */
     {
-        .name              = "[VLSI SuperCore] Packard Bell Agoura/Wildcat (PB600)",
+        .name              = "[VLSI SuperCore] Packard Bell PB600",
         .internal_name     = "pb600",
         .type              = MACHINE_TYPE_SOCKET5,
         .chipset           = MACHINE_CHIPSET_VLSI_SUPERCORE,
@@ -13265,7 +16055,7 @@ const machine_t machines[] = {
         .flags     = MACHINE_IDE_DUAL | MACHINE_APM | MACHINE_VIDEO,
         .ram       = {
             .min  = 8192,
-            .max  = 139264,
+            .max  = 270336,
             .step = 4096
         },
         .nvrmask                  = 127,
@@ -13273,22 +16063,27 @@ const machine_t machines[] = {
         .default_jumpered_ecp_dma = 3,
         .kbc_device               = &kbc_at_device,
         .kbc_params               = KBC_VEN_PHOENIX | 0x00012900, /* Guess */
+        /* NVR is on the chipset. */
+        .nvr_device               = NULL,
+        .nvr_params               = 0x00000000,
+        .sio_device               = NULL,
+        .sio_params               = 0x00000000,
         .kbc_p1                   = 0x00000cf0,
         .gpio                     = 0xffffffff,
         .gpio_acpi                = 0xffffffff,
         .device                   = NULL,
         .kbd_device               = NULL,
         .fdc_device               = NULL,
-        .sio_device               = NULL,
         .vid_device               = &gd5430_onboard_pci_device,
         .snd_device               = NULL,
-        .net_device               = NULL
+        .net_device               = NULL,
+        .aliases                  = { "Packard Bell Agoura", "Packard Bell Wildcat", "" }
     },
 
     /* VLSI Wildcat */
     /* This has Phoenix KBC firmware. */
     {
-        .name              = "[VLSI Wildcat] AT&T Globalyst 620/630 (NCR 3248/3348)",
+        .name              = "[VLSI Wildcat] AT&T Globalyst 620",
         .internal_name     = "globalyst620",
         .type              = MACHINE_TYPE_SOCKET5,
         .chipset           = MACHINE_CHIPSET_VLSI_WILDCAT,
@@ -13311,7 +16106,7 @@ const machine_t machines[] = {
         .flags     = MACHINE_IDE_DUAL | MACHINE_APM | MACHINE_VIDEO,
         .ram       = {
             .min  = 4096,
-            .max  = 196608,
+            .max  = 393216,
             .step = 4096
         },
         .nvrmask                  = 127,
@@ -13319,16 +16114,73 @@ const machine_t machines[] = {
         .default_jumpered_ecp_dma = 3,
         .kbc_device               = &kbc_at_device,
         .kbc_params               = KBC_VEN_PHOENIX | 0x00012900, /* Guess */
+        /* NVR is on the chipset. */
+        .nvr_device               = NULL,
+        .nvr_params               = 0x00000000,
+        .sio_device               = NULL,
+        .sio_params               = 0x00000000,
         .kbc_p1                   = 0x00000cf0,
         .gpio                     = 0xffffffff,
         .gpio_acpi                = 0xffffffff,
         .device                   = NULL,
         .kbd_device               = NULL,
         .fdc_device               = NULL,
-        .sio_device               = NULL,
-        .vid_device               = &s3_phoenix_trio64_onboard_pci_device,
+        .vid_device               = &s3_trio64_onboard_pci_device,
         .snd_device               = NULL,
-        .net_device               = NULL
+        .net_device               = NULL,
+        .aliases                  = { "AT&T Globalyst 630", "NCR 3248", "NCR 3348", "" }
+    },
+    /* Has a VIA KBC chip */
+    {
+        .name              = "[VLSI Wildcat] DFI G586VPM (rev. C)",
+        .internal_name     = "g586vpmc",
+        .type              = MACHINE_TYPE_SOCKET5,
+        .chipset           = MACHINE_CHIPSET_VLSI_WILDCAT,
+        .init              = machine_at_g586vpmc_init,
+        .p1_handler        = machine_generic_p1_handler,
+        .gpio_handler      = NULL,
+        .available_flag    = MACHINE_AVAILABLE,
+        .gpio_acpi_handler = NULL,
+        .cpu               = {
+            .package     = CPU_PKG_SOCKET5_7,
+            .block       = CPU_BLOCK_NONE,
+            .min_bus     = 50000000,
+            .max_bus     = 66666667,
+            .min_voltage = 3520,
+            .max_voltage = 3520,
+            .min_multi   = 1.5,
+            .max_multi   = 2.0
+        },
+        .bus_flags = MACHINE_PS2_PCI,
+        .flags     = MACHINE_IDE_DUAL | MACHINE_APM,
+        .ram       = {
+            .min  = 4096,
+            /* The user manual says up to 512 MB of RAM can be installed. However, in practice,
+            the BIOS only recognizes up to 256 MB. Since AOpen AP61 also does this same behavior,
+            I suspect it to be an early AwardBIOS v4.5x limitation. */
+            .max  = 262144,
+            .step = 4096
+        },
+        .nvrmask                  = 127,
+        .jumpered_ecp_dma         = MACHINE_DMA_1 | MACHINE_DMA_3,
+        .default_jumpered_ecp_dma = 1,
+        .kbc_device               = &kbc_at_device,
+        .kbc_params               = KBC_VEN_VIA | 0x00424600, /* Guess */
+        /* NVR is on the chipset. */
+        .nvr_device               = NULL,
+        .nvr_params               = 0x00000000,
+        .sio_device               = NULL,
+        .sio_params               = 0x00000000,
+        .kbc_p1                   = 0x00000cf0,
+        .gpio                     = 0xffffffff,
+        .gpio_acpi                = 0xffffffff,
+        .device                   = NULL,
+        .kbd_device               = NULL,
+        .fdc_device               = NULL,
+        .vid_device               = NULL,
+        .snd_device               = NULL,
+        .net_device               = NULL,
+        .aliases                  = { "" }
     },
 
     /* Socket 7 (Single Voltage) machines */
@@ -13367,16 +16219,20 @@ const machine_t machines[] = {
         .default_jumpered_ecp_dma = -1,
         .kbc_device               = &kbc_at_device,
         .kbc_params               = KBC_VEN_AMI | 0x00004800,
+        .nvr_device               = &nvr_at_device,
+        .nvr_params               = NVR_AT,
+        .sio_device               = NULL,
+        .sio_params               = 0x00000000,
         .kbc_p1                   = 0x00000cf0,
         .gpio                     = 0xffffffff,
         .gpio_acpi                = 0xffffffff,
         .device                   = &p54tp4xe_device,
         .kbd_device               = NULL,
         .fdc_device               = NULL,
-        .sio_device               = NULL,
         .vid_device               = NULL,
         .snd_device               = NULL,
-        .net_device               = NULL
+        .net_device               = NULL,
+        .aliases                  = { "" }
     },
     /* Has AMIKey H KBC firmware. The KBC itself seems to differ between an AMIKEY-2 and a Winbond W83C42. */
     {
@@ -13411,22 +16267,26 @@ const machine_t machines[] = {
         .default_jumpered_ecp_dma = 3,
         .kbc_device               = &kbc_at_device,
         .kbc_params               = KBC_VEN_AMI | 0x00004800,
+        .nvr_device               = &nvr_at_device,
+        .nvr_params               = NVR_AT,
+        .sio_device               = NULL,
+        .sio_params               = 0x00000000,
         .kbc_p1                   = 0x00000cf0,
         .gpio                     = 0xffffffff,
         .gpio_acpi                = 0xffffffff,
         .device                   = NULL,
         .kbd_device               = NULL,
         .fdc_device               = NULL,
-        .sio_device               = NULL,
         .vid_device               = NULL,
         .snd_device               = NULL,
-        .net_device               = NULL
+        .net_device               = NULL,
+        .aliases                  = { "" }
     },
     /* According to tests from real hardware: This has AMI MegaKey KBC firmware on the
        PC87306 Super I/O chip, command 0xA1 returns '5'.
        Command 0xA0 copyright string: (C)1994 AMI . */
     {
-        .name              = "[i430FX] HP Pavilion 51xx/7070/7090/71xx (Holly)",
+        .name              = "[i430FX] HP Pavilion 51xx",
         .internal_name     = "holly",
         .type              = MACHINE_TYPE_SOCKET7_3V,
         .chipset           = MACHINE_CHIPSET_INTEL_430FX,
@@ -13457,16 +16317,21 @@ const machine_t machines[] = {
         .default_jumpered_ecp_dma = 3,
         .kbc_device               = NULL,
         .kbc_params               = 0x00000000,
+        /* NVR is on the super I/O chip. */
+        .nvr_device               = NULL,
+        .nvr_params               = 0x00000000,
+        .sio_device               = NULL,
+        .sio_params               = 0x00000000,
         .kbc_p1                   = 0x000044f0,
         .gpio                     = 0xffffffff,
         .gpio_acpi                = 0xffffffff,
         .device                   = NULL,
         .kbd_device               = NULL,
         .fdc_device               = NULL,
-        .sio_device               = NULL,
-        .vid_device               = &s3_phoenix_trio64vplus_onboard_pci_device,
+        .vid_device               = &s3_trio64vplus_onboard_pci_device,
         .snd_device               = &cs4232_onboard_device,
-        .net_device               = NULL
+        .net_device               = NULL,
+        .aliases                  = { "HP Pavilion 7070", "HP Pavilion 7090", "HP Pavilion 71xx (Holly)", "HP Holly", "" }
     },
     {
         .name              = "[i430FX] HP Vectra 500 Series xxx/MT",
@@ -13500,16 +16365,21 @@ const machine_t machines[] = {
         .default_jumpered_ecp_dma = -1,
         .kbc_device               = NULL,
         .kbc_params               = 0x00000000,
+        /* NVR is on the super I/O chip. */
+        .nvr_device               = NULL,
+        .nvr_params               = 0x00000000,
+        .sio_device               = NULL,
+        .sio_params               = 0x00000000,
         .kbc_p1                   = 0x000044f0,
         .gpio                     = 0xffffffff,
         .gpio_acpi                = 0xffffffff,
         .device                   = NULL,
         .kbd_device               = NULL,
         .fdc_device               = NULL,
-        .sio_device               = NULL,
-        .vid_device               = &s3_phoenix_trio64_onboard_pci_device,
+        .vid_device               = &s3_trio64_onboard_pci_device,
         .snd_device               = NULL,
-        .net_device               = NULL
+        .net_device               = NULL,
+        .aliases                  = { "" }
     },
     {
         .name              = "[i430FX] HP Vectra VE 5/xxx Series 2",
@@ -13543,21 +16413,26 @@ const machine_t machines[] = {
         .default_jumpered_ecp_dma = -1,
         .kbc_device               = NULL,
         .kbc_params               = 0x00000000,
+        /* NVR is on the super I/O chip. */
+        .nvr_device               = NULL,
+        .nvr_params               = 0x00000000,
+        .sio_device               = NULL,
+        .sio_params               = 0x00000000,
         .kbc_p1                   = 0x00000cf0,
         .gpio                     = 0xffffffff,
         .gpio_acpi                = 0xffffffff,
         .device                   = &vectra52_device,
         .kbd_device               = NULL,
         .fdc_device               = NULL,
-        .sio_device               = NULL,
         .vid_device               = &gd5436_onboard_pci_device,
         .snd_device               = NULL,
-        .net_device               = NULL
+        .net_device               = NULL,
+        .aliases                  = { "" }
     },
     /* Has a SM(S)C FDC37C932 Super I/O chip with on-chip KBC with AMI
        MegaKey (revision '5') KBC firmware. */
     {
-        .name              = "[i430FX] HP Vectra VL 5/xxx Series 4 (Chimay)",
+        .name              = "[i430FX] HP Vectra VL 5/xxx Series 4",
         .internal_name     = "vectra54",
         .type              = MACHINE_TYPE_SOCKET7_3V,
         .chipset           = MACHINE_CHIPSET_INTEL_430FX,
@@ -13588,22 +16463,27 @@ const machine_t machines[] = {
         .default_jumpered_ecp_dma = -1,
         .kbc_device               = NULL,
         .kbc_params               = 0x00000000,
+        /* NVR is on the super I/O chip. */
+        .nvr_device               = NULL,
+        .nvr_params               = 0x00000000,
+        .sio_device               = NULL,
+        .sio_params               = 0x00000000,
         .kbc_p1                   = 0x000044f0,
         .gpio                     = 0xffffffff,
         .gpio_acpi                = 0xffffffff,
         .device                   = NULL,
         .kbd_device               = NULL,
         .fdc_device               = NULL,
-        .sio_device               = NULL,
-        .vid_device               = &s3_phoenix_trio64_onboard_pci_device,
+        .vid_device               = &s3_trio64_onboard_pci_device,
         .snd_device               = NULL,
-        .net_device               = NULL
+        .net_device               = NULL,
+        .aliases                  = { "HP Chimay", "" }
     },
     /* According to tests from real hardware: This has AMI MegaKey KBC firmware on the
        PC87306 Super I/O chip, command 0xA1 returns '5'.
        Command 0xA0 copyright string: (C)1994 AMI . */
     {
-        .name              = "[i430FX] Intel Advanced/AS (Atlantis)",
+        .name              = "[i430FX] Intel Advanced/AS",
         .internal_name     = "atlantis",
         .type              = MACHINE_TYPE_SOCKET7_3V,
         .chipset           = MACHINE_CHIPSET_INTEL_430FX,
@@ -13634,22 +16514,27 @@ const machine_t machines[] = {
         .default_jumpered_ecp_dma = 3,
         .kbc_device               = NULL,
         .kbc_params               = 0x00000000,
+        /* NVR is on the super I/O chip. */
+        .nvr_device               = NULL,
+        .nvr_params               = 0x00000000,
+        .sio_device               = NULL,
+        .sio_params               = 0x00000000,
         .kbc_p1                   = 0x000044f0,
         .gpio                     = 0xffffffff,
         .gpio_acpi                = 0xffffffff,
         .device                   = NULL,
         .kbd_device               = NULL,
         .fdc_device               = NULL,
-        .sio_device               = NULL,
         .vid_device               = &mach64ct_device_onboard,
         .snd_device               = &cs4232_onboard_device,
-        .net_device               = NULL
+        .net_device               = NULL,
+        .aliases                  = { "Intel Atlantis", "" }
     },
     /* According to tests from real hardware: This has AMI MegaKey KBC firmware on the
        PC87306 Super I/O chip, command 0xA1 returns '5'.
        Command 0xA0 copyright string: (C)1994 AMI . */
     {
-        .name              = "[i430FX] Intel Advanced/ATX (Thor)",
+        .name              = "[i430FX] Intel Advanced/ATX",
         .internal_name     = "thor",
         .type              = MACHINE_TYPE_SOCKET7_3V,
         .chipset           = MACHINE_CHIPSET_INTEL_430FX,
@@ -13680,22 +16565,27 @@ const machine_t machines[] = {
         .default_jumpered_ecp_dma = 3,
         .kbc_device               = NULL,
         .kbc_params               = 0x00000000,
+        /* NVR is on the super I/O chip. */
+        .nvr_device               = NULL,
+        .nvr_params               = 0x00000000,
+        .sio_device               = NULL,
+        .sio_params               = 0x00000000,
         .kbc_p1                   = 0x000044f0,
         .gpio                     = 0xffffffff,
         .gpio_acpi                = 0xffffffff,
         .device                   = &thor_device,
         .kbd_device               = NULL,
         .fdc_device               = NULL,
-        .sio_device               = NULL,
-        .vid_device               = &s3_phoenix_trio64vplus_onboard_pci_device,
+        .vid_device               = &s3_trio64vplus_onboard_pci_device,
         .snd_device               = &cs4232_onboard_device,
-        .net_device               = NULL
+        .net_device               = NULL,
+        .aliases                  = { "Intel Thor", "Gateway 2000 Thor", "" }
     },
     /* According to tests from real hardware: This has AMI MegaKey KBC firmware on the
        PC87306 Super I/O chip, command 0xA1 returns '5'.
        Command 0xA0 copyright string: (C)1994 AMI . */
     {
-        .name              = "[i430FX] Intel Advanced/EV (Endeavor)",
+        .name              = "[i430FX] Intel Advanced/EV",
         .internal_name     = "endeavor",
         .type              = MACHINE_TYPE_SOCKET7_3V,
         .chipset           = MACHINE_CHIPSET_INTEL_430FX,
@@ -13726,22 +16616,27 @@ const machine_t machines[] = {
         .default_jumpered_ecp_dma = 3,
         .kbc_device               = NULL,
         .kbc_params               = 0x00000000,
+        /* NVR is on the super I/O chip. */
+        .nvr_device               = NULL,
+        .nvr_params               = 0x00000000,
+        .sio_device               = NULL,
+        .sio_params               = 0x00000000,
         .kbc_p1                   = 0x000044f0,
         .gpio                     = 0xffffffff,
         .gpio_acpi                = 0xffffffff,
         .device                   = NULL,
         .kbd_device               = NULL,
         .fdc_device               = NULL,
-        .sio_device               = NULL,
-        .vid_device               = &s3_phoenix_trio64_onboard_pci_device,
+        .vid_device               = &s3_trio64_onboard_pci_device,
         .snd_device               = &sb_vibra16s_onboard_device,
-        .net_device               = NULL
+        .net_device               = NULL,
+        .aliases                  = { "Intel Endeavor", "" }
     },
     /* According to tests from real hardware: This has AMI MegaKey KBC firmware on the
        PC87306 Super I/O chip, command 0xA1 returns '5'.
        Command 0xA0 copyright string: (C)1994 AMI . */
     {
-        .name              = "[i430FX] Intel Advanced/MA (Monaco)",
+        .name              = "[i430FX] Intel Advanced/MA",
         .internal_name     = "monaco",
         .type              = MACHINE_TYPE_SOCKET7_3V,
         .chipset           = MACHINE_CHIPSET_INTEL_430FX,
@@ -13772,16 +16667,21 @@ const machine_t machines[] = {
         .default_jumpered_ecp_dma = 3,
         .kbc_device               = NULL,
         .kbc_params               = 0x00000000,
+        /* NVR is on the super I/O chip. */
+        .nvr_device               = NULL,
+        .nvr_params               = 0x00000000,
+        .sio_device               = NULL,
+        .sio_params               = 0x00000000,
         .kbc_p1                   = 0x000044f0,
         .gpio                     = 0xffffffff,
         .gpio_acpi                = 0xffffffff,
         .device                   = &monaco_device,
         .kbd_device               = NULL,
         .fdc_device               = NULL,
-        .sio_device               = NULL,
         .vid_device               = &mach64ct_device_onboard,
         .snd_device               = &cs4232_onboard_device,
-        .net_device               = NULL
+        .net_device               = NULL,
+        .aliases                  = { "Intel Monaco", "AST Bravo MS-T", "" }
     },
     /* This has an AMIKey-2, which is type 'H'. */
     {
@@ -13816,21 +16716,25 @@ const machine_t machines[] = {
         .default_jumpered_ecp_dma = -1,
         .kbc_device               = &kbc_at_device,
         .kbc_params               = KBC_VEN_AMI | 0x00004800,
+        .nvr_device               = &nvr_at_device,
+        .nvr_params               = NVR_AT,
+        .sio_device               = NULL,
+        .sio_params               = 0x00000000,
         .kbc_p1                   = 0x00000cf0,
         .gpio                     = 0xffffffff,
         .gpio_acpi                = 0xffffffff,
         .device                   = &ms5119_device,
         .kbd_device               = NULL,
         .fdc_device               = NULL,
-        .sio_device               = NULL,
         .vid_device               = NULL,
         .snd_device               = NULL,
-        .net_device               = NULL
+        .net_device               = NULL,
+        .aliases                  = { "" }
     },
     /* This most likely uses AMI MegaKey KBC firmware as well due to having the same
        Super I/O chip (that has the KBC firmware on it) as eg. the Advanced/EV. */
     {
-        .name              = "[i430FX] Packard Bell Thousand Oaks (PB640)",
+        .name              = "[i430FX] Packard Bell PB640",
         .internal_name     = "pb640",
         .type              = MACHINE_TYPE_SOCKET7_3V,
         .chipset           = MACHINE_CHIPSET_INTEL_430FX,
@@ -13861,16 +16765,21 @@ const machine_t machines[] = {
         .default_jumpered_ecp_dma = 3,
         .kbc_device               = NULL,
         .kbc_params               = 0x00000000,
+        /* NVR is on the super I/O chip. */
+        .nvr_device               = NULL,
+        .nvr_params               = 0x00000000,
+        .sio_device               = NULL,
+        .sio_params               = 0x00000000,
         .kbc_p1                   = 0x000044f0,
         .gpio                     = 0xffffffff,
         .gpio_acpi                = 0xffffffff,
         .device                   = NULL,
         .kbd_device               = NULL,
         .fdc_device               = NULL,
-        .sio_device               = NULL,
         .vid_device               = &gd5440_onboard_pci_device,
         .snd_device               = NULL,
-        .net_device               = NULL
+        .net_device               = NULL,
+        .aliases                  = { "Packard Bell Thousand Oaks", "" }
     },
     /* Has a VIA VT82C42N KBC. */
     {
@@ -13905,16 +16814,20 @@ const machine_t machines[] = {
         .default_jumpered_ecp_dma = 3,
         .kbc_device               = &kbc_at_device,
         .kbc_params               = KBC_VEN_VIA | 0x00424600,
+        .nvr_device               = &nvr_at_device,
+        .nvr_params               = NVR_AT,
+        .sio_device               = NULL,
+        .sio_params               = 0x00000000,
         .kbc_p1                   = 0x000004f0,
         .gpio                     = 0xffffffff,
         .gpio_acpi                = 0xffffffff,
         .device                   = NULL,
         .kbd_device               = NULL,
         .fdc_device               = NULL,
-        .sio_device               = NULL,
         .vid_device               = NULL,
         .snd_device               = NULL,
-        .net_device               = NULL
+        .net_device               = NULL,
+        .aliases                  = { "PC Partner P54CXD", "" }
     },
     /* Has an AMIKEY-2 'H' KBC firmware (1992). */
     {
@@ -13949,16 +16862,68 @@ const machine_t machines[] = {
         .default_jumpered_ecp_dma = 3,
         .kbc_device               = &kbc_at_device,
         .kbc_params               = KBC_VEN_AMI | 0x00004800,
+        .nvr_device               = &nvr_at_device,
+        .nvr_params               = NVR_AT,
+        .sio_device               = NULL,
+        .sio_params               = 0x00000000,
         .kbc_p1                   = 0x000004f0,
         .gpio                     = 0xffffffff,
         .gpio_acpi                = 0xffffffff,
         .device                   = &fmb_device,
         .kbd_device               = NULL,
         .fdc_device               = NULL,
-        .sio_device               = NULL,
         .vid_device               = NULL,
         .snd_device               = NULL,
-        .net_device               = NULL
+        .net_device               = NULL,
+        .aliases                  = { "" }
+    },
+    /* Has VIA VT82C42N KBC firmware. */
+    {
+        .name              = "[i430FX] Suk Jung SJ-PTM FX",
+        .internal_name     = "sjptm",
+        .type              = MACHINE_TYPE_SOCKET7_3V,
+        .chipset           = MACHINE_CHIPSET_INTEL_430FX,
+        .init              = machine_at_sjptm_init,
+        .p1_handler        = machine_generic_p1_handler,
+        .gpio_handler      = NULL,
+        .available_flag    = MACHINE_AVAILABLE,
+        .gpio_acpi_handler = NULL,
+        .cpu               = {
+            .package     = CPU_PKG_SOCKET5_7,
+            .block       = CPU_BLOCK_NONE,
+            .min_bus     = 50000000,
+            .max_bus     = 66666667,
+            .min_voltage = 3380,
+            .max_voltage = 3520,
+            .min_multi   = 1.5,
+            .max_multi   = 3.0
+        },
+        .bus_flags = MACHINE_PS2_PCI | MACHINE_BUS_USB,
+        .flags     = MACHINE_IDE_DUAL | MACHINE_APM | MACHINE_USB,
+        .ram       = {
+            .min  = 8192,
+            .max  = 131072,
+            .step = 8192
+        },
+        .nvrmask                  = 127,
+        .jumpered_ecp_dma         = 0,
+        .default_jumpered_ecp_dma = -1,
+        .kbc_device               = &kbc_at_device,
+        .kbc_params               = KBC_VEN_VIA | 0x00424600,
+        .nvr_device               = &nvr_at_device,
+        .nvr_params               = NVR_AT,
+        .sio_device               = NULL,
+        .sio_params               = 0x00000000,
+        .kbc_p1                   = 0x00000cf0,
+        .gpio                     = 0xffffffff,
+        .gpio_acpi                = 0xffffffff,
+        .device                   = NULL,
+        .kbd_device               = NULL,
+        .fdc_device               = NULL,
+        .vid_device               = NULL,
+        .snd_device               = NULL,
+        .net_device               = NULL,
+        .aliases                  = { "Suk Jung SJ-PENTIUM FX", "" }
     },
 
     /* 430HX */
@@ -13997,16 +16962,21 @@ const machine_t machines[] = {
         .default_jumpered_ecp_dma = -1,
         .kbc_device               = NULL,
         .kbc_params               = 0x00000000,
+        /* NVR is on the super I/O chip. */
+        .nvr_device               = NULL,
+        .nvr_params               = 0x00000000,
+        .sio_device               = NULL,
+        .sio_params               = 0x00000000,
         .kbc_p1                   = 0x00000cf0,
         .gpio                     = 0xffffffff,
         .gpio_acpi                = 0xffffffff,
         .device                   = NULL,
         .kbd_device               = NULL,
         .fdc_device               = NULL,
-        .sio_device               = NULL,
         .vid_device               = NULL,
         .snd_device               = NULL,
-        .net_device               = NULL
+        .net_device               = NULL,
+        .aliases                  = { "" }
     },
     /* Has AMIKey-2 or VIA VT82C42N KBC (depending on the revision) with AMIKEY 'F' KBC firmware. */
     {
@@ -14041,16 +17011,20 @@ const machine_t machines[] = {
         .default_jumpered_ecp_dma = -1,
         .kbc_device               = &kbc_at_device,
         .kbc_params               = KBC_VEN_AMI | 0x00004800,
+        .nvr_device               = &nvr_at_device,
+        .nvr_params               = NVR_AT,
+        .sio_device               = NULL,
+        .sio_params               = 0x00000000,
         .kbc_p1                   = 0x00000cf0,
         .gpio                     = 0xffffffff,
         .gpio_acpi                = 0xffffffff,
         .device                   = NULL,
         .kbd_device               = NULL,
         .fdc_device               = NULL,
-        .sio_device               = NULL,
         .vid_device               = NULL,
         .snd_device               = NULL,
-        .net_device               = NULL
+        .net_device               = NULL,
+        .aliases                  = { "" }
     },
     /* [TEST] Has a VIA 82C42N KBC that emulates the AMIKey F KBC firmware. */
     {
@@ -14085,16 +17059,20 @@ const machine_t machines[] = {
         .default_jumpered_ecp_dma = -1,
         .kbc_device               = &kbc_at_device,
         .kbc_params               = KBC_VEN_VIA | 0x00424600,
+        .nvr_device               = &nvr_at_device,
+        .nvr_params               = NVR_AT,
+        .sio_device               = NULL,
+        .sio_params               = 0x00000000,
         .kbc_p1                   = 0x00000cf0,
         .gpio                     = 0xffffffff,
         .gpio_acpi                = 0xffffffff,
         .device                   = NULL,
         .kbd_device               = NULL,
         .fdc_device               = NULL,
-        .sio_device               = NULL,
         .vid_device               = NULL,
         .snd_device               = NULL,
-        .net_device               = NULL
+        .net_device               = NULL,
+        .aliases                  = { "" }
     },
     /* It possible has AMIKEY-2 'H' KBC firmware. */
     {
@@ -14112,7 +17090,7 @@ const machine_t machines[] = {
             .block       = CPU_BLOCK_NONE,
             .min_bus     = 50000000,
             .max_bus     = 66666667,
-            .min_voltage = 2800,
+            .min_voltage = 3380,
             .max_voltage = 3520,
             .min_multi   = 1.5,
             .max_multi   = 3.0
@@ -14129,16 +17107,68 @@ const machine_t machines[] = {
         .default_jumpered_ecp_dma = -1,
         .kbc_device               = &kbc_at_device,
         .kbc_params               = KBC_VEN_AMI | 0x00004800,
+        .nvr_device               = &nvr_at_device,
+        .nvr_params               = NVR_AT_ZERO_DEFAULT,
+        .sio_device               = NULL,
+        .sio_params               = 0x00000000,
         .kbc_p1                   = 0x00000cf0,
         .gpio                     = 0xffffffff,
         .gpio_acpi                = 0xffffffff,
         .device                   = &d943_device,
         .kbd_device               = NULL,
         .fdc_device               = NULL,
-        .sio_device               = NULL,
         .vid_device               = &gd5436_onboard_pci_device,
         .snd_device               = &sb_vibra16c_onboard_device,
-        .net_device               = NULL
+        .net_device               = NULL,
+        .aliases                  = { "Siemens Scenic 5H/___", "" }
+    },
+    /* Has the SM(S)C FDC37C932QF Super I/O chip with the AMI '5' MEGAKEY KBC firmware. */
+    {
+        .name              = "[i430HX] Siemens Simatic OP47",
+        .internal_name     = "op47",
+        .type              = MACHINE_TYPE_SOCKET7_3V,
+        .chipset           = MACHINE_CHIPSET_INTEL_430HX,
+        .init              = machine_at_op47_init,
+        .p1_handler        = machine_generic_p1_handler,
+        .gpio_handler      = NULL,
+        .available_flag    = MACHINE_AVAILABLE,
+        .gpio_acpi_handler = NULL,
+        .cpu               = {
+            .package     = CPU_PKG_SOCKET5_7,
+            .block       = CPU_BLOCK_NONE,
+            .min_bus     = 50000000,
+            .max_bus     = 66666667,
+            .min_voltage = 3380,
+            .max_voltage = 3520,
+            .min_multi   = 1.5,
+            .max_multi   = 3.0
+        },
+        .bus_flags = MACHINE_PS2_PCI,
+        .flags     = MACHINE_IDE_DUAL | MACHINE_APM, /* Machine has onboard video: C&T F65548 (not yet implemented) */
+        .ram       = {
+            .min  = 8192,
+            .max  = 65536,
+            .step = 4096
+        },
+        .nvrmask                  = 511,
+        .jumpered_ecp_dma         = 0,
+        .default_jumpered_ecp_dma = -1,
+        .kbc_device               = NULL,
+        .kbc_params               = 0x00000000,
+        .nvr_device               = NULL,
+        .nvr_params               = 0x00000000,
+        .sio_device               = NULL,
+        .sio_params               = 0x00000000,
+        .kbc_p1                   = 0x000044f0,
+        .gpio                     = 0xffffffff,
+        .gpio_acpi                = 0xffffffff,
+        .device                   = NULL,
+        .kbd_device               = NULL,
+        .fdc_device               = NULL,
+        .vid_device               = NULL,
+        .snd_device               = NULL,
+        .net_device               = NULL,
+        .aliases                  = { "" }
     },
 
     /* 430VX */
@@ -14176,22 +17206,77 @@ const machine_t machines[] = {
         .default_jumpered_ecp_dma = -1,
         .kbc_device               = NULL,
         .kbc_params               = 0x00000000,
+        /* NVR is on the super I/O chip. */
+        .nvr_device               = NULL,
+        .nvr_params               = 0x00000000,
+        .sio_device               = NULL,
+        .sio_params               = 0x00000000,
         .kbc_p1                   = 0x000044f0,
         .gpio                     = 0xffffffff,
         .gpio_acpi                = 0xffffffff,
         .device                   = NULL,
         .kbd_device               = NULL,
         .fdc_device               = NULL,
-        .sio_device               = NULL,
         .vid_device               = NULL,
         .snd_device               = &sb_vibra16c_onboard_device,
-        .net_device               = NULL
+        .net_device               = NULL,
+        .aliases                  = { "" }
+    },
+
+    /* OPTi Viper */
+    /* Has VIA KBC firmware */
+    {
+        .name              = "[OPTi Viper] Octek Rhino 8",
+        .internal_name     = "rhino8",
+        .type              = MACHINE_TYPE_SOCKET7_3V,
+        .chipset           = MACHINE_CHIPSET_OPTI_VIPER,
+        .init              = machine_at_rhino8_init,
+        .p1_handler        = machine_generic_p1_handler,
+        .gpio_handler      = NULL,
+        .available_flag    = MACHINE_AVAILABLE,
+        .gpio_acpi_handler = NULL,
+        .cpu               = {
+            .package     = CPU_PKG_SOCKET5_7,
+            .block       = CPU_BLOCK_NONE,
+            .min_bus     = 50000000,
+            .max_bus     = 66666667,
+            .min_voltage = 3520,
+            .max_voltage = 3520,
+            .min_multi   = 1.5,
+            .max_multi   = 3.0
+        },
+        .bus_flags = MACHINE_PS2_PCI,
+        .flags     = MACHINE_IDE_DUAL | MACHINE_SUPER_IO | MACHINE_APM,
+        .ram       = {
+            .min  = 4096,
+            .max  = 131072,
+            .step = 4096
+        },
+        .nvrmask                  = 127,
+        .jumpered_ecp_dma         = MACHINE_DMA_1 | MACHINE_DMA_3,
+        .default_jumpered_ecp_dma = 3,
+        .kbc_device               = &kbc_at_device,
+        .kbc_params               = KBC_VEN_VIA | 0x00424600, /* Guess */
+        .nvr_device               = &nvr_at_device,
+        .nvr_params               = NVR_AT,
+        .sio_device               = NULL,
+        .sio_params               = 0x00000000,
+        .kbc_p1                   = 0x00000cf0,
+        .gpio                     = 0xffffffff,
+        .gpio_acpi                = 0xffffffff,
+        .device                   = NULL,
+        .kbd_device               = NULL,
+        .fdc_device               = NULL,
+        .vid_device               = NULL,
+        .snd_device               = NULL,
+        .net_device               = NULL,
+        .aliases                  = { "" }
     },
 
     /* SiS 5501 */
     /* Has the Lance LT38C41 KBC. */
     {
-        .name              = "[SiS 5501] Chaintech 5SBM/5SBM2 (M103)",
+        .name              = "[SiS 5501] Chaintech 5SBM2",
         .internal_name     = "5sbm2",
         .type              = MACHINE_TYPE_SOCKET7_3V,
         .chipset           = MACHINE_CHIPSET_SIS_5501,
@@ -14213,25 +17298,30 @@ const machine_t machines[] = {
         .bus_flags = MACHINE_PCI,
         .flags     = MACHINE_IDE_DUAL | MACHINE_APM,
         .ram       = {
-            .min  = 8192,
+            .min  = 2048,
             .max  = 131072,
-            .step = 8192
+            .step = 2048
         },
         .nvrmask                  = 255,
         .jumpered_ecp_dma         = MACHINE_DMA_DISABLED | MACHINE_DMA_1 | MACHINE_DMA_3,
         .default_jumpered_ecp_dma = 3,
         .kbc_device               = &kbc_at_device,
         .kbc_params               = KBC_VEN_AMI | 0x00004600,
+        /* NVR is on the chipset. */
+        .nvr_device               = NULL,
+        .nvr_params               = 0x00000000,
+        .sio_device               = NULL,
+        .sio_params               = 0x00000000,
         .kbc_p1                   = 0x000004f0,
         .gpio                     = 0xffffffff,
         .gpio_acpi                = 0xffffffff,
         .device                   = &c5sbm2_device,
         .kbd_device               = NULL,
         .fdc_device               = NULL,
-        .sio_device               = NULL,
         .vid_device               = NULL,
         .snd_device               = NULL,
-        .net_device               = NULL
+        .net_device               = NULL,
+        .aliases                  = { "Chaintech 5SBM", "Chaintech M103", "" }
     },
 
     /* SiS 5511 */
@@ -14259,25 +17349,30 @@ const machine_t machines[] = {
         .bus_flags = MACHINE_PS2_PCI,
         .flags     = MACHINE_IDE_DUAL | MACHINE_APM,
         .ram       = {
-            .min  = 8192,
+            .min  = 2048,
             .max  = 524288,
-            .step = 8192
+            .step = 2048
         },
         .nvrmask                  = 127,
         .jumpered_ecp_dma         = 0,
         .default_jumpered_ecp_dma = -1,
         .kbc_device               = &kbc_at_device,
         .kbc_params               = KBC_VEN_AMI | 0x00005200,
+        /* NVR is on the chipset. */
+        .nvr_device               = NULL,
+        .nvr_params               = 0x00000000,
+        .sio_device               = NULL,
+        .sio_params               = 0x00000000,
         .kbc_p1                   = 0x000044f0,
         .gpio                     = 0xffffffff,
         .gpio_acpi                = 0xffffffff,
         .device                   = NULL,
         .kbd_device               = NULL,
         .fdc_device               = NULL,
-        .sio_device               = NULL,
         .vid_device               = NULL,
         .snd_device               = NULL,
-        .net_device               = NULL
+        .net_device               = NULL,
+        .aliases                  = { "AMI S727", "" }
     },
     /* Has AMIKey H KBC firmware (AMIKey-2). */
     {
@@ -14303,29 +17398,34 @@ const machine_t machines[] = {
         .bus_flags = MACHINE_PS2_PCI,
         .flags     = MACHINE_IDE_DUAL | MACHINE_APM,
         .ram       = {
-            .min  = 8192,
+            .min  = 2048,
             .max  = 524288,
-            .step = 8192
+            .step = 2048
         },
         .nvrmask                  = 127,
         .jumpered_ecp_dma         = MACHINE_DMA_DISABLED | MACHINE_DMA_1 | MACHINE_DMA_3,
         .default_jumpered_ecp_dma = 3,
         .kbc_device               = &kbc_at_device,
         .kbc_params               = KBC_VEN_AMI | 0x00004800,
+        /* NVR is on the chipset. */
+        .nvr_device               = NULL,
+        .nvr_params               = 0x00000000,
+        .sio_device               = NULL,
+        .sio_params               = 0x00000000,
         .kbc_p1                   = 0x00000cf0,
         .gpio                     = 0xffffffff,
         .gpio_acpi                = 0xffffffff,
         .device                   = &ap5s_device,
         .kbd_device               = NULL,
         .fdc_device               = NULL,
-        .sio_device               = NULL,
         .vid_device               = NULL,
         .snd_device               = NULL,
-        .net_device               = NULL
+        .net_device               = NULL,
+        .aliases                  = { "" }
     },
     /* Has AMIKey H KBC firmware (AMIKey-2). */
     {
-        .name              = "[SiS 5511] HP Pavilion 52xx/53xx/71xx/72xx (BCM FM562)",
+        .name              = "[SiS 5511] HP Pavilion 52xx",
         .internal_name     = "fm562",
         .type              = MACHINE_TYPE_SOCKET7_3V,
         .chipset           = MACHINE_CHIPSET_SIS_5511,
@@ -14349,23 +17449,28 @@ const machine_t machines[] = {
         .ram       = {
             .min  = 8192,
             .max  = 524288,
-            .step = 8192
+            .step = 4096 /* assumed */
         },
         .nvrmask                  = 127,
         .jumpered_ecp_dma         = 0,
         .default_jumpered_ecp_dma = -1,
         .kbc_device               = &kbc_at_device,
         .kbc_params               = KBC_VEN_AMI | 0x00004800,
+        /* NVR is on the chipset. */
+        .nvr_device               = NULL,
+        .nvr_params               = 0x00000000,
+        .sio_device               = NULL,
+        .sio_params               = 0x00000000,
         .kbc_p1                   = 0x00000cf0,
         .gpio                     = 0xffffffff,
         .gpio_acpi                = 0xffffffff,
         .device                   = NULL,
         .kbd_device               = NULL,
         .fdc_device               = NULL,
-        .sio_device               = NULL,
         .vid_device               = NULL,
         .snd_device               = &cs4232_onboard_device,
-        .net_device               = NULL
+        .net_device               = NULL,
+        .aliases                  = { "HP Pavilion 53xx", "HP Pavilion 71xx (BCM FM562)", "HP Pavilion 72xx", "BCM FM562", "" }
     },
     /* Has an SMC FDC37C669QF Super I/O. */
     {
@@ -14393,23 +17498,28 @@ const machine_t machines[] = {
         .ram       = {
             .min  = 8192,
             .max  = 131072,
-            .step = 8192
+            .step = 4096 /* assumed */
         },
         .nvrmask                  = 127,
         .jumpered_ecp_dma         = 0,
         .default_jumpered_ecp_dma = -1,
         .kbc_device               = &kbc_at_device,
         .kbc_params               = KBC_VEN_AMI | 0x00004800,    /* Guess. */
+        /* NVR is on the chipset. */
+        .nvr_device               = NULL,
+        .nvr_params               = 0x00000000,
+        .sio_device               = NULL,
+        .sio_params               = 0x00000000,
         .kbc_p1                   = 0x00000cf0,
         .gpio                     = 0xffffffff,
         .gpio_acpi                = 0xffffffff,
         .device                   = NULL,
         .kbd_device               = NULL,
         .fdc_device               = NULL,
-        .sio_device               = NULL,
         .vid_device               = &gd5436_onboard_pci_device,
         .snd_device               = NULL,
-        .net_device               = NULL
+        .net_device               = NULL,
+        .aliases                  = { "" }
     },
     /* Has AMIKey H KBC firmware (AMIKey-2). */
     {
@@ -14435,32 +17545,37 @@ const machine_t machines[] = {
         .bus_flags = MACHINE_PS2_PCI,
         .flags     = MACHINE_IDE_DUAL | MACHINE_APM,
         .ram       = {
-            .min  = 8192,
+            .min  = 4096,
             .max  = 524288,
-            .step = 8192
+            .step = 4096
         },
         .nvrmask                  = 127,
         .jumpered_ecp_dma         = MACHINE_DMA_USE_MBDMA,
         .default_jumpered_ecp_dma = -1,
         .kbc_device               = &kbc_at_device,
         .kbc_params               = KBC_VEN_AMI | 0x00004800,
+        /* NVR is on the chipset. */
+        .nvr_device               = NULL,
+        .nvr_params               = 0x00000000,
+        .sio_device               = NULL,
+        .sio_params               = 0x00000000,
         .kbc_p1                   = 0x00000cf0,
         .gpio                     = 0xffffffff,
         .gpio_acpi                = 0xffffffff,
         .device                   = &ms5124_device,
         .kbd_device               = NULL,
         .fdc_device               = NULL,
-        .sio_device               = NULL,
         .vid_device               = NULL,
         .snd_device               = NULL,
-        .net_device               = NULL
+        .net_device               = NULL,
+        .aliases                  = { "Premio 219E", "Premio 219F", "" }
     },
 
     /* VLSI Wildcat */
     /* KBC firmware is unknown. No PS/2 port is present and no commands outside */
     /* of the base AT KBC command set are used. */
     {
-        .name              = "[VLSI Wildcat] ZEOS Boa 2 (Pantera/Wildcat)",
+        .name              = "[VLSI Wildcat] ZEOS Boa 2",
         .internal_name     = "zeoswildcat",
         .type              = MACHINE_TYPE_SOCKET7_3V,
         .chipset           = MACHINE_CHIPSET_VLSI_WILDCAT,
@@ -14491,16 +17606,21 @@ const machine_t machines[] = {
         .default_jumpered_ecp_dma = 3,
         .kbc_device               = &kbc_at_device,
         .kbc_params               = 0x00000000,
+        /* NVR is on the chipset. */
+        .nvr_device               = NULL,
+        .nvr_params               = 0x00000000,
+        .sio_device               = NULL,
+        .sio_params               = 0x00000000,
         .kbc_p1                   = 0x000004f0,
         .gpio                     = 0xffffffff,
         .gpio_acpi                = 0xffffffff,
         .device                   = NULL,
         .kbd_device               = NULL,
         .fdc_device               = NULL,
-        .sio_device               = NULL,
         .vid_device               = NULL,
         .snd_device               = NULL,
-        .net_device               = NULL
+        .net_device               = NULL,
+        .aliases                  = { "Zeos Pantera", "Zeos Wildcat", "" }
     },
 
     /* Socket 7 (Dual Voltage) machines */
@@ -14538,16 +17658,20 @@ const machine_t machines[] = {
         .default_jumpered_ecp_dma = -1,
         .kbc_device               = NULL,
         .kbc_params               = 0x00000000,
+        .nvr_device               = NULL,
+        .nvr_params               = 0x00000000,
+        .sio_device               = NULL,
+        .sio_params               = 0x00000000,
         .kbc_p1                   = 0x00000cf0,
         .gpio                     = 0xffffffff,
         .gpio_acpi                = 0xffffffff,
         .device                   = &m5ata_device,
         .kbd_device               = NULL,
         .fdc_device               = NULL,
-        .sio_device               = NULL,
         .vid_device               = NULL,
         .snd_device               = NULL,
-        .net_device               = NULL
+        .net_device               = NULL,
+        .aliases                  = { "" }
     },
     /* Has the ALi M1543 southbridge with on-chip KBC. */
     {
@@ -14582,16 +17706,20 @@ const machine_t machines[] = {
         .default_jumpered_ecp_dma = -1,
         .kbc_device               = NULL,
         .kbc_params               = 0x00000000,
+        .nvr_device               = NULL,
+        .nvr_params               = 0x00000000,
+        .sio_device               = NULL,
+        .sio_params               = 0x00000000,
         .kbc_p1                   = 0x00000cf0,
         .gpio                     = 0xffffffff,
         .gpio_acpi                = 0xffffffff,
         .device                   = NULL,
         .kbd_device               = NULL,
         .fdc_device               = NULL,
-        .sio_device               = NULL,
         .vid_device               = NULL,
         .snd_device               = NULL,
-        .net_device               = NULL
+        .net_device               = NULL,
+        .aliases                  = { "" }
     },
     /* Has the ALi M1543 southbridge with on-chip KBC. */
     {
@@ -14626,16 +17754,20 @@ const machine_t machines[] = {
         .default_jumpered_ecp_dma = -1,
         .kbc_device               = NULL,
         .kbc_params               = 0x00000000,
+        .nvr_device               = NULL,
+        .nvr_params               = 0x00000000,
+        .sio_device               = NULL,
+        .sio_params               = 0x00000000,
         .kbc_p1                   = 0x00000cf0,
         .gpio                     = 0xffffffff,
         .gpio_acpi                = 0xffffffff,
         .device                   = NULL,
         .kbd_device               = NULL,
         .fdc_device               = NULL,
-        .sio_device               = NULL,
         .vid_device               = NULL,
         .snd_device               = NULL,
-        .net_device               = NULL
+        .net_device               = NULL,
+        .aliases                  = { "" }
     },
 
     /* 430HX */
@@ -14673,16 +17805,20 @@ const machine_t machines[] = {
         .default_jumpered_ecp_dma = -1,
         .kbc_device               = NULL,
         .kbc_params               = 0x00000000,
+        .nvr_device               = NULL,
+        .nvr_params               = 0x00000000,
+        .sio_device               = NULL,
+        .sio_params               = 0x00000000,
         .kbc_p1                   = 0x00000cf0,
         .gpio                     = 0xffffffff,
         .gpio_acpi                = 0xffffffff,
         .device                   = NULL,
         .kbd_device               = NULL,
         .fdc_device               = NULL,
-        .sio_device               = NULL,
         .vid_device               = NULL,
         .snd_device               = NULL,
-        .net_device               = NULL
+        .net_device               = NULL,
+        .aliases                  = { "Acer M3A", "" }
     },
     /* Has AMIKey H KBC firmware (AMIKey-2). */
     {
@@ -14717,16 +17853,20 @@ const machine_t machines[] = {
         .default_jumpered_ecp_dma = -1,
         .kbc_device               = &kbc_at_device,
         .kbc_params               = KBC_VEN_AMI | 0x00004800,
+        .nvr_device               = &nvr_at_device,
+        .nvr_params               = NVR_AT,
+        .sio_device               = NULL,
+        .sio_params               = 0x00000000,
         .kbc_p1                   = 0x00000cf0,
         .gpio                     = 0xffffffff,
         .gpio_acpi                = 0xffffffff,
         .device                   = NULL,
         .kbd_device               = NULL,
         .fdc_device               = NULL,
-        .sio_device               = NULL,
         .vid_device               = NULL,
         .snd_device               = NULL,
-        .net_device               = NULL
+        .net_device               = NULL,
+        .aliases                  = { "" }
     },
     /* The base board has a Holtek HT6542B which emulates the AMIKey-2 ('H') KBC firmware. */
     {
@@ -14761,22 +17901,26 @@ const machine_t machines[] = {
         .default_jumpered_ecp_dma = -1,
         .kbc_device               = &kbc_at_device,
         .kbc_params               = KBC_VEN_HOLTEK | 0x00004800,
+        .nvr_device               = &nvr_at_device,
+        .nvr_params               = NVR_AT,
+        .sio_device               = NULL,
+        .sio_params               = 0x00000000,
         .kbc_p1                   = 0x00000cf0,
         .gpio                     = 0xffffffff,
         .gpio_acpi                = 0xffffffff,
         .device                   = NULL,
         .kbd_device               = NULL,
         .fdc_device               = NULL,
-        .sio_device               = NULL,
         .vid_device               = NULL,
         .snd_device               = NULL,
-        .net_device               = NULL
+        .net_device               = NULL,
+        .aliases                  = { "" }
     },
     /* According to tests from real hardware: This has AMI MegaKey KBC firmware on the
        PC87306 Super I/O chip, command 0xA1 returns '5'.
        Command 0xA0 copyright string: (C)1994 AMI . */
     {
-        .name              = "[i430HX] HP Pavilion 73xx/74xx (Ruby USB)",
+        .name              = "[i430HX] HP Pavilion 73xx",
         .internal_name     = "rubyusb",
         .type              = MACHINE_TYPE_SOCKET7,
         .chipset           = MACHINE_CHIPSET_INTEL_430HX,
@@ -14808,20 +17952,24 @@ const machine_t machines[] = {
         .default_jumpered_ecp_dma = 3,
         .kbc_device               = NULL,
         .kbc_params               = 0x00000000,
+        .nvr_device               = NULL,
+        .nvr_params               = 0x00000000,
+        .sio_device               = NULL,
+        .sio_params               = 0x00000000,
         .kbc_p1                   = 0x000044f0,
         .gpio                     = 0xffffffff,
         .gpio_acpi                = 0xffffffff,
         .device                   = NULL,
         .kbd_device               = NULL,
         .fdc_device               = NULL,
-        .sio_device               = NULL,
         .vid_device               = &s3_virge_325_onboard_pci_device,
         .snd_device               = &ymf701_device,
-        .net_device               = NULL
+        .net_device               = NULL,
+        .aliases                  = { "HP Pavilion 74xx", "HP Ruby USB", "" }
     },
     /* OEM-only Intel CU430HX, has AMI MegaKey KBC firmware on the PC87306 Super I/O chip. */
     {
-        .name              = "[i430HX] Intel CU430HX (Cumberland)",
+        .name              = "[i430HX] Intel CU430HX",
         .internal_name     = "cu430hx",
         .type              = MACHINE_TYPE_SOCKET7,
         .chipset           = MACHINE_CHIPSET_INTEL_430HX,
@@ -14853,22 +18001,26 @@ const machine_t machines[] = {
         .default_jumpered_ecp_dma = 3,
         .kbc_device               = NULL,
         .kbc_params               = 0x00000000,
+        .nvr_device               = NULL,
+        .nvr_params               = 0x00000000,
+        .sio_device               = NULL,
+        .sio_params               = 0x00000000,
         .kbc_p1                   = 0x000044f0,
         .gpio                     = 0xffffffff,
         .gpio_acpi                = 0xffffffff,
         .device                   = &cu430hx_device,
         .kbd_device               = NULL,
         .fdc_device               = NULL,
-        .sio_device               = NULL,
         .vid_device               = NULL,
         .snd_device               = &sb_vibra16c_onboard_device,
-        .net_device               = NULL
+        .net_device               = NULL,
+        .aliases                  = { "Intel Cumberland", "Toshiba Equium 5xx0D", "NEC PowerMate V2xxx", "NEC PowerMate P2xxx", "" }
     },
     /* According to tests from real hardware: This has AMI MegaKey KBC firmware on the
        PC87306 Super I/O chip, command 0xA1 returns '5'.
        Command 0xA0 copyright string: (C)1994 AMI . */
     {
-        .name              = "[i430HX] Intel TC430HX (Tucson)",
+        .name              = "[i430HX] Intel TC430HX",
         .internal_name     = "tc430hx",
         .type              = MACHINE_TYPE_SOCKET7,
         .chipset           = MACHINE_CHIPSET_INTEL_430HX,
@@ -14900,16 +18052,20 @@ const machine_t machines[] = {
         .default_jumpered_ecp_dma = 3,
         .kbc_device               = NULL,
         .kbc_params               = 0x00000000,
+        .nvr_device               = NULL,
+        .nvr_params               = 0x00000000,
+        .sio_device               = NULL,
+        .sio_params               = 0x00000000,
         .kbc_p1                   = 0x000044f0,
         .gpio                     = 0xffffffff,
         .gpio_acpi                = 0xffffffff,
         .device                   = &tc430hx_device,
         .kbd_device               = NULL,
         .fdc_device               = NULL,
-        .sio_device               = NULL,
         .vid_device               = &s3_virge_375_onboard_pci_device,
         .snd_device               = &ymf701_device,
-        .net_device               = NULL
+        .net_device               = NULL,
+        .aliases                  = { "Intel Tucson", "Micron ClientPro MTA", "Micron Millennia LXA", "Toshiba Infinia 7xx1", "" }
     },
     /* Has a SM(S)C FDC37C935 Super I/O chip with on-chip KBC with Phoenix
        MultiKey/42 (version 1.38) KBC firmware. */
@@ -14945,20 +18101,24 @@ const machine_t machines[] = {
         .default_jumpered_ecp_dma = -1,
         .kbc_device               = NULL,
         .kbc_params               = 0x00000000,
+        .nvr_device               = NULL,
+        .nvr_params               = 0x00000000,
+        .sio_device               = NULL,
+        .sio_params               = 0x00000000,
         .kbc_p1                   = 0x00000cf0,
         .gpio                     = 0xffffffff,
         .gpio_acpi                = 0xffffffff,
         .device                   = &m7shi_device,
         .kbd_device               = NULL,
         .fdc_device               = NULL,
-        .sio_device               = NULL,
         .vid_device               = NULL,
         .snd_device               = NULL,
-        .net_device               = NULL
+        .net_device               = NULL,
+        .aliases                  = { "" }
     },
     /* Unknown PS/2 KBC. */
     {
-        .name              = "[i430HX] Radisys EPC-2102",
+        .name              = "[i430HX] RadiSys EPC-2102",
         .internal_name     = "epc2102",
         .type              = MACHINE_TYPE_SOCKET7,
         .chipset           = MACHINE_CHIPSET_INTEL_430HX,
@@ -14978,7 +18138,7 @@ const machine_t machines[] = {
             .max_multi   = 3.5
         },
         .bus_flags = MACHINE_PS2_PCI,
-        .flags     = MACHINE_IDE_DUAL | MACHINE_APM,
+        .flags     = MACHINE_IDE_DUAL,
         .ram       = {
             .min  = 4096,
             .max  = 524288,
@@ -14989,23 +18149,27 @@ const machine_t machines[] = {
         .default_jumpered_ecp_dma = -1,
         .kbc_device               = &kbc_at_device,
         .kbc_params               = KBC_VEN_AMI | 0x00005200,    /* Guess. */
+        .nvr_device               = &nvr_at_device,
+        .nvr_params               = NVR_AT_ZERO_DEFAULT,
+        .sio_device               = NULL,
+        .sio_params               = 0x00000000,
         .kbc_p1                   = 0x000044f0,
         .gpio                     = 0xffffffff,
         .gpio_acpi                = 0xffffffff,
         .device                   = NULL,
         .kbd_device               = NULL,
         .fdc_device               = NULL,
-        .sio_device               = NULL,
         .vid_device               = NULL,
         .snd_device               = NULL,
-        .net_device               = NULL
+        .net_device               = NULL,
+        .aliases                  = { "" }
     },
     /* According to tests from real hardware: This has AMI MegaKey KBC firmware on the
        PC87306 Super I/O chip, command 0xA1 returns '5'.
        Command 0xA0 copyright string: (C)1994 AMI .
        Yes, this is an Intel AMI BIOS with a fancy splash screen. */
     {
-        .name              = "[i430HX] Sony Vaio PCV-70/90/100/120",
+        .name              = "[i430HX] Sony Vaio PCV-90",
         .internal_name     = "pcv90",
         .type              = MACHINE_TYPE_SOCKET7,
         .chipset           = MACHINE_CHIPSET_INTEL_430HX,
@@ -15037,16 +18201,20 @@ const machine_t machines[] = {
         .default_jumpered_ecp_dma = 3,
         .kbc_device               = NULL,
         .kbc_params               = 0x00000000,
+        .nvr_device               = NULL,
+        .nvr_params               = 0x00000000,
+        .sio_device               = NULL,
+        .sio_params               = 0x00000000,
         .kbc_p1                   = 0x000044f0,
         .gpio                     = 0xffffffff,
         .gpio_acpi                = 0xffffffff,
         .device                   = NULL,
         .kbd_device               = NULL,
         .fdc_device               = NULL,
-        .sio_device               = NULL,
         .vid_device               = NULL,
         .snd_device               = &ymf701_device,
-        .net_device               = NULL
+        .net_device               = NULL,
+        .aliases                  = { "Sony Vaio PCV-70", "Sony Vaio PCV-100", "Sony Vaio PCV-120", "Intel Agate", "Intel AG430HX", "" }
     },
     /* [TEST] The board doesn't seem to have a KBC at all, which probably means it's an on-chip one on the PC87306 SIO.
        A list on a Danish site shows the BIOS as having a -0 string, indicating non-AMI KBC firmware. */
@@ -15082,16 +18250,20 @@ const machine_t machines[] = {
         .default_jumpered_ecp_dma = -1,
         .kbc_device               = NULL,
         .kbc_params               = 0x00000000,
+        .nvr_device               = NULL,
+        .nvr_params               = 0x00000000,
+        .sio_device               = NULL,
+        .sio_params               = 0x00000000,
         .kbc_p1                   = 0x000044f0,
         .gpio                     = 0xffffffff,
         .gpio_acpi                = 0xffffffff,
         .device                   = NULL,
         .kbd_device               = NULL,
         .fdc_device               = NULL,
-        .sio_device               = NULL,
         .vid_device               = NULL,
         .snd_device               = NULL,
-        .net_device               = NULL
+        .net_device               = NULL,
+        .aliases                  = { "" }
     },
 
     /* 430VX */
@@ -15128,16 +18300,20 @@ const machine_t machines[] = {
         .default_jumpered_ecp_dma = 3,
         .kbc_device               = &kbc_at_device,
         .kbc_params               = KBC_VEN_VIA | 0x00424600,
+        .nvr_device               = &nvr_at_device,
+        .nvr_params               = NVR_AT,
+        .sio_device               = NULL,
+        .sio_params               = 0x00000000,
         .kbc_p1                   = 0x00000cf0,
         .gpio                     = 0xffffffff,
         .gpio_acpi                = 0xffffffff,
         .device                   = NULL,
         .kbd_device               = NULL,
         .fdc_device               = NULL,
-        .sio_device               = NULL,
         .vid_device               = NULL,
         .snd_device               = NULL,
-        .net_device               = NULL
+        .net_device               = NULL,
+        .aliases                  = { "" }
     },
     /* Has AMIKey H KBC firmware (AMIKey-2) on a BestKey KBC. */
     {
@@ -15172,16 +18348,20 @@ const machine_t machines[] = {
         .default_jumpered_ecp_dma = -1,
         .kbc_device               = &kbc_at_device,
         .kbc_params               = KBC_VEN_AMI | 0x00004800,
+        .nvr_device               = &nvr_at_device,
+        .nvr_params               = NVR_AT,
+        .sio_device               = NULL,
+        .sio_params               = 0x00000000,
         .kbc_p1                   = 0x00000cf0,
         .gpio                     = 0xffffffff,
         .gpio_acpi                = 0xffffffff,
         .device                   = NULL,
         .kbd_device               = NULL,
         .fdc_device               = NULL,
-        .sio_device               = NULL,
         .vid_device               = NULL,
         .snd_device               = NULL,
-        .net_device               = NULL
+        .net_device               = NULL,
+        .aliases                  = { "" }
     },
     /* The BIOS does not send a single non-standard KBC command, so it must have a standard IBM
        PS/2 KBC firmware or a clone thereof. */
@@ -15217,16 +18397,20 @@ const machine_t machines[] = {
         .default_jumpered_ecp_dma = -1,
         .kbc_device               = &kbc_at_device,    /* Guess. */
         .kbc_params               = KBC_VEN_AMI | 0x00004800,    /* Guess. */
+        .nvr_device               = &nvr_at_device,
+        .nvr_params               = NVR_AT,
+        .sio_device               = NULL,
+        .sio_params               = 0x00000000,
         .kbc_p1                   = 0x00000cf0,
         .gpio                     = 0xffffffff,
         .gpio_acpi                = 0xffffffff,
         .device                   = NULL,
         .kbd_device               = NULL,
         .fdc_device               = NULL,
-        .sio_device               = NULL,
         .vid_device               = NULL,
         .snd_device               = NULL,
-        .net_device               = NULL
+        .net_device               = NULL,
+        .aliases                  = { "" }
     },
     /* [TEST] Has a VIA VT82C42N KBC. */
     {
@@ -15261,16 +18445,20 @@ const machine_t machines[] = {
         .default_jumpered_ecp_dma = -1,
         .kbc_device               = &kbc_at_device,
         .kbc_params               = KBC_VEN_VIA | 0x00424600,
+        .nvr_device               = &nvr_at_device,
+        .nvr_params               = NVR_AT,
+        .sio_device               = NULL,
+        .sio_params               = 0x00000000,
         .kbc_p1                   = 0x00000cf0,
         .gpio                     = 0xffffffff,
         .gpio_acpi                = 0xffffffff,
         .device                   = NULL,
         .kbd_device               = NULL,
         .fdc_device               = NULL,
-        .sio_device               = NULL,
         .vid_device               = NULL,
         .snd_device               = NULL,
-        .net_device               = NULL
+        .net_device               = NULL,
+        .aliases                  = { "" }
     },
     /* Has a SM(S)C FDC37C932QF Super I/O chip with on-chip KBC with AMI
        MegaKey (revision '5') KBC firmware. */
@@ -15295,7 +18483,7 @@ const machine_t machines[] = {
             .max_multi   = 3.5
         },
         .bus_flags = MACHINE_PS2_PCI,
-        .flags     = MACHINE_IDE_DUAL | MACHINE_VIDEO | MACHINE_APM,
+        .flags     = MACHINE_IDE_DUAL | MACHINE_VIDEO | MACHINE_SOUND | MACHINE_GAMEPORT | MACHINE_APM, /* Machine has internal audio: ESS ES1888F */
         .ram       = {
             .min  = 16384,
             .max  = 49152,
@@ -15306,16 +18494,20 @@ const machine_t machines[] = {
         .default_jumpered_ecp_dma = -1,
         .kbc_device               = NULL,
         .kbc_params               = 0x00000000,
+        .nvr_device               = NULL,
+        .nvr_params               = 0x00000000,
+        .sio_device               = NULL,
+        .sio_params               = 0x00000000,
         .kbc_p1                   = 0x000044f0,
         .gpio                     = 0xffffffff,
         .gpio_acpi                = 0xffffffff,
         .device                   = NULL,
         .kbd_device               = NULL,
         .fdc_device               = NULL,
-        .sio_device               = NULL,
-        .vid_device               = &s3_trio64v2_dx_onboard_pci_device,
-        .snd_device               = NULL,
-        .net_device               = NULL
+        .vid_device               = &s3_trio64v2dx_onboard_pci_device,
+        .snd_device               = &ess_1888_compaq_device,
+        .net_device               = NULL,
+        .aliases                  = { "MiTAC/Trigon TITAN-M", "" }
     },
     /* Has a SM(S)C FDC37C931APM Super I/O chip with on-chip KBC with Compaq
        KBC firmware. */
@@ -15340,7 +18532,7 @@ const machine_t machines[] = {
             .max_multi   = 3.5
         },
         .bus_flags = MACHINE_PS2_PCI,
-        .flags     = MACHINE_IDE_DUAL | MACHINE_VIDEO | MACHINE_APM,
+        .flags     = MACHINE_IDE_DUAL | MACHINE_VIDEO | MACHINE_SOUND | MACHINE_GAMEPORT | MACHINE_APM, /* Machine has internal audio: ESS ES1887F */
         .ram       = {
             .min  = 16384,
             .max  = 49152,
@@ -15351,16 +18543,20 @@ const machine_t machines[] = {
         .default_jumpered_ecp_dma = -1,
         .kbc_device               = NULL,
         .kbc_params               = 0x00000000,
+        .nvr_device               = NULL,
+        .nvr_params               = 0x00000000,
+        .sio_device               = NULL,
+        .sio_params               = 0x00000000,
         .kbc_p1                   = 0x00000cf0,
         .gpio                     = 0xffffffff,
         .gpio_acpi                = 0xffffffff,
         .device                   = NULL,
         .kbd_device               = NULL,
         .fdc_device               = NULL,
-        .sio_device               = NULL,
-        .vid_device               = &s3_trio64v2_dx_onboard_pci_device,
-        .snd_device               = NULL,
-        .net_device               = NULL
+        .vid_device               = &s3_trio64v2dx_onboard_pci_device,
+        .snd_device               = &ess_1887_device,
+        .net_device               = NULL,
+        .aliases                  = { "MiTAC/Trigon SNIPER", "MiTAC/Trigon TITAN-R", "" }
     },
     /* Has a SM(S)C FDC37C932FR Super I/O chip with on-chip KBC with AMI
        MegaKey (revision '5') KBC firmware. */
@@ -15397,16 +18593,20 @@ const machine_t machines[] = {
         .default_jumpered_ecp_dma = -1,
         .kbc_device               = NULL,
         .kbc_params               = 0x00000000,
+        .nvr_device               = NULL,
+        .nvr_params               = 0x00000000,
+        .sio_device               = NULL,
+        .sio_params               = 0x00000000,
         .kbc_p1                   = 0x000044f0,
         .gpio                     = 0xffffffff,
         .gpio_acpi                = 0xffffffff,
         .device                   = NULL,
         .kbd_device               = NULL,
         .fdc_device               = NULL,
-        .sio_device               = NULL,
         .vid_device               = NULL,
         .snd_device               = NULL,
-        .net_device               = NULL
+        .net_device               = NULL,
+        .aliases                  = { "Intel Hannibal+", "" }
     },
     /* Has AMIKey H KBC firmware (AMIKey-2). */
     {
@@ -15441,16 +18641,20 @@ const machine_t machines[] = {
         .default_jumpered_ecp_dma = -1,
         .kbc_device               = &kbc_at_device,
         .kbc_params               = KBC_VEN_AMI | 0x00004800,
+        .nvr_device               = &nvr_at_device,
+        .nvr_params               = NVR_AT,
+        .sio_device               = NULL,
+        .sio_params               = 0x00000000,
         .kbc_p1                   = 0x00000cf0,
         .gpio                     = 0xffffffff,
         .gpio_acpi                = 0xffffffff,
         .device                   = &p5vxb_device,
         .kbd_device               = NULL,
         .fdc_device               = NULL,
-        .sio_device               = NULL,
         .vid_device               = NULL,
         .snd_device               = NULL,
-        .net_device               = NULL
+        .net_device               = NULL,
+        .aliases                  = { "" }
     },
     /* Has a SM(S)C FDC37C932FR Super I/O chip with on-chip KBC with AMI
        MegaKey (revision '5') KBC firmware. */
@@ -15486,16 +18690,20 @@ const machine_t machines[] = {
         .default_jumpered_ecp_dma = -1,
         .kbc_device               = NULL,
         .kbc_params               = 0x00000000,
+        .nvr_device               = NULL,
+        .nvr_params               = 0x00000000,
+        .sio_device               = NULL,
+        .sio_params               = 0x00000000,
         .kbc_p1                   = 0x000044f0,
         .gpio                     = 0xffffffff,
         .gpio_acpi                = 0xffffffff,
         .device                   = NULL,
         .kbd_device               = NULL,
         .fdc_device               = NULL,
-        .sio_device               = NULL,
         .vid_device               = NULL,
         .snd_device               = NULL,
-        .net_device               = NULL
+        .net_device               = NULL,
+        .aliases                  = { "" }
     },
     /* Has a SM(S)C FDC37C932FR Super I/O chip with on-chip KBC with AMI
        MegaKey (revision '5') KBC firmware. */
@@ -15532,16 +18740,20 @@ const machine_t machines[] = {
         .default_jumpered_ecp_dma = -1,
         .kbc_device               = NULL,
         .kbc_params               = 0x00000000,
+        .nvr_device               = NULL,
+        .nvr_params               = 0x00000000,
+        .sio_device               = NULL,
+        .sio_params               = 0x00000000,
         .kbc_p1                   = 0x000044f0,
         .gpio                     = 0xffffffff,
         .gpio_acpi                = 0xffffffff,
         .device                   = NULL,
         .kbd_device               = NULL,
         .fdc_device               = NULL,
-        .sio_device               = NULL,
         .vid_device               = NULL,
         .snd_device               = &sb_vibra16c_onboard_device,
-        .net_device               = NULL
+        .net_device               = NULL,
+        .aliases                  = { "Intel Tiger Eye", "Intel TE430VX", "" }
     },
     /* Has a SM(S)C FDC37C935 Super I/O chip with on-chip KBC with Phoenix
        MultiKey/42 (version 1.38) KBC firmware. */
@@ -15566,7 +18778,7 @@ const machine_t machines[] = {
             .max_multi   = 3.5
         },
         .bus_flags = MACHINE_PS2_PCI,
-        .flags     = MACHINE_IDE_DUAL | MACHINE_APM, /* Machine has internal video: S3 Trio64V2/DX */
+        .flags     = MACHINE_VIDEO | MACHINE_IDE_DUAL | MACHINE_APM, /* Machine has internal video: S3 Trio64V2/DX */
         .ram       = {
             .min  = 8192,
             .max  = 131072,
@@ -15577,20 +18789,24 @@ const machine_t machines[] = {
         .default_jumpered_ecp_dma = -1,
         .kbc_device               = NULL,
         .kbc_params               = 0x00000000,
+        .nvr_device               = NULL,
+        .nvr_params               = 0x00000000,
+        .sio_device               = NULL,
+        .sio_params               = 0x00000000,
         .kbc_p1                   = 0x00000cf0,
         .gpio                     = 0xffffffff,
         .gpio_acpi                = 0xffffffff,
         .device                   = NULL,
         .kbd_device               = NULL,
         .fdc_device               = NULL,
-        .sio_device               = NULL,
-        .vid_device               = NULL,
+        .vid_device               = &s3_trio64v2dx_onboard_pci_device,
         .snd_device               = NULL,
-        .net_device               = NULL
+        .net_device               = NULL,
+        .aliases                  = { "" }
     },
     /* Has the AMIKey-2 ('H') KBC firmware. */
     {
-        .name              = "[i430VX] LG IBM Multinet x52 (MSI MS-5136)",
+        .name              = "[i430VX] LG IBM Multinet x52",
         .internal_name     = "lgibmx52",
         .type              = MACHINE_TYPE_SOCKET7,
         .chipset           = MACHINE_CHIPSET_INTEL_430VX,
@@ -15621,22 +18837,26 @@ const machine_t machines[] = {
         .default_jumpered_ecp_dma = -1,
         .kbc_device               = &kbc_at_device,
         .kbc_params               = KBC_VEN_AMI | 0x00004800,
+        .nvr_device               = &nvr_at_device,
+        .nvr_params               = NVR_AT,
+        .sio_device               = NULL,
+        .sio_params               = 0x00000000,
         .kbc_p1                   = 0x00000cf0,
         .gpio                     = 0xffffffff,
         .gpio_acpi                = 0xffffffff,
         .device                   = &lgibmx52_device,
         .kbd_device               = NULL,
         .fdc_device               = NULL,
-        .sio_device               = NULL,
         .vid_device               = NULL,
         .snd_device               = NULL,
-        .net_device               = NULL
+        .net_device               = NULL,
+        .aliases                  = { "MSI MS-5136", "" }
     },
     /* According to tests from real hardware: This has AMI MegaKey KBC firmware on the
        PC87306 Super I/O chip, command 0xA1 returns '5'.
        Command 0xA0 copyright string: (C)1994 AMI . */
     {
-        .name              = "[i430VX] Packard Bell Orlando/2D/3D/MMX (PB680/PB682/PB683/PB685)",
+        .name              = "[i430VX] Packard Bell PB68x",
         .internal_name     = "pb680",
         .type              = MACHINE_TYPE_SOCKET7,
         .chipset           = MACHINE_CHIPSET_INTEL_430VX,
@@ -15668,21 +18888,25 @@ const machine_t machines[] = {
         .default_jumpered_ecp_dma = 3,
         .kbc_device               = NULL,
         .kbc_params               = 0x00000000,
+        .nvr_device               = NULL,
+        .nvr_params               = 0x00000000,
+        .sio_device               = NULL,
+        .sio_params               = 0x00000000,
         .kbc_p1                   = 0x000044f0,
         .gpio                     = 0xffffffff,
         .gpio_acpi                = 0xffffffff,
         .device                   = NULL,
         .kbd_device               = NULL,
         .fdc_device               = NULL,
-        .sio_device               = NULL,
-        .vid_device               = &s3_phoenix_trio64vplus_onboard_pci_device,
-        .snd_device               = NULL,
-        .net_device               = NULL
+        .vid_device               = &s3_trio64vplus_onboard_pci_device, /* Machine has also internal video: S3 ViRGE */
+        .snd_device               = NULL, /* Machine has Crystal CS4236-KQ onboard sound but it's unpopulated */
+        .net_device               = NULL,
+        .aliases                  = { "Packard Bell Orlando", "Packard Bell 2D", "Packard Bell 3D", "Packard Bell MMX", "Packard Bell R501", "Intel NV430VX", "Intel Orlando", "Intel Tampa", "" }
     },
     /* Has a SM(S)C FDC37C935 Super I/O chip with on-chip KBC with Phoenix
        MultiKey/42 (version 1.38) KBC firmware. */
     {
-        .name              = "[i430VX] Packard Bell PB810/820 (GVC/BCM FM530)",
+        .name              = "[i430VX] Packard Bell PB810",
         .internal_name     = "pb810",
         .type              = MACHINE_TYPE_SOCKET7,
         .chipset           = MACHINE_CHIPSET_INTEL_430VX,
@@ -15695,14 +18919,14 @@ const machine_t machines[] = {
             .package     = CPU_PKG_SOCKET5_7,
             .block       = CPU_BLOCK_NONE,
             .min_bus     = 50000000,
-            .max_bus     = 66666667,
+            .max_bus     = 83333333,
             .min_voltage = 2500,
             .max_voltage = 3520,
             .min_multi   = 1.5,
             .max_multi   = 4.0
         },
         .bus_flags = MACHINE_PS2_PCI,
-        .flags     = MACHINE_IDE_DUAL | MACHINE_SOUND | MACHINE_APM, /* Machine has internal video: S3 Trio64V2/DX */
+        .flags     = MACHINE_VIDEO | MACHINE_IDE_DUAL | MACHINE_SOUND | MACHINE_APM, /* Machine has internal video: S3 Trio64V2/DX */
         .ram       = {
             .min  = 4096,
             .max  = 131072,
@@ -15713,16 +18937,20 @@ const machine_t machines[] = {
         .default_jumpered_ecp_dma = -1,
         .kbc_device               = NULL,
         .kbc_params               = 0x00000000,
+        .nvr_device               = NULL,
+        .nvr_params               = 0x00000000,
+        .sio_device               = NULL,
+        .sio_params               = 0x00000000,
         .kbc_p1                   = 0x00000cf0,
         .gpio                     = 0xffffffff,
         .gpio_acpi                = 0xffffffff,
         .device                   = NULL,
         .kbd_device               = NULL,
         .fdc_device               = NULL,
-        .sio_device               = NULL,
-        .vid_device               = NULL,
+        .vid_device               = &s3_trio64v2dx_onboard_pci_device, /* Machine has also internal video: S3 ViRGE */
         .snd_device               = &cs4237b_device,
-        .net_device               = NULL
+        .net_device               = NULL,
+        .aliases                  = { "Packard Bell PB820", "BCM FM530", "" }
     },
     /* This has the AMIKey 'H' firmware, possibly AMIKey-2. Photos show it with a BestKey, so it
        likely clones the behavior of AMIKey 'H'. */
@@ -15758,16 +18986,20 @@ const machine_t machines[] = {
         .default_jumpered_ecp_dma = -1,
         .kbc_device               = &kbc_at_device,
         .kbc_params               = KBC_VEN_AMI | 0x00004800,
+        .nvr_device               = &nvr_at_device,
+        .nvr_params               = NVR_AT,
+        .sio_device               = NULL,
+        .sio_params               = 0x00000000,
         .kbc_p1                   = 0x00000cf0,
         .gpio                     = 0xffffffff,
         .gpio_acpi                = 0xffffffff,
         .device                   = NULL,
         .kbd_device               = NULL,
         .fdc_device               = NULL,
-        .sio_device               = NULL,
         .vid_device               = NULL,
         .snd_device               = NULL,
-        .net_device               = NULL
+        .net_device               = NULL,
+        .aliases                  = { "Aristo AM-43xVX", "Shi-Tec Royal II", "" }
     },
     /* This has a Holtek KBC and the BIOS does not send a single non-standard KBC command, so it
        must be an ASIC that clones the standard IBM PS/2 KBC. */
@@ -15803,16 +19035,20 @@ const machine_t machines[] = {
         .default_jumpered_ecp_dma = -1,
         .kbc_device               = &kbc_at_device,
         .kbc_params               = KBC_VEN_AMI | 0x00004800,
+        .nvr_device               = &nvr_at_device,
+        .nvr_params               = NVR_AT,
+        .sio_device               = NULL,
+        .sio_params               = 0x00000000,
         .kbc_p1                   = 0x00000cf0,
         .gpio                     = 0xffffffff,
         .gpio_acpi                = 0xffffffff,
         .device                   = NULL,
         .kbd_device               = NULL,
         .fdc_device               = NULL,
-        .sio_device               = NULL,
         .vid_device               = NULL,
         .snd_device               = NULL,
-        .net_device               = NULL
+        .net_device               = NULL,
+        .aliases                  = { "Award 430VX PCI", "" }
     },
 
     /* 430TX */
@@ -15849,63 +19085,22 @@ const machine_t machines[] = {
         .default_jumpered_ecp_dma = -1,
         .kbc_device               = NULL,
         .kbc_params               = 0x00000000,
+        .nvr_device               = NULL,
+        .nvr_params               = 0x00000000,
+        .sio_device               = NULL,
+        .sio_params               = 0x00000000,
         .kbc_p1                   = 0x00000cf0,
         .gpio                     = 0xffffffff,
         .gpio_acpi                = 0xffffffff,
         .device                   = NULL,
         .kbd_device               = NULL,
         .fdc_device               = NULL,
-        .sio_device               = NULL,
         .vid_device               = &chips_69000_onboard_device,
         .snd_device               = NULL,
-        .net_device               = NULL
+        .net_device               = NULL,
+        .aliases                  = { "ADLink NuPRO-590", "" }
     },
-    /* Has a National Semiconductor PC87307 Super I/O with on-chip KBC, which has one of these
-       firmwares: AMI '5' MegaKey, Phoenix MultiKey/42 1.37, or Phoenix MultiKey/42i 4.16. */
-    {
-        .name              = "[i430TX] ASUS TX97-XV (HP OEM)",
-        .internal_name     = "tx97xv",
-        .type              = MACHINE_TYPE_SOCKET7,
-        .chipset           = MACHINE_CHIPSET_INTEL_430TX,
-        .init              = machine_at_tx97xv_init,
-        .p1_handler        = machine_generic_p1_handler,
-        .gpio_handler      = NULL,
-        .available_flag    = MACHINE_AVAILABLE,
-        .gpio_acpi_handler = NULL,
-        .cpu               = {
-            .package     = CPU_PKG_SOCKET5_7,
-            .block       = CPU_BLOCK_NONE,
-            .min_bus     = 50000000,
-            .max_bus     = 75000000,
-            .min_voltage = 2100,
-            .max_voltage = 3520,
-            .min_multi   = 1.5,
-            .max_multi   = 3.5
-        },
-        .bus_flags = MACHINE_PS2_PCI | MACHINE_BUS_USB,
-        .flags     = MACHINE_IDE_DUAL | MACHINE_APM | MACHINE_USB | MACHINE_VIDEO,
-        .ram       = {
-            .min  = 8192,
-            .max  = 262144,
-            .step = 8192
-        },
-        .nvrmask                  = 255,
-        .jumpered_ecp_dma         = 0,
-        .default_jumpered_ecp_dma = -1,
-        .kbc_device               = &kbc_at_device,
-        .kbc_params               = KBC_VEN_AMI | 0x00004600,
-        .kbc_p1                   = 0x00000cf0,
-        .gpio                     = 0xffffffff,
-        .gpio_acpi                = 0xffffffff,
-        .device                   = NULL,
-        .kbd_device               = NULL,
-        .fdc_device               = NULL,
-        .sio_device               = NULL,
-        .vid_device               = &mach64vt3_onboard_device,
-        .snd_device               = NULL,
-        .net_device               = NULL
-    },
-    /* This has the AMIKey KBC firmware, which is type 'F' (YM430TX is based on the TX97). */
+    /* This has a Holtek HT6542B with AMIKey-2 ('H') KBC firmware. */
     {
         .name              = "[i430TX] ASUS TX97",
         .internal_name     = "tx97",
@@ -15938,16 +19133,68 @@ const machine_t machines[] = {
         .default_jumpered_ecp_dma = -1,
         .kbc_device               = &kbc_at_device,
         .kbc_params               = KBC_VEN_AMI | 0x00004600,
+        .nvr_device               = NULL,
+        .nvr_params               = 0x00000000,
+        .sio_device               = NULL,
+        .sio_params               = 0x00000000,
         .kbc_p1                   = 0x00000cf0,
         .gpio                     = 0xffffffff,
         .gpio_acpi                = 0xffffffff,
         .device                   = NULL,
         .kbd_device               = NULL,
         .fdc_device               = NULL,
-        .sio_device               = NULL,
         .vid_device               = NULL,
         .snd_device               = NULL,
-        .net_device               = NULL
+        .net_device               = NULL,
+        .aliases                  = { "" }
+    },
+    /* The has a Holtek HT6542B with AMIKey-2 ('H') KBC firmware. */
+    {
+        .name              = "[i430TX] ASUS TXP4-X",
+        .internal_name     = "txp4x",
+        .type              = MACHINE_TYPE_SOCKET7,
+        .chipset           = MACHINE_CHIPSET_INTEL_430TX,
+        .init              = machine_at_txp4x_init,
+        .p1_handler        = machine_generic_p1_handler,
+        .gpio_handler      = NULL,
+        .available_flag    = MACHINE_AVAILABLE,
+        .gpio_acpi_handler = NULL,
+        .cpu               = {
+            .package     = CPU_PKG_SOCKET5_7,
+            .block       = CPU_BLOCK_NONE,
+            .min_bus     = 50000000,
+            .max_bus     = 66666667,
+            .min_voltage = 2100,
+            .max_voltage = 3520,
+            .min_multi   = 1.5,
+            .max_multi   = 3.5
+        },
+        .bus_flags = MACHINE_PS2_PCI | MACHINE_BUS_USB,
+        .flags     = MACHINE_IDE_DUAL | MACHINE_APM | MACHINE_SOUND | MACHINE_USB,
+        .ram       = {
+            .min  = 4096,
+            .max  = 262144,
+            .step = 4096
+        },
+        .nvrmask                  = 255,
+        .jumpered_ecp_dma         = 0,
+        .default_jumpered_ecp_dma = -1,
+        .kbc_device               = &kbc_at_device,
+        .kbc_params               = KBC_VEN_AMI | 0x00004600,
+        .nvr_device               = NULL,
+        .nvr_params               = 0x00000000,
+        .sio_device               = NULL,
+        .sio_params               = 0x00000000,
+        .kbc_p1                   = 0x00000cf0,
+        .gpio                     = 0xffffffff,
+        .gpio_acpi                = 0xffffffff,
+        .device                   = &txp4x_device,
+        .kbd_device               = NULL,
+        .fdc_device               = NULL,
+        .vid_device               = NULL,
+        .snd_device               = &sb_vibra16cl_onboard_device,
+        .net_device               = NULL,
+        .aliases                  = { "" }
     },
     /*
        According to Dell specifications, it can have either National Semiconductor
@@ -15991,21 +19238,26 @@ const machine_t machines[] = {
         .default_jumpered_ecp_dma = -1,
         .kbc_device               = NULL,
         .kbc_params               = 0x00000000,
+        .nvr_device               = NULL,
+        .nvr_params               = 0x00000000,
+        .sio_device               = NULL,
+        .sio_params               = 0x00000000,
         .kbc_p1                   = 0x00000cf0,
         .gpio                     = 0xffffffff,
         .gpio_acpi                = 0xffffffff,
         .device                   = NULL,
         .kbd_device               = NULL,
         .fdc_device               = NULL,
-        .sio_device               = NULL,
+
         /* Stop-gap measure until the Trio64V2/GX is emulated, as both use the same VBIOS. */
-        .vid_device               = &s3_trio64v2_dx_onboard_pci_device,
+        .vid_device               = &s3_trio64v2dx_onboard_pci_device,
         .snd_device               = &sb_vibra16xv_onboard_device,
-        .net_device               = NULL
+        .net_device               = NULL,
+        .aliases                  = { "Dell System Thredbo", "" }
     },
     /* [TEST] Has AMI Megakey '5' KBC firmware on the SM(S)C FDC37C67x Super I/O chip. */
     {
-        .name              = "[i430TX] Gateway E-1000 (Tomahawk)",
+        .name              = "[i430TX] Gateway E-1000",
         .internal_name     = "tomahawk",
         .type              = MACHINE_TYPE_SOCKET7,
         .chipset           = MACHINE_CHIPSET_INTEL_430TX,
@@ -16036,20 +19288,73 @@ const machine_t machines[] = {
         .default_jumpered_ecp_dma = -1,
         .kbc_device               = NULL,
         .kbc_params               = 0x00000000,
+        .nvr_device               = NULL,
+        .nvr_params               = 0x00000000,
+        .sio_device               = NULL,
+        .sio_params               = 0x00000000,
         .kbc_p1                   = 0x000044f0,
         .gpio                     = 0xffffffff,
         .gpio_acpi                = 0xffffffff,
         .device                   = NULL,
         .kbd_device               = NULL,
         .fdc_device               = NULL,
-        .sio_device               = NULL,
-        .vid_device               = &s3_trio64v2_dx_onboard_pci_device,
+        .vid_device               = &s3_trio64v2dx_onboard_pci_device,
         .snd_device               = &cs4236b_onboard_device,
-        .net_device               = &pcnet_am79c973_onboard_device
+        .net_device               = &pcnet_am79c973_onboard_device,
+        .aliases                  = { "Gateway Tomahawk", "Anigma SCI Pentium LPX", "" }
+    },
+    /* Has a National Semiconductor PC87307 Super I/O with on-chip KBC, which has one of these
+       firmwares: AMI '5' MegaKey, Phoenix MultiKey/42 1.37, or Phoenix MultiKey/42i 4.16. */
+    {
+        .name              = "[i430TX] HP Pavilion 81xx",
+        .internal_name     = "tx97xv",
+        .type              = MACHINE_TYPE_SOCKET7,
+        .chipset           = MACHINE_CHIPSET_INTEL_430TX,
+        .init              = machine_at_tx97xv_init,
+        .p1_handler        = machine_generic_p1_handler,
+        .gpio_handler      = NULL,
+        .available_flag    = MACHINE_AVAILABLE,
+        .gpio_acpi_handler = NULL,
+        .cpu               = {
+            .package     = CPU_PKG_SOCKET5_7,
+            .block       = CPU_BLOCK_NONE,
+            .min_bus     = 50000000,
+            .max_bus     = 75000000,
+            .min_voltage = 2100,
+            .max_voltage = 3520,
+            .min_multi   = 1.5,
+            .max_multi   = 3.5
+        },
+        .bus_flags = MACHINE_PS2_PCI | MACHINE_BUS_USB,
+        .flags     = MACHINE_IDE_DUAL | MACHINE_APM | MACHINE_USB | MACHINE_VIDEO,
+        .ram       = {
+            .min  = 8192,
+            .max  = 262144,
+            .step = 8192
+        },
+        .nvrmask                  = 255,
+        .jumpered_ecp_dma         = 0,
+        .default_jumpered_ecp_dma = -1,
+        .kbc_device               = &kbc_at_device,
+        .kbc_params               = KBC_VEN_AMI | 0x00004600,
+        .nvr_device               = NULL,
+        .nvr_params               = 0x00000000,
+        .sio_device               = NULL,
+        .sio_params               = 0x00000000,
+        .kbc_p1                   = 0x00000cf0,
+        .gpio                     = 0xffffffff,
+        .gpio_acpi                = 0xffffffff,
+        .device                   = NULL,
+        .kbd_device               = NULL,
+        .fdc_device               = NULL,
+        .vid_device               = &mach64vt3_onboard_device,
+        .snd_device               = NULL,
+        .net_device               = NULL,
+        .aliases                  = { "ASUS TX97-XV", "HP Arnold3", "" }
     },
     /* This has the Phoenix MultiKey KBC firmware on the NSC Super I/O chip. */
     {
-        .name              = "[i430TX] Intel AN430TX (Anchorage)",
+        .name              = "[i430TX] Intel AN430TX",
         .internal_name     = "an430tx",
         .type              = MACHINE_TYPE_SOCKET7,
         .chipset           = MACHINE_CHIPSET_INTEL_430TX,
@@ -16081,20 +19386,24 @@ const machine_t machines[] = {
         .default_jumpered_ecp_dma = -1,
         .kbc_device               = NULL,
         .kbc_params               = 0x00000000,
+        .nvr_device               = NULL,
+        .nvr_params               = 0x00000000,
+        .sio_device               = NULL,
+        .sio_params               = 0x00000000,
         .kbc_p1                   = 0x000044f0,
         .gpio                     = 0xffffffff,
         .gpio_acpi                = 0xffffffff,
         .device                   = &an430tx_device,
         .kbd_device               = NULL,
         .fdc_device               = NULL,
-        .sio_device               = NULL,
         .vid_device               = NULL,
         .snd_device               = &ymf715_onboard_device,
-        .net_device               = NULL
+        .net_device               = NULL,
+        .aliases                  = { "Intel Anchorage", "Micron Millennia MME", "Packard Bell PB79x", "Sony Vaio PCV-130", "Sony Vaio PCV-150", "" }
     },
     /* This has the Winbond W83977 Super I/O Chip with AMIKey-2 KBC firmware, which is type 'H'. */
     {
-        .name              = "[i430TX] Intel YM430TX (Yamamoto)",
+        .name              = "[i430TX] Intel YM430TX",
         .internal_name     = "ym430tx",
         .type              = MACHINE_TYPE_SOCKET7,
         .chipset           = MACHINE_CHIPSET_INTEL_430TX,
@@ -16126,20 +19435,23 @@ const machine_t machines[] = {
         .default_jumpered_ecp_dma = -1,
         .kbc_device               = NULL,
         .kbc_params               = 0x00000000,
+        .nvr_device               = NULL,
+        .nvr_params               = 0x00000000,
+        .sio_device               = NULL,
+        .sio_params               = 0x00000000,
         .kbc_p1                   = 0x00000cf0,
         .gpio                     = 0xffffffff,
         .gpio_acpi                = 0xffffffff,
         .device                   = NULL,
         .kbd_device               = NULL,
         .fdc_device               = NULL,
-        .sio_device               = NULL,
         .vid_device               = NULL,
         .snd_device               = NULL,
-        .net_device               = NULL
+        .net_device               = NULL,
+        .aliases                  = { "Intel Yamamoto", "Intel TXP4", "" }
     },
     /*
-       PhoenixBIOS 4.0 Rel 6.0 for 430TX, has onboard Yamaha YMF701 which
-       is not emulated yet.
+       PhoenixBIOS 4.0 Rel 6.0 for 430TX.
 
        Has a SM(S)C FDC37C935 Super I/O chip with on-chip KBC with Phoenix
        MultiKey/42 (version 1.38) KBC firmware.
@@ -16165,8 +19477,7 @@ const machine_t machines[] = {
             .max_multi   = 3.5
         },
         .bus_flags = MACHINE_PS2_PCI | MACHINE_BUS_USB,
-        /* Machine has internal sound: Yamaha YMF701-S */
-        .flags     = MACHINE_IDE_DUAL | MACHINE_APM | MACHINE_GAMEPORT | MACHINE_USB,
+        .flags     = MACHINE_IDE_DUAL | MACHINE_APM | MACHINE_SOUND | MACHINE_GAMEPORT | MACHINE_USB,
         .ram       = {
             .min  = 8192,
             .max  = 262144,
@@ -16177,16 +19488,69 @@ const machine_t machines[] = {
         .default_jumpered_ecp_dma = -1,
         .kbc_device               = NULL,
         .kbc_params               = 0x00000000,
+        .nvr_device               = NULL,
+        .nvr_params               = 0x00000000,
+        .sio_device               = NULL,
+        .sio_params               = 0x00000000,
         .kbc_p1                   = 0x00000cf0,
         .gpio                     = 0xffffffff,
         .gpio_acpi                = 0xffffffff,
         .device                   = NULL,
         .kbd_device               = NULL,
         .fdc_device               = NULL,
+        .vid_device               = NULL,
+        .snd_device               = &ymf701_device,
+        .net_device               = NULL,
+        .aliases                  = { "" }
+    },
+    /* Has a Winbond W83977TF Super I/O chip with on-chip KBC with AMIKey-2 KBC
+       firmware. */
+    {
+        .name              = "[i430TX] MSI MS-5156",
+        .internal_name     = "ms5156",
+        .type              = MACHINE_TYPE_SOCKET7,
+        .chipset           = MACHINE_CHIPSET_INTEL_430TX,
+        .init              = machine_at_ms5156_init,
+        .p1_handler        = machine_generic_p1_handler,
+        .gpio_handler      = NULL,
+        .available_flag    = MACHINE_AVAILABLE,
+        .gpio_acpi_handler = NULL,
+        .cpu               = {
+            .package     = CPU_PKG_SOCKET5_7,
+            .block       = CPU_BLOCK_NONE,
+            .min_bus     = 55000000,
+            .max_bus     = 75000000,
+            .min_voltage = 2700,
+            .max_voltage = 3520,
+            .min_multi   = 1.5,
+            .max_multi   = 3.5
+        },
+        .bus_flags = MACHINE_PS2_PCI | MACHINE_BUS_USB,
+        .flags     = MACHINE_IDE_DUAL | MACHINE_APM | MACHINE_ACPI | MACHINE_USB,
+        .ram       = {
+            .min  = 4096,
+            .max  = 262144,
+            .step = 4096
+        },
+        .nvrmask                  = 255,
+        .jumpered_ecp_dma         = 0,
+        .default_jumpered_ecp_dma = -1,
+        .kbc_device               = NULL,
+        .kbc_params               = 0x00000000,
+        .nvr_device               = NULL,
+        .nvr_params               = 0x00000000,
         .sio_device               = NULL,
+        .sio_params               = 0x00000000,
+        .kbc_p1                   = 0x00000cf0,
+        .gpio                     = 0xffffffff,
+        .gpio_acpi                = 0xffffffff,
+        .device                   = &ms5156_device,
+        .kbd_device               = NULL,
+        .fdc_device               = NULL,
         .vid_device               = NULL,
         .snd_device               = NULL,
-        .net_device               = NULL
+        .net_device               = NULL,
+        .aliases                  = { "" }
     },
     /* Has a SM(S)C FDC37C67x Super I/O chip with on-chip KBC with Phoenix or
        AMI MEGAKEY '5' KBC firmware. */
@@ -16202,7 +19566,8 @@ const machine_t machines[] = {
         .gpio_acpi_handler = NULL,
         .cpu               = {
             .package     = CPU_PKG_SOCKET5_7,
-            .block       = CPU_BLOCK_NONE,
+            /* The BIOS does not support Cyrix CPU's. */
+            .block       = CPU_BLOCK(CPU_Cx6x86, CPU_Cx6x86L, CPU_Cx6x86MX),
             .min_bus     = 60000000,
             .max_bus     = 66666667,
             .min_voltage = 2700,
@@ -16211,7 +19576,7 @@ const machine_t machines[] = {
             .max_multi   = 3.5
         },
         .bus_flags = MACHINE_PS2_PCIONLY | MACHINE_BUS_USB,
-        .flags     = MACHINE_IDE_DUAL | MACHINE_APM | MACHINE_ACPI | MACHINE_USB, /* Machine has internal video: Cirrus Logic CL-GD5465 and internal sound: Yamaha YMF715 */
+        .flags     = MACHINE_IDE_DUAL | MACHINE_APM | MACHINE_ACPI | MACHINE_SOUND | MACHINE_USB, /* Machine has internal video: Cirrus Logic CL-GD5465 and internal sound: Yamaha YMF715 */
         .ram       = {
             .min  = 8192,
             .max  = 262144,
@@ -16222,16 +19587,20 @@ const machine_t machines[] = {
         .default_jumpered_ecp_dma = -1,
         .kbc_device               = NULL,
         .kbc_params               = 0x00000000,
+        .nvr_device               = NULL,
+        .nvr_params               = 0x00000000,
+        .sio_device               = NULL,
+        .sio_params               = 0x00000000,
         .kbc_p1                   = 0x000044f0,
         .gpio                     = 0xffffffff,
         .gpio_acpi                = 0xffffffff,
         .device                   = NULL,
         .kbd_device               = NULL,
         .fdc_device               = NULL,
-        .sio_device               = NULL,
         .vid_device               = NULL,
-        .snd_device               = NULL,
-        .net_device               = NULL
+        .snd_device               = &ymf715_onboard_device,
+        .net_device               = NULL,
+        .aliases                  = { "" }
     },
     /* The BIOS sends KBC command BB and expects it to output a byte, which is AMI KBC behavior.
        A picture shows a VIA VT82C42N KBC though, so it could be a case of that KBC with AMI firmware. */
@@ -16267,16 +19636,20 @@ const machine_t machines[] = {
         .default_jumpered_ecp_dma = -1,
         .kbc_device               = &kbc_at_device,
         .kbc_params               = KBC_VEN_VIA | 0x00424600,
+        .nvr_device               = NULL,
+        .nvr_params               = 0x00000000,
+        .sio_device               = NULL,
+        .sio_params               = 0x00000000,
         .kbc_p1                   = 0x00000cf0,
         .gpio                     = 0xffffffff,
         .gpio_acpi                = 0xffffffff,
         .device                   = NULL,
         .kbd_device               = NULL,
         .fdc_device               = NULL,
-        .sio_device               = NULL,
         .vid_device               = NULL,
         .snd_device               = NULL,
-        .net_device               = NULL
+        .net_device               = NULL,
+        .aliases                  = { "Aristo AM-430TX", "" }
     },
     /* Award BIOS, PS2, EDO, SDRAM, 4 PCI, 4 ISA, VIA VT82C42N KBC */
     {
@@ -16311,16 +19684,20 @@ const machine_t machines[] = {
         .default_jumpered_ecp_dma = -1,
         .kbc_device               = &kbc_at_device,
         .kbc_params               = KBC_VEN_VIA | 0x00424600,
+        .nvr_device               = NULL,
+        .nvr_params               = 0x00000000,
+        .sio_device               = NULL,
+        .sio_params               = 0x00000000,
         .kbc_p1                   = 0x00000cf0,
         .gpio                     = 0xffffffff,
         .gpio_acpi                = 0xffffffff,
         .device                   = NULL,
         .kbd_device               = NULL,
         .fdc_device               = NULL,
-        .sio_device               = NULL,
         .vid_device               = NULL,
         .snd_device               = NULL,
-        .net_device               = NULL
+        .net_device               = NULL,
+        .aliases                  = { "Soltek SL-56A2", "" }
     },
     /* [TEST] Has AMIKey 'H' KBC firmware on the Winbond W83967 Super I/O chip. */
     {
@@ -16355,20 +19732,24 @@ const machine_t machines[] = {
         .default_jumpered_ecp_dma = -1,
         .kbc_device               = NULL,
         .kbc_params               = 0x00000000,
+        .nvr_device               = NULL,
+        .nvr_params               = 0x00000000,
+        .sio_device               = NULL,
+        .sio_params               = 0x00000000,
         .kbc_p1                   = 0x00000cf0,
         .gpio                     = 0xffffffff,
         .gpio_acpi                = 0xffffffff,
         .device                   = NULL,
         .kbd_device               = NULL,
         .fdc_device               = NULL,
-        .sio_device               = NULL,
         .vid_device               = NULL,
         .snd_device               = NULL,
-        .net_device               = NULL
+        .net_device               = NULL,
+        .aliases                  = { "" }
     },
     /* [TEST] Has AMIKey 'H' KBC firmware. */
     {
-        .name              = "[i430TX] TriGem RD535 (Richmond)",
+        .name              = "[i430TX] TriGem RD535",
         .internal_name     = "richmond",
         .type              = MACHINE_TYPE_SOCKET7,
         .chipset           = MACHINE_CHIPSET_INTEL_430TX,
@@ -16397,18 +19778,22 @@ const machine_t machines[] = {
         .nvrmask                  = 255,
         .jumpered_ecp_dma         = 0,
         .default_jumpered_ecp_dma = -1,
-        .kbc_device               = &kbc_at_device,
-        .kbc_params               = KBC_VEN_AMI | 0x00004800,
+        .kbc_device               = NULL,
+        .kbc_params               = 0x00000000,
+        .nvr_device               = NULL,
+        .nvr_params               = 0x00000000,
+        .sio_device               = NULL,
+        .sio_params               = 0x00000000,
         .kbc_p1                   = 0x00000cf0,
         .gpio                     = 0xffffffff,
         .gpio_acpi                = 0xffffffff,
         .device                   = NULL,
         .kbd_device               = NULL,
         .fdc_device               = NULL,
-        .sio_device               = NULL,
         .vid_device               = NULL,
         .snd_device               = NULL,
-        .net_device               = NULL
+        .net_device               = NULL,
+        .aliases                  = { "TriGem Richmond", "" }
     },
 
     /* SiS 5571 */
@@ -16445,16 +19830,20 @@ const machine_t machines[] = {
         .default_jumpered_ecp_dma = -1,
         .kbc_device               = NULL,
         .kbc_params               = 0x00000000,
+        .nvr_device               = NULL,
+        .nvr_params               = 0x00000000,
+        .sio_device               = NULL,
+        .sio_params               = 0x00000000,
         .kbc_p1                   = 0x00000cf0,
         .gpio                     = 0xffffffff,
         .gpio_acpi                = 0xffffffff,
         .device                   = NULL,
         .kbd_device               = NULL,
         .fdc_device               = NULL,
-        .sio_device               = NULL,
         .vid_device               = NULL,
         .snd_device               = NULL,
-        .net_device               = NULL
+        .net_device               = NULL,
+        .aliases                  = { "Daewoo CB52X-SI", "Daewoo CD525", "Daewoo CT501", "Daewoo CT520", "" }
     },
     /* Has the SiS 5571 chipset with on-chip KBC. */
     {
@@ -16489,16 +19878,20 @@ const machine_t machines[] = {
         .default_jumpered_ecp_dma = -1,
         .kbc_device               = NULL,
         .kbc_params               = 0x00000000,
+        .nvr_device               = NULL,
+        .nvr_params               = 0x00000000,
+        .sio_device               = NULL,
+        .sio_params               = 0x00000000,
         .kbc_p1                   = 0x00000cf0,
         .gpio                     = 0xffffffff,
         .gpio_acpi                = 0xffffffff,
         .device                   = &ms5146_device,
         .kbd_device               = NULL,
         .fdc_device               = NULL,
-        .sio_device               = NULL,
         .vid_device               = NULL,
         .snd_device               = NULL,
-        .net_device               = NULL
+        .net_device               = NULL,
+        .aliases                  = { "" }
     },
     /* Has the SiS 5571 chipset with on-chip KBC. */
     {
@@ -16533,16 +19926,20 @@ const machine_t machines[] = {
         .default_jumpered_ecp_dma = -1,
         .kbc_device               = NULL,
         .kbc_params               = 0x00000000,
+        .nvr_device               = NULL,
+        .nvr_params               = 0x00000000,
+        .sio_device               = NULL,
+        .sio_params               = 0x00000000,
         .kbc_p1                   = 0x00000cf0,
         .gpio                     = 0xffffffff,
         .gpio_acpi                = 0xffffffff,
         .device                   = &r534f_device,
         .kbd_device               = NULL,
         .fdc_device               = NULL,
-        .sio_device               = NULL,
         .vid_device               = NULL,
         .snd_device               = NULL,
-        .net_device               = NULL
+        .net_device               = NULL,
+        .aliases                  = { "" }
     },
 
     /* SiS 5581 */
@@ -16579,16 +19976,20 @@ const machine_t machines[] = {
         .default_jumpered_ecp_dma = -1,
         .kbc_device               = NULL,
         .kbc_params               = 0x00000000,
+        .nvr_device               = NULL,
+        .nvr_params               = 0x00000000,
+        .sio_device               = NULL,
+        .sio_params               = 0x00000000,
         .kbc_p1                   = 0x00000cf0,
         .gpio                     = 0xffffffff,
         .gpio_acpi                = 0xffffffff,
         .device                   = NULL,
         .kbd_device               = NULL,
         .fdc_device               = NULL,
-        .sio_device               = NULL,
         .vid_device               = NULL,
         .snd_device               = NULL,
-        .net_device               = NULL
+        .net_device               = NULL,
+        .aliases                  = { "" }
     },
     /* Has the SiS 5581 chipset with on-chip KBC. */
     {
@@ -16623,16 +20024,20 @@ const machine_t machines[] = {
         .default_jumpered_ecp_dma = -1,
         .kbc_device               = NULL,
         .kbc_params               = 0x00000000,
+        .nvr_device               = NULL,
+        .nvr_params               = 0x00000000,
+        .sio_device               = NULL,
+        .sio_params               = 0x00000000,
         .kbc_p1                   = 0x00000cf0,
         .gpio                     = 0xffffffff,
         .gpio_acpi                = 0xffffffff,
         .device                   = NULL,
         .kbd_device               = NULL,
         .fdc_device               = NULL,
-        .sio_device               = NULL,
         .vid_device               = NULL,
         .snd_device               = NULL,
-        .net_device               = NULL
+        .net_device               = NULL,
+        .aliases                  = { "" }
     },
 
     /* SiS 5591 */
@@ -16669,16 +20074,20 @@ const machine_t machines[] = {
         .default_jumpered_ecp_dma = -1,
         .kbc_device               = NULL,
         .kbc_params               = 0x00000000,
+        .nvr_device               = NULL,
+        .nvr_params               = 0x00000000,
+        .sio_device               = NULL,
+        .sio_params               = 0x00000000,
         .kbc_p1                   = 0x00000cf0,
         .gpio                     = 0xffffffff,
         .gpio_acpi                = 0xffffffff,
         .device                   = NULL,
         .kbd_device               = NULL,
         .fdc_device               = NULL,
-        .sio_device               = NULL,
         .vid_device               = NULL,
         .snd_device               = NULL,
-        .net_device               = NULL
+        .net_device               = NULL,
+        .aliases                  = { "" }
     },
 
     /* Apollo VPX */
@@ -16716,16 +20125,20 @@ const machine_t machines[] = {
         .default_jumpered_ecp_dma = -1,
         .kbc_device               = NULL,
         .kbc_params               = 0x00000000,
+        .nvr_device               = NULL,
+        .nvr_params               = 0x00000000,
+        .sio_device               = NULL,
+        .sio_params               = 0x00000000,
         .kbc_p1                   = 0x00000cf0,
         .gpio                     = 0xffffffff,
         .gpio_acpi                = 0xffffffff,
         .device                   = NULL,
         .kbd_device               = NULL,
         .fdc_device               = NULL,
-        .sio_device               = NULL,
         .vid_device               = NULL,
         .snd_device               = NULL,
-        .net_device               = NULL
+        .net_device               = NULL,
+        .aliases                  = { "" }
     },
 
     /* Apollo VP3 */
@@ -16763,16 +20176,69 @@ const machine_t machines[] = {
         .default_jumpered_ecp_dma = -1,
         .kbc_device               = NULL,
         .kbc_params               = 0x00000000,
+        .nvr_device               = NULL,
+        .nvr_params               = 0x00000000,
+        .sio_device               = NULL,
+        .sio_params               = 0x00000000,
         .kbc_p1                   = 0x00000cf0,
         .gpio                     = 0xffffffff,
         .gpio_acpi                = 0xffffffff,
         .device                   = NULL,
         .kbd_device               = NULL,
         .fdc_device               = NULL,
-        .sio_device               = NULL,
         .vid_device               = NULL,
         .snd_device               = NULL,
-        .net_device               = NULL
+        .net_device               = NULL,
+        .aliases                  = { "" }
+    },
+    /* Has the VIA VT82C586B southbridge with on-chip KBC identical to the VIA
+       VT82C42N. */
+    {
+        .name              = "[VIA VP3] Lucky Star 5AVP3",
+        .internal_name     = "5avp3",
+        .type              = MACHINE_TYPE_SOCKET7,
+        .chipset           = MACHINE_CHIPSET_VIA_APOLLO_VP3,
+        .init              = machine_at_5avp3_init,
+        .p1_handler        = machine_generic_p1_handler,
+        .gpio_handler      = NULL,
+        .available_flag    = MACHINE_AVAILABLE,
+        .gpio_acpi_handler = NULL,
+        .cpu               = {
+            .package     = CPU_PKG_SOCKET5_7,
+            .block       = CPU_BLOCK_NONE,
+            .min_bus     = 50000000,
+            .max_bus     = 75000000,
+            .min_voltage = 2100,
+            .max_voltage = 3520,
+            .min_multi   = 1.5,
+            .max_multi   = 5.5
+        },
+        .bus_flags = MACHINE_PS2_AGP | MACHINE_BUS_USB,
+        .flags     = MACHINE_IDE_DUAL | MACHINE_APM | MACHINE_USB,
+        .ram       = {
+            .min  = 8192,
+            .max  = 1048576,
+            .step = 8192
+        },
+        .nvrmask                  = 127,
+        .jumpered_ecp_dma         = 0,
+        .default_jumpered_ecp_dma = -1,
+        .kbc_device               = NULL,
+        .kbc_params               = 0x00000000,
+        .nvr_device               = NULL,
+        .nvr_params               = 0x00000000,
+        .sio_device               = NULL,
+        .sio_params               = 0x00000000,
+        .kbc_p1                   = 0x00000cf0,
+        .gpio                     = 0xffffffff,
+        .gpio_acpi                = 0xffffffff,
+        .device                   = NULL,
+        .kbd_device               = NULL,
+        .fdc_device               = NULL,
+        .vid_device               = NULL,
+        .snd_device               = NULL,
+        .net_device               = NULL,
+        .aliases                  = { "" }
     },
     /* Has the VIA VT82C586B southbridge with on-chip KBC identical to the VIA
        VT82C42N. */
@@ -16808,16 +20274,20 @@ const machine_t machines[] = {
         .default_jumpered_ecp_dma = -1,
         .kbc_device               = NULL,
         .kbc_params               = 0x00000000,
+        .nvr_device               = NULL,
+        .nvr_params               = 0x00000000,
+        .sio_device               = NULL,
+        .sio_params               = 0x00000000,
         .kbc_p1                   = 0x00000cf0,
         .gpio                     = 0xffffffff,
         .gpio_acpi                = 0xffffffff,
         .device                   = NULL,
         .kbd_device               = NULL,
         .fdc_device               = NULL,
-        .sio_device               = NULL,
         .vid_device               = NULL,
         .snd_device               = NULL,
-        .net_device               = NULL
+        .net_device               = NULL,
+        .aliases                  = { "" }
     },
 
     /* Super Socket 7 machines */
@@ -16855,20 +20325,24 @@ const machine_t machines[] = {
         .default_jumpered_ecp_dma = -1,
         .kbc_device               = NULL,
         .kbc_params               = 0x00000000,
+        .nvr_device               = NULL,
+        .nvr_params               = 0x00000000,
+        .sio_device               = NULL,
+        .sio_params               = 0x00000000,
         .kbc_p1                   = 0x00000cf0,
         .gpio                     = 0xffffffff,
         .gpio_acpi                = 0xffffffff,
         .device                   = NULL,
         .kbd_device               = NULL,
         .fdc_device               = NULL,
-        .sio_device               = NULL,
         .vid_device               = NULL,
         .snd_device               = NULL,
-        .net_device               = NULL
+        .net_device               = NULL,
+        .aliases                  = { "" }
     },
     /* M1534c kbc */
     {
-        .name              = "[ALi ALADDiN V] Gateway Lucas (MSI MS-5185)",
+        .name              = "[ALi ALADDiN V] Gateway Lucas",
         .internal_name     = "gwlucas",
         .type              = MACHINE_TYPE_SOCKETS7,
         .chipset           = MACHINE_CHIPSET_ALI_ALADDIN_V,
@@ -16899,16 +20373,20 @@ const machine_t machines[] = {
         .default_jumpered_ecp_dma = -1,
         .kbc_device               = NULL,
         .kbc_params               = 0x00000000,
+        .nvr_device               = NULL,
+        .nvr_params               = 0x00000000,
+        .sio_device               = NULL,
+        .sio_params               = 0x00000000,
         .kbc_p1                   = 0x00000cf0,
         .gpio                     = 0xffffffff,
         .gpio_acpi                = 0xffffffff,
         .device                   = NULL,
         .kbd_device               = NULL,
         .fdc_device               = NULL,
-        .sio_device               = NULL,
         .vid_device               = NULL,
         .snd_device               = &es1373_onboard_device,
-        .net_device               = NULL
+        .net_device               = NULL,
+        .aliases                  = { "MSI MS-5185", "Gateway ATX Select 366", "Gateway ATX Select 400", "" }
     },
     /* Has the ALi M1543C southbridge with on-chip KBC. */
     {
@@ -16943,16 +20421,20 @@ const machine_t machines[] = {
         .default_jumpered_ecp_dma = -1,
         .kbc_device               = NULL,
         .kbc_params               = 0x00000000,
+        .nvr_device               = NULL,
+        .nvr_params               = 0x00000000,
+        .sio_device               = NULL,
+        .sio_params               = 0x00000000,
         .kbc_p1                   = 0x00000cf0,
         .gpio                     = 0xffffffff,
         .gpio_acpi                = 0xffffffff,
         .device                   = NULL,
         .kbd_device               = NULL,
         .fdc_device               = NULL,
-        .sio_device               = NULL,
         .vid_device               = NULL,
         .snd_device               = NULL,
-        .net_device               = NULL
+        .net_device               = NULL,
+        .aliases                  = { "" }
     },
     /* Has the ALi M1543C southbridge with on-chip KBC. */
     {
@@ -16987,19 +20469,71 @@ const machine_t machines[] = {
         .default_jumpered_ecp_dma = -1,
         .kbc_device               = NULL,
         .kbc_params               = 0x00000000,
+        .nvr_device               = NULL,
+        .nvr_params               = 0x00000000,
+        .sio_device               = NULL,
+        .sio_params               = 0x00000000,
         .kbc_p1                   = 0x00000cf0,
         .gpio                     = 0xffffffff,
         .gpio_acpi                = 0xffffffff,
         .device                   = &g5x_device,
         .kbd_device               = NULL,
         .fdc_device               = NULL,
-        .sio_device               = NULL,
         .vid_device               = NULL,
         .snd_device               = NULL,
-        .net_device               = NULL
+        .net_device               = NULL,
+        .aliases                  = { "" }
     },
-    /* Is the exact same as the Matsonic MS6260S. Has the ALi M1543C southbridge
-       with on-chip KBC. */
+    /* Has the ALi M1543C southbridge with on-chip KBC. */
+    {
+        .name              = "[ALi ALADDiN V] MSI MS-5169",
+        .internal_name     = "ms5169",
+        .type              = MACHINE_TYPE_SOCKETS7,
+        .chipset           = MACHINE_CHIPSET_ALI_ALADDIN_V,
+        .init              = machine_at_ms5169_init,
+        .p1_handler        = machine_generic_p1_handler,
+        .gpio_handler      = NULL,
+        .available_flag    = MACHINE_AVAILABLE,
+        .gpio_acpi_handler = NULL,
+        .cpu               = {
+            .package     = CPU_PKG_SOCKET5_7,
+            .block       = CPU_BLOCK(CPU_Cx6x86MX),  
+            .min_bus     = 60000000,
+            .max_bus     = 100000000,
+            .min_voltage = 1300,
+            .max_voltage = 3520,
+            .min_multi   = 1.5,
+            .max_multi   = 5.5
+        },
+        .bus_flags = MACHINE_PS2_AGP | MACHINE_BUS_USB,
+        .flags     = MACHINE_IDE_DUAL | MACHINE_APM | MACHINE_ACPI | MACHINE_USB,
+        .ram       = {
+            .min  = 8192,
+            .max  = 1572864,
+            .step = 8192
+        },
+        .nvrmask                  = 255,
+        .jumpered_ecp_dma         = 0,
+        .default_jumpered_ecp_dma = -1,
+        .kbc_device               = NULL,
+        .kbc_params               = 0x00000000,
+        .nvr_device               = NULL,
+        .nvr_params               = 0x00000000,
+        .sio_device               = NULL,
+        .sio_params               = 0x00000000,
+        .kbc_p1                   = 0x00000cf0,
+        .gpio                     = 0xffffffff,
+        .gpio_acpi                = 0xffffffff,
+        .device                   = &ms5169_device,
+        .kbd_device               = NULL,
+        .fdc_device               = NULL,
+        .vid_device               = NULL,
+        .snd_device               = NULL,
+        .net_device               = NULL,
+        .aliases                  = { "" }
+    },
+   /* Is the exact same as the Matsonic MS6260S. Has the ALi M1543C southbridge 
+      with on-chip KBC. */
     {
         .name              = "[ALi ALADDiN V] PC Chips M579",
         .internal_name     = "m579",
@@ -17032,16 +20566,20 @@ const machine_t machines[] = {
         .default_jumpered_ecp_dma = -1,
         .kbc_device               = NULL,
         .kbc_params               = 0x00000000,
+        .nvr_device               = NULL,
+        .nvr_params               = 0x00000000,
+        .sio_device               = NULL,
+        .sio_params               = 0x00000000,
         .kbc_p1                   = 0x00000cf0,
         .gpio                     = 0xffffffff,
         .gpio_acpi                = 0xffffffff,
         .device                   = NULL,
         .kbd_device               = NULL,
         .fdc_device               = NULL,
-        .sio_device               = NULL,
         .vid_device               = NULL,
         .snd_device               = NULL,
-        .net_device               = NULL
+        .net_device               = NULL,
+        .aliases                  = { "Matsonic MS-6260S", "" }
     },
 
     /* SiS 5591 */
@@ -17078,16 +20616,20 @@ const machine_t machines[] = {
         .default_jumpered_ecp_dma = -1,
         .kbc_device               = NULL,
         .kbc_params               = 0x00000000,
+        .nvr_device               = NULL,
+        .nvr_params               = 0x00000000,
+        .sio_device               = NULL,
+        .sio_params               = 0x00000000,
         .kbc_p1                   = 0x00000cf0,
         .gpio                     = 0xffffffff,
         .gpio_acpi                = 0xffffffff,
         .device                   = NULL,
         .kbd_device               = NULL,
         .fdc_device               = NULL,
-        .sio_device               = NULL,
         .vid_device               = NULL,
         .snd_device               = NULL,
-        .net_device               = NULL
+        .net_device               = NULL,
+        .aliases                  = { "" }
     },
 
     /* Apollo MVP3 */
@@ -17125,16 +20667,20 @@ const machine_t machines[] = {
         .default_jumpered_ecp_dma = -1,
         .kbc_device               = NULL,
         .kbc_params               = 0x00000000,
+        .nvr_device               = NULL,
+        .nvr_params               = 0x00000000,
+        .sio_device               = NULL,
+        .sio_params               = 0x00000000,
         .kbc_p1                   = 0x00000cf0,
         .gpio                     = 0xffffffff,
         .gpio_acpi                = 0xffffffff,
         .device                   = NULL,
         .kbd_device               = NULL,
         .fdc_device               = NULL,
-        .sio_device               = NULL,
         .vid_device               = NULL,
         .snd_device               = NULL,
-        .net_device               = NULL
+        .net_device               = NULL,
+        .aliases                  = { "" }
     },
     /* Has the VIA VT82C586B southbridge with on-chip KBC identical to the VIA
        VT82C42N. */
@@ -17170,16 +20716,20 @@ const machine_t machines[] = {
         .default_jumpered_ecp_dma = -1,
         .kbc_device               = NULL,
         .kbc_params               = 0x00000000,
+        .nvr_device               = NULL,
+        .nvr_params               = 0x00000000,
+        .sio_device               = NULL,
+        .sio_params               = 0x00000000,
         .kbc_p1                   = 0x00000cf0,
         .gpio                     = 0xffffffff,
         .gpio_acpi                = 0xffffffff,
         .device                   = NULL,
         .kbd_device               = NULL,
         .fdc_device               = NULL,
-        .sio_device               = NULL,
         .vid_device               = NULL,
         .snd_device               = NULL,
-        .net_device               = NULL
+        .net_device               = NULL,
+        .aliases                  = { "" }
     },
     /* Has the VIA VT82C586B southbridge with on-chip KBC identical to the VIA
        VT82C42N. */
@@ -17215,16 +20765,20 @@ const machine_t machines[] = {
         .default_jumpered_ecp_dma = -1,
         .kbc_device               = NULL,
         .kbc_params               = 0x00000000,
+        .nvr_device               = NULL,
+        .nvr_params               = 0x00000000,
+        .sio_device               = NULL,
+        .sio_params               = 0x00000000,
         .kbc_p1                   = 0x00000cf0,
         .gpio                     = 0xffffffff,
         .gpio_acpi                = 0xffffffff,
         .device                   = NULL,
         .kbd_device               = NULL,
         .fdc_device               = NULL,
-        .sio_device               = NULL,
         .vid_device               = NULL,
         .snd_device               = NULL,
-        .net_device               = NULL
+        .net_device               = NULL,
+        .aliases                  = { "" }
     },
     /* Has the VIA VT82C686A southbridge with on-chip KBC identical to the VIA
        VT82C42N. */
@@ -17260,16 +20814,20 @@ const machine_t machines[] = {
         .default_jumpered_ecp_dma = -1,
         .kbc_device               = NULL,
         .kbc_params               = 0x00000000,
+        .nvr_device               = NULL,
+        .nvr_params               = 0x00000000,
+        .sio_device               = NULL,
+        .sio_params               = 0x00000000,
         .kbc_p1                   = 0x00000cf0,
         .gpio                     = 0xffffffff,
         .gpio_acpi                = 0xffffffff,
         .device                   = NULL,
         .kbd_device               = NULL,
         .fdc_device               = NULL,
-        .sio_device               = NULL,
         .vid_device               = NULL,
-        .snd_device               = NULL,
-        .net_device               = NULL
+        .snd_device               = &wm9701a_device, /* on daughtercard */
+        .net_device               = NULL,
+        .aliases                  = { "" }
     },
     /* Has the VIA VT82C686A southbridge with on-chip KBC identical to the VIA
        VT82C42N. */
@@ -17305,16 +20863,20 @@ const machine_t machines[] = {
         .default_jumpered_ecp_dma = -1,
         .kbc_device               = NULL,
         .kbc_params               = 0x00000000,
+        .nvr_device               = NULL,
+        .nvr_params               = 0x00000000,
+        .sio_device               = NULL,
+        .sio_params               = 0x00000000,
         .kbc_p1                   = 0x00000cf0,
         .gpio                     = 0xffffffff,
         .gpio_acpi                = 0xffffffff,
         .device                   = NULL,
         .kbd_device               = NULL,
         .fdc_device               = NULL,
-        .sio_device               = NULL,
         .vid_device               = NULL,
         .snd_device               = NULL,
-        .net_device               = NULL
+        .net_device               = NULL,
+        .aliases                  = { "" }
     },
     /* Has the VIA VT82C596A southbridge with on-chip KBC identical to the VIA VT82C42N. */
     {
@@ -17349,16 +20911,20 @@ const machine_t machines[] = {
         .default_jumpered_ecp_dma = -1,
         .kbc_device               = NULL,
         .kbc_params               = 0x00000000,
+        .nvr_device               = NULL,
+        .nvr_params               = 0x00000000,
+        .sio_device               = NULL,
+        .sio_params               = 0x00000000,
         .kbc_p1                   = 0x00000cf0,
         .gpio                     = 0xffffffff,
         .gpio_acpi                = 0xffffffff,
         .device                   = &delhi3_device,
         .kbd_device               = NULL,
         .fdc_device               = NULL,
-        .sio_device               = NULL,
         .vid_device               = NULL,
         .snd_device               = &cs4235_onboard_device,
-        .net_device               = NULL
+        .net_device               = NULL,
+        .aliases                  = { "eMachines eTower 3__k", "" }
     },
 
     /* Socket 8 machines */
@@ -17388,6 +20954,8 @@ const machine_t machines[] = {
         .flags     = MACHINE_IDE_DUAL | MACHINE_APM,
         .ram       = {
             .min  = 8192,
+            /* As also noted in the DFI G586VPM entry, the BIOS unusually only recognizes up
+            to 256 MB of RAM. This is likely a limitation of early AwardBIOS v4.5x instances. */
             .max  = 262144,
             .step = 8192
         },
@@ -17396,23 +20964,28 @@ const machine_t machines[] = {
         .default_jumpered_ecp_dma = 3,
         .kbc_device               = &kbc_at_device,
         .kbc_params               = KBC_VEN_AMI | 0x00004800,
+        .nvr_device               = &nvr_at_device,
+        .nvr_params               = NVR_AT,
+        .sio_device               = NULL,
+        .sio_params               = 0x00000000,
         .kbc_p1                   = 0x000008f0,
         .gpio                     = 0xffffffff,
         .gpio_acpi                = 0xffffffff,
         .device                   = NULL,
         .kbd_device               = NULL,
         .fdc_device               = NULL,
-        .sio_device               = NULL,
         .vid_device               = NULL,
         .snd_device               = NULL,
-        .net_device               = NULL
+        .net_device               = NULL,
+        .aliases                  = { "" }
     },
+    /* 450GX */
     /* This has an AMIKey-2, which is type 'H'. */
     {
-        .name              = "[i450KX] ASUS P/I-P6RP4",
+        .name              = "[i450GX] ASUS P/I-P6RP4",
         .internal_name     = "p6rp4",
         .type              = MACHINE_TYPE_SOCKET8,
-        .chipset           = MACHINE_CHIPSET_INTEL_450KX,
+        .chipset           = MACHINE_CHIPSET_INTEL_450GX,
         .init              = machine_at_p6rp4_init,
         .p1_handler        = machine_generic_p1_handler,
         .gpio_handler      = NULL,
@@ -17429,7 +21002,7 @@ const machine_t machines[] = {
             .max_multi   = 8.0
         },
         .bus_flags = MACHINE_PS2_PCI, /* Machine has AMB */
-        .flags     = MACHINE_IDE_DUAL | MACHINE_APM,
+        .flags     = MACHINE_IDE_DUAL,
         .ram       = {
             .min  = 8192,
             .max  = 524288,
@@ -17440,23 +21013,27 @@ const machine_t machines[] = {
         .default_jumpered_ecp_dma = 1,
         .kbc_device               = &kbc_at_device,
         .kbc_params               = KBC_VEN_AMI | 0x00004800,
+        .nvr_device               = &nvr_at_device,
+        .nvr_params               = NVR_P6RP4,
+        .sio_device               = NULL,
+        .sio_params               = 0x00000000,
         .kbc_p1                   = 0x00000cf0,
         .gpio                     = 0xffffffff,
         .gpio_acpi                = 0xffffffff,
         .device                   = NULL,
         .kbd_device               = NULL,
         .fdc_device               = NULL,
-        .sio_device               = NULL,
         .vid_device               = NULL,
         .snd_device               = NULL,
-        .net_device               = NULL
+        .net_device               = NULL,
+        .aliases                  = { "" }
     },
     /* This has a PC87306 with unknown keyboard controller firmware (Phoenix?). */
     {
-        .name              = "[i450KX] FIC PO-6000",
+        .name              = "[i450GX] FIC PO-6000",
         .internal_name     = "ficpo6000",
         .type              = MACHINE_TYPE_SOCKET8,
-        .chipset           = MACHINE_CHIPSET_INTEL_450KX,
+        .chipset           = MACHINE_CHIPSET_INTEL_450GX,
         .init              = machine_at_ficpo6000_init,
         .p1_handler        = machine_generic_p1_handler,
         .gpio_handler      = NULL,
@@ -17473,7 +21050,7 @@ const machine_t machines[] = {
             .max_multi   = 8.0
         },
         .bus_flags = MACHINE_PS2_PCI, /* Machine has AMB */
-        .flags     = MACHINE_IDE_DUAL | MACHINE_APM,
+        .flags     = MACHINE_IDE_DUAL,
         .ram       = {
             .min  = 8192,
             .max  = 524288,
@@ -17484,16 +21061,20 @@ const machine_t machines[] = {
         .default_jumpered_ecp_dma = 1,
         .kbc_device               = NULL,
         .kbc_params               = 0x00000000,
+        .nvr_device               = NULL,
+        .nvr_params               = 0x00000000,
+        .sio_device               = NULL,
+        .sio_params               = 0x00000000,
         .kbc_p1                   = 0x00000cf0,
         .gpio                     = 0xffffffff,
         .gpio_acpi                = 0xffffffff,
         .device                   = &ficpo6000_device,
         .kbd_device               = NULL,
         .fdc_device               = NULL,
-        .sio_device               = NULL,
         .vid_device               = NULL,
         .snd_device               = NULL,
-        .net_device               = NULL
+        .net_device               = NULL,
+        .aliases                  = { "" }
     },
 
     /* 440FX */
@@ -17531,16 +21112,20 @@ const machine_t machines[] = {
         .default_jumpered_ecp_dma = -1,
         .kbc_device               = NULL,
         .kbc_params               = 0x00000000,
+        .nvr_device               = NULL,
+        .nvr_params               = 0x00000000,
+        .sio_device               = NULL,
+        .sio_params               = 0x00000000,
         .kbc_p1                   = 0x00000cf0,
         .gpio                     = 0xffffffff,
         .gpio_acpi                = 0xffffffff,
         .device                   = NULL,
         .kbd_device               = NULL,
         .fdc_device               = NULL,
-        .sio_device               = NULL,
         .vid_device               = NULL,
         .snd_device               = NULL,
-        .net_device               = NULL
+        .net_device               = NULL,
+        .aliases                  = { "" }
     },
     /* The base board has a Holtek HT6542B with AMIKey-2 ('H') KBC firmware. */
     {
@@ -17575,16 +21160,20 @@ const machine_t machines[] = {
         .default_jumpered_ecp_dma = -1,
         .kbc_device               = &kbc_at_device,
         .kbc_params               = KBC_VEN_HOLTEK | 0x00004800,
+        .nvr_device               = &nvr_at_device,
+        .nvr_params               = NVR_AT,
+        .sio_device               = NULL,
+        .sio_params               = 0x00000000,
         .kbc_p1                   = 0x00000cf0,
         .gpio                     = 0xffffffff,
         .gpio_acpi                = 0xffffffff,
         .device                   = NULL,
         .kbd_device               = NULL,
         .fdc_device               = NULL,
-        .sio_device               = NULL,
         .vid_device               = NULL,
         .snd_device               = NULL,
-        .net_device               = NULL
+        .net_device               = NULL,
+        .aliases                  = { "" }
     },
     /* Has a VIA VT82C42N KBC. */
     {
@@ -17619,16 +21208,20 @@ const machine_t machines[] = {
         .default_jumpered_ecp_dma = -1,
         .kbc_device               = &kbc_at_device,
         .kbc_params               = KBC_VEN_VIA | 0x00424600,
+        .nvr_device               = &nvr_at_device,
+        .nvr_params               = NVR_AT,
+        .sio_device               = NULL,
+        .sio_params               = 0x00000000,
         .kbc_p1                   = 0x00000cf0,
         .gpio                     = 0xffffffff,
         .gpio_acpi                = 0xffffffff,
         .device                   = NULL,
         .kbd_device               = NULL,
         .fdc_device               = NULL,
-        .sio_device               = NULL,
         .vid_device               = NULL,
         .snd_device               = NULL,
-        .net_device               = NULL
+        .net_device               = NULL,
+        .aliases                  = { "" }
     },
     /* Has the AMIKey-2 ('H') KBC firmware. */
     {
@@ -17663,22 +21256,26 @@ const machine_t machines[] = {
         .default_jumpered_ecp_dma = -1,
         .kbc_device               = &kbc_at_device,
         .kbc_params               = KBC_VEN_AMI | 0x00004800,
+        .nvr_device               = &nvr_at_device,
+        .nvr_params               = NVR_AT,
+        .sio_device               = NULL,
+        .sio_params               = 0x00000000,
         .kbc_p1                   = 0x00000cf0,
         .gpio                     = 0xffffffff,
         .gpio_acpi                = 0xffffffff,
         .device                   = NULL,
         .kbd_device               = NULL,
         .fdc_device               = NULL,
-        .sio_device               = NULL,
         .vid_device               = NULL,
         .snd_device               = NULL,
-        .net_device               = NULL
+        .net_device               = NULL,
+        .aliases                  = { "" }
     },
     /* According to tests from real hardware: This has AMI MegaKey KBC firmware on the
        PC87306 Super I/O chip, command 0xA1 returns '5'.
        Command 0xA0 copyright string: (C)1994 AMI . */
     {
-        .name              = "[i440FX] Intel AP440FX (Apollo)",
+        .name              = "[i440FX] Intel AP440FX",
         .internal_name     = "ap440fx",
         .type              = MACHINE_TYPE_SOCKET8,
         .chipset           = MACHINE_CHIPSET_INTEL_440FX,
@@ -17709,22 +21306,27 @@ const machine_t machines[] = {
         .default_jumpered_ecp_dma = -1,
         .kbc_device               = NULL,
         .kbc_params               = 0x00000000,
+        /* TODO: Implement the PC87307 NVR. */
+        .nvr_device               = &nvr_at_device,
+        .nvr_params               = NVR_AT,
+        .sio_device               = NULL,
+        .sio_params               = 0x00000000,
         .kbc_p1                   = 0x000044f0,
         .gpio                     = 0xffffffff,
         .gpio_acpi                = 0xffffffff,
         .device                   = NULL,
         .kbd_device               = NULL,
         .fdc_device               = NULL,
-        .sio_device               = NULL,
         .vid_device               = &s3_virge_325_onboard_pci_device,
         .snd_device               = &cs4236b_onboard_device,
-        .net_device               = NULL
+        .net_device               = NULL,
+        .aliases                  = { "Intel Apollo", "" }
     },
     /* According to tests from real hardware: This has AMI MegaKey KBC firmware on the
        PC87306 Super I/O chip, command 0xA1 returns '5'.
        Command 0xA0 copyright string: (C)1994 AMI . */
     {
-        .name              = "[i440FX] Intel VS440FX (Venus)",
+        .name              = "[i440FX] Intel VS440FX",
         .internal_name     = "vs440fx",
         .type              = MACHINE_TYPE_SOCKET8,
         .chipset           = MACHINE_CHIPSET_INTEL_440FX,
@@ -17755,20 +21357,25 @@ const machine_t machines[] = {
         .default_jumpered_ecp_dma = -1,
         .kbc_device               = NULL,
         .kbc_params               = 0x00000000,
+        /* TODO: Implement the PC87307 NVR. */
+        .nvr_device               = &nvr_at_device,
+        .nvr_params               = NVR_AT,
+        .sio_device               = NULL,
+        .sio_params               = 0x00000000,
         .kbc_p1                   = 0x000044f0,
         .gpio                     = 0xffffffff,
         .gpio_acpi                = 0xffffffff,
         .device                   = &vs440fx_device,
         .kbd_device               = NULL,
         .fdc_device               = NULL,
-        .sio_device               = NULL,
         .vid_device               = NULL,
         .snd_device               = &cs4236_onboard_device,
-        .net_device               = NULL
+        .net_device               = NULL,
+        .aliases                  = { "Intel Venus", "Dell Dimension XPS Pro___n", "Gateway 2000 Venus", "Micron ClientPro XVI", "Micron Millennia Pro 1", "" }
     },
     /* Has the AMIKey-2 ('H') KBC firmware. */
     {
-        .name              = "[i440FX] LG IBM Multinet x61 (MSI MS-6106)",
+        .name              = "[i440FX] LG IBM Multinet x61",
         .internal_name     = "lgibmx61",
         .type              = MACHINE_TYPE_SOCKET8,
         .chipset           = MACHINE_CHIPSET_INTEL_440FX,
@@ -17799,16 +21406,20 @@ const machine_t machines[] = {
         .default_jumpered_ecp_dma = -1,
         .kbc_device               = &kbc_at_device,
         .kbc_params               = KBC_VEN_AMI | 0x00004800,
+        .nvr_device               = &nvr_at_device,
+        .nvr_params               = NVR_AT,
+        .sio_device               = NULL,
+        .sio_params               = 0x00000000,
         .kbc_p1                   = 0x00000cf0,
         .gpio                     = 0xffffffff,
         .gpio_acpi                = 0xffffffff,
         .device                   = NULL,
         .kbd_device               = NULL,
         .fdc_device               = NULL,
-        .sio_device               = NULL,
         .vid_device               = NULL,
         .snd_device               = NULL,
-        .net_device               = NULL
+        .net_device               = NULL,
+        .aliases                  = { "MSI MS-6106", "" }
     },
     /* Has a SM(S)C FDC37C935 Super I/O chip with on-chip KBC with Phoenix
        MultiKey/42 (version 1.38) KBC firmware. */
@@ -17844,16 +21455,20 @@ const machine_t machines[] = {
         .default_jumpered_ecp_dma = -1,
         .kbc_device               = NULL,
         .kbc_params               = 0x00000000,
+        .nvr_device               = NULL,
+        .nvr_params               = 0x00000000,
+        .sio_device               = NULL,
+        .sio_params               = 0x00000000,
         .kbc_p1                   = 0x00000cf0,
         .gpio                     = 0xffffffff,
         .gpio_acpi                = 0xffffffff,
         .device                   = NULL,
         .kbd_device               = NULL,
         .fdc_device               = NULL,
-        .sio_device               = NULL,
         .vid_device               = NULL,
         .snd_device               = NULL,
-        .net_device               = NULL
+        .net_device               = NULL,
+        .aliases                  = { "" }
     },
     /* Has a VIA VT82C42N KBC. */
     {
@@ -17888,16 +21503,69 @@ const machine_t machines[] = {
         .default_jumpered_ecp_dma = -1,
         .kbc_device               = &kbc_at_device,
         .kbc_params               = KBC_VEN_VIA | 0x00424600,
+        .nvr_device               = &nvr_at_device,
+        .nvr_params               = NVR_AT,
+        .sio_device               = NULL,
+        .sio_params               = 0x00000000,
         .kbc_p1                   = 0x00000cf0,
         .gpio                     = 0xffffffff,
         .gpio_acpi                = 0xffffffff,
         .device                   = NULL,
         .kbd_device               = NULL,
         .fdc_device               = NULL,
-        .sio_device               = NULL,
         .vid_device               = NULL,
         .snd_device               = NULL,
-        .net_device               = NULL
+        .net_device               = NULL,
+        .aliases                  = { "Aristo AM-600FX", "" }
+    },
+    /* Has a Holtek HT6542B which emulates the AMIKey-2 ('H') KBC firmware. */
+    {
+        .name              = "[i440FX] Zida Tomato 6DXP",
+        .internal_name     = "6dxp",
+        .type              = MACHINE_TYPE_SOCKET8,
+        .chipset           = MACHINE_CHIPSET_INTEL_440FX,
+        .init              = machine_at_6dxp_init,
+        .p1_handler        = machine_generic_p1_handler,
+        .gpio_handler      = NULL,
+        .available_flag    = MACHINE_AVAILABLE,
+        .gpio_acpi_handler = NULL,
+        .cpu               = {
+            .package     = CPU_PKG_SOCKET8,
+            .block       = CPU_BLOCK_NONE,
+            .min_bus     = 60000000,
+            .max_bus     = 66666667,
+            .min_voltage = 2100,
+            .max_voltage = 3500,
+            .min_multi   = 2.0,
+            .max_multi   = 3.0
+        },
+        .bus_flags = MACHINE_PS2_PCI | MACHINE_BUS_USB,
+        .flags     = MACHINE_IDE_DUAL | MACHINE_APM | MACHINE_USB,
+        .ram       = {
+            .min  = 8192,
+            .max  = 1048576, /* Memory test counter glitches out with >999MB but otherwise
+                                such amounts work on this machine without issues */
+            .step = 8192
+        },
+        .nvrmask                  = 127,
+        .jumpered_ecp_dma         = 0,
+        .default_jumpered_ecp_dma = -1,
+        .kbc_device               = &kbc_at_device,
+        .kbc_params               = KBC_VEN_HOLTEK | 0x00004800,
+        .nvr_device               = &nvr_at_device,
+        .nvr_params               = NVR_AT,
+        .sio_device               = NULL,
+        .sio_params               = 0x00000000,
+        .kbc_p1                   = 0x00000cf0,
+        .gpio                     = 0xffffffff,
+        .gpio_acpi                = 0xffffffff,
+        .device                   = &zida6dxp_device,
+        .kbd_device               = NULL,
+        .fdc_device               = NULL,
+        .vid_device               = NULL,
+        .snd_device               = NULL,
+        .net_device               = NULL,
+        .aliases                  = { "" }
     },
 
     /* Slot 1 machines */
@@ -17935,16 +21603,20 @@ const machine_t machines[] = {
         .default_jumpered_ecp_dma = -1,
         .kbc_device               = NULL,
         .kbc_params               = 0x00000000,
+        .nvr_device               = NULL,
+        .nvr_params               = 0x00000000,
+        .sio_device               = NULL,
+        .sio_params               = 0x00000000,
         .kbc_p1                   = 0x00000cf0,
         .gpio                     = 0xffffffff,
         .gpio_acpi                = 0xffffffff,
         .device                   = NULL,
         .kbd_device               = NULL,
         .fdc_device               = NULL,
-        .sio_device               = NULL,
         .vid_device               = NULL,
         .snd_device               = NULL,
-        .net_device               = NULL
+        .net_device               = NULL,
+        .aliases                  = { "" }
     },
 
     /* 440FX */
@@ -17982,16 +21654,69 @@ const machine_t machines[] = {
         .default_jumpered_ecp_dma = -1,
         .kbc_device               = NULL,
         .kbc_params               = 0x00000000,
+        .nvr_device               = NULL,
+        .nvr_params               = 0x00000000,
+        .sio_device               = NULL,
+        .sio_params               = 0x00000000,
         .kbc_p1                   = 0x00000cf0,
         .gpio                     = 0xffffffff,
         .gpio_acpi                = 0xffffffff,
         .device                   = NULL,
         .kbd_device               = NULL,
         .fdc_device               = NULL,
-        .sio_device               = NULL,
         .vid_device               = NULL,
         .snd_device               = NULL,
-        .net_device               = NULL
+        .net_device               = NULL,
+        .aliases                  = { "" }
+    },
+    /* Has an SM(S)C FDC37C932 Super I/O chip with on-chip KBC with AMI
+       MegaKey (revision '5') KBC firmware. */
+    {
+        .name              = "[i440FX] AIR P6KDI",
+        .internal_name     = "p6kdi",
+        .type              = MACHINE_TYPE_SLOT1,
+        .chipset           = MACHINE_CHIPSET_INTEL_440FX,
+        .init              = machine_at_p6kdi_init,
+        .p1_handler        = machine_generic_p1_handler,
+        .gpio_handler      = NULL,
+        .available_flag    = MACHINE_AVAILABLE,
+        .gpio_acpi_handler = NULL,
+        .cpu               = {
+            .package     = CPU_PKG_SLOT1,
+            .block       = CPU_BLOCK_NONE,
+            .min_bus     = 60000000,
+            .max_bus     = 66666667,
+            .min_voltage = 2800,
+            .max_voltage = 3500,
+            .min_multi   = 1.5,
+            .max_multi   = 4.5
+        },
+        .bus_flags = MACHINE_PS2_PCI | MACHINE_BUS_USB,
+        .flags     = MACHINE_IDE_DUAL | MACHINE_APM | MACHINE_USB, /* Machine has internal SCSI: Adaptec unknown (possibly AIC-7880) */
+        .ram       = {
+            .min  = 8192,
+            .max  = 1048576,
+            .step = 8192
+        },
+        .nvrmask                  = 255,
+        .jumpered_ecp_dma         = 0,
+        .default_jumpered_ecp_dma = -1,
+        .kbc_device               = NULL,
+        .kbc_params               = 0x00000000,
+        .nvr_device               = NULL,
+        .nvr_params               = 0x00000000,
+        .sio_device               = NULL,
+        .sio_params               = 0x00000000,
+        .kbc_p1                   = 0x00000cf0,
+        .gpio                     = 0xffffffff,
+        .gpio_acpi                = 0xffffffff,
+        .device                   = &p6kdi_device,
+        .kbd_device               = NULL,
+        .fdc_device               = NULL,
+        .vid_device               = NULL,
+        .snd_device               = NULL,
+        .net_device               = NULL,
+        .aliases                  = { "Advanced Integration Research P6KDI", "" }
     },
     /* The base board has a Holtek HT6542B KBC which emulates the AMIKEY-2 'H' KBC firmware. */
     {
@@ -18026,16 +21751,20 @@ const machine_t machines[] = {
         .default_jumpered_ecp_dma = -1,
         .kbc_device               = &kbc_at_device,
         .kbc_params               = KBC_VEN_HOLTEK | 0x00004800,
+        .nvr_device               = &nvr_at_device,
+        .nvr_params               = NVR_AT,
+        .sio_device               = NULL,
+        .sio_params               = 0x00000000,
         .kbc_p1                   = 0x00000cf0,
         .gpio                     = 0xffffffff,
         .gpio_acpi                = 0xffffffff,
         .device                   = NULL,
         .kbd_device               = NULL,
         .fdc_device               = NULL,
-        .sio_device               = NULL,
         .vid_device               = NULL,
         .snd_device               = NULL,
-        .net_device               = NULL
+        .net_device               = NULL,
+        .aliases                  = { "" }
     },
     /* This has a Holtek KBC. */
     {
@@ -18070,16 +21799,118 @@ const machine_t machines[] = {
         .default_jumpered_ecp_dma = -1,
         .kbc_device               = &kbc_at_device,
         .kbc_params               = KBC_VEN_HOLTEK | 0x00004800,
+        .nvr_device               = &nvr_at_device,
+        .nvr_params               = NVR_AT,
+        .sio_device               = NULL,
+        .sio_params               = 0x00000000,
         .kbc_p1                   = 0x00000cf0,
         .gpio                     = 0xffffffff,
         .gpio_acpi                = 0xffffffff,
         .device                   = NULL,
         .kbd_device               = NULL,
         .fdc_device               = NULL,
-        .sio_device               = NULL,
         .vid_device               = NULL,
         .snd_device               = NULL,
-        .net_device               = NULL
+        .net_device               = NULL,
+        .aliases                  = { "" }
+    },
+    /* Has a VIA VT82C416 alongside the Winbond W83877F Super I/O chip, former of which
+       contains the VT82C42N KBC along with its own NVR */
+    {
+        .name              = "[i440FX] FIC KN-6000",
+        .internal_name     = "fickn6000",
+        .type              = MACHINE_TYPE_SLOT1,
+        .chipset           = MACHINE_CHIPSET_INTEL_440FX,
+        .init              = machine_at_fickn6000_init,
+        .p1_handler        = machine_generic_p1_handler,
+        .gpio_handler      = NULL,
+        .available_flag    = MACHINE_AVAILABLE,
+        .gpio_acpi_handler = NULL,
+        .cpu               = {
+            .package     = CPU_PKG_SLOT1,
+            .block       = CPU_BLOCK_NONE,
+            .min_bus     = 66666667,
+            .max_bus     = 66666667,
+            .min_voltage = 2800,
+            .max_voltage = 3500,
+            .min_multi   = 1.5,
+            .max_multi   = 5.0
+        },
+        .bus_flags = MACHINE_PS2_PCI | MACHINE_BUS_USB,
+        .flags     = MACHINE_IDE_DUAL | MACHINE_APM | MACHINE_USB,
+        .ram       = {
+            .min  = 8192,
+            .max  = 786432,
+            .step = 8192
+        },
+        .nvrmask                  = 255,
+        .jumpered_ecp_dma         = 0,
+        .default_jumpered_ecp_dma = -1,
+        .kbc_device               = &kbc_at_device,
+        .kbc_params               = KBC_VEN_VIA | 0x00424600,
+        .nvr_device               = &nvr_at_device,
+        .nvr_params               = NVR_AT,
+        .sio_device               = NULL,
+        .sio_params               = 0x00000000,
+        .kbc_p1                   = 0x00000cf0,
+        .gpio                     = 0xffffffff,
+        .gpio_acpi                = 0xffffffff,
+        .device                   = NULL,
+        .kbd_device               = NULL,
+        .fdc_device               = NULL,
+        .vid_device               = NULL,
+        .snd_device               = NULL,
+        .net_device               = NULL,
+        .aliases                  = { "" }
+    },
+    /* Has an SM(S)C FDC37C935 Super I/O chip with on-chip KBC with Phoenix
+       MultiKey/42 (version 1.38) KBC firmware. */
+    {
+        .name              = "[i440FX] Micronics Dual Fortress",
+        .internal_name     = "dualfortress",
+        .type              = MACHINE_TYPE_SLOT1,
+        .chipset           = MACHINE_CHIPSET_INTEL_440FX,
+        .init              = machine_at_dualfortress_init,
+        .p1_handler        = machine_generic_p1_handler,
+        .gpio_handler      = NULL,
+        .available_flag    = MACHINE_AVAILABLE,
+        .gpio_acpi_handler = NULL,
+        .cpu               = {
+            .package     = CPU_PKG_SLOT1,
+            .block       = CPU_BLOCK_NONE,
+            .min_bus     = 66666667,
+            .max_bus     = 66666667,
+            .min_voltage = 2800,
+            .max_voltage = 3500,
+            .min_multi   = 1.5,
+            .max_multi   = 5.0
+        },
+        .bus_flags = MACHINE_PS2_PCI | MACHINE_BUS_USB,
+        .flags     = MACHINE_IDE_DUAL | MACHINE_APM | MACHINE_USB, /* Has onboard sound: Yamaha YMF711-S/YMF704C-S */
+        .ram       = {
+            .min  = 8192,
+            .max  = 1048576,
+            .step = 8192
+        },
+        .nvrmask                  = 255,
+        .jumpered_ecp_dma         = 0,
+        .default_jumpered_ecp_dma = -1,
+        .kbc_device               = NULL,
+        .kbc_params               = 0x00000000,
+        .nvr_device               = NULL,
+        .nvr_params               = 0x00000000,
+        .sio_device               = NULL,
+        .sio_params               = 0x00000000,
+        .kbc_p1                   = 0x00000cf0,
+        .gpio                     = 0xffffffff,
+        .gpio_acpi                = 0xffffffff,
+        .device                   = NULL,
+        .kbd_device               = NULL,
+        .fdc_device               = NULL,
+        .vid_device               = NULL,
+        .snd_device               = NULL,
+        .net_device               = NULL,
+        .aliases                  = { "Micronics 09-00301-xx", "" }
     },
 
     /* 440LX */
@@ -18117,16 +21948,20 @@ const machine_t machines[] = {
         .default_jumpered_ecp_dma = -1,
         .kbc_device               = NULL,
         .kbc_params               = 0x00000000,
+        .nvr_device               = NULL,
+        .nvr_params               = 0x00000000,
+        .sio_device               = NULL,
+        .sio_params               = 0x00000000,
         .kbc_p1                   = 0x00000cf0,
         .gpio                     = 0xffffffff,
         .gpio_acpi                = 0xffffffff,
         .device                   = &lx6_device,
         .kbd_device               = NULL,
         .fdc_device               = NULL,
-        .sio_device               = NULL,
         .vid_device               = NULL,
         .snd_device               = NULL,
-        .net_device               = NULL
+        .net_device               = NULL,
+        .aliases                  = { "" }
     },
     /* Has a National Semiconductor PC87307 Super I/O with on-chip KBC, which has one of these
        firmwares: AMI '5' MegaKey, Phoenix MultiKey/42 1.37, or Phoenix MultiKey/42i 4.16. */
@@ -18162,16 +21997,20 @@ const machine_t machines[] = {
         .default_jumpered_ecp_dma = -1,
         .kbc_device               = NULL,
         .kbc_params               = 0x00000000,
+        .nvr_device               = NULL,
+        .nvr_params               = 0x00000000,
+        .sio_device               = NULL,
+        .sio_params               = 0x00000000,
         .kbc_p1                   = 0x00000cf0,
         .gpio                     = 0xffffffff,
         .gpio_acpi                = 0xffffffff,
         .device                   = NULL,
         .kbd_device               = NULL,
         .fdc_device               = NULL,
-        .sio_device               = NULL,
         .vid_device               = NULL, /* not yet emulated */
         .snd_device               = &cs4236b_device,
-        .net_device               = NULL /* not yet emulated */
+        .net_device               = NULL, /* not yet emulated */
+        .aliases                  = { "Dell System Tabasco", "" }
     },
     /* Has a SM(S)C FDC37C935 Super I/O chip with on-chip KBC with Phoenix
        MultiKey/42 (version 1.38) KBC firmware. */
@@ -18207,16 +22046,20 @@ const machine_t machines[] = {
         .default_jumpered_ecp_dma = -1,
         .kbc_device               = NULL,
         .kbc_params               = 0x00000000,
+        .nvr_device               = NULL,
+        .nvr_params               = 0x00000000,
+        .sio_device               = NULL,
+        .sio_params               = 0x00000000,
         .kbc_p1                   = 0x00000cf0,
         .gpio                     = 0xffffffff,
         .gpio_acpi                = 0xffffffff,
         .device                   = NULL,
         .kbd_device               = NULL,
         .fdc_device               = NULL,
-        .sio_device               = NULL,
         .vid_device               = NULL,
         .snd_device               = NULL,
-        .net_device               = NULL
+        .net_device               = NULL,
+        .aliases                  = { "" }
     },
     /* Has a Winbond W83977TF Super I/O chip with on-chip KBC with AMIKey-2 KBC
        firmware. */
@@ -18244,7 +22087,7 @@ const machine_t machines[] = {
         .flags     = MACHINE_IDE_DUAL | MACHINE_APM | MACHINE_USB,
         .ram       = {
             .min  = 8192,
-            .max  = 786432, /* Manual thinks the maximum memory is 1024MB (256x4MB), but there is no 4th memory slot */
+            .max  = 786432, /* Manual mistakenly says 1 GB with 256 MB in each slot, even though it only has three slots */
             .step = 8192
         },
         .nvrmask                  = 255,
@@ -18252,21 +22095,25 @@ const machine_t machines[] = {
         .default_jumpered_ecp_dma = -1,
         .kbc_device               = NULL,
         .kbc_params               = 0x00000000,
+        .nvr_device               = NULL,
+        .nvr_params               = 0x00000000,
+        .sio_device               = NULL,
+        .sio_params               = 0x00000000,
         .kbc_p1                   = 0x00000cf0,
         .gpio                     = 0xffffffff,
         .gpio_acpi                = 0xffffffff,
         .device                   = &ms6117_device,
         .kbd_device               = NULL,
         .fdc_device               = NULL,
-        .sio_device               = NULL,
         .vid_device               = NULL,
         .snd_device               = NULL,
-        .net_device               = NULL
+        .net_device               = NULL,
+        .aliases                  = { "LG IBM Multinet x7E", "Viglen Vig67M", "" }
     },
     /* Has a SM(S)C FDC37C67x Super I/O chip with on-chip KBC with Phoenix or
        AMIKey-2 KBC firmware. */
     {
-        .name              = "[i440LX] NEC Mate NX MA30D/23D",
+        .name              = "[i440LX] NEC Mate NX MA30D",
         .internal_name     = "ma30d",
         .type              = MACHINE_TYPE_SLOT1,
         .chipset           = MACHINE_CHIPSET_INTEL_440LX,
@@ -18297,16 +22144,20 @@ const machine_t machines[] = {
         .default_jumpered_ecp_dma = -1,
         .kbc_device               = NULL,
         .kbc_params               = 0x00000000,
+        .nvr_device               = NULL,
+        .nvr_params               = 0x00000000,
+        .sio_device               = NULL,
+        .sio_params               = 0x00000000,
         .kbc_p1                   = 0x0000044f0,
         .gpio                     = 0xffffffff,
         .gpio_acpi                = 0xffffffff,
         .device                   = NULL,
         .kbd_device               = NULL,
         .fdc_device               = NULL,
-        .sio_device               = NULL,
         .vid_device               = NULL,
         .snd_device               = NULL,
-        .net_device               = NULL
+        .net_device               = NULL,
+        .aliases                  = { "NEC Mate NX MA23D", "" }
     },
 
     /* 440EX */
@@ -18347,16 +22198,20 @@ const machine_t machines[] = {
         .default_jumpered_ecp_dma = -1,
         .kbc_device               = NULL,
         .kbc_params               = 0x00000000,
+        .nvr_device               = NULL,
+        .nvr_params               = 0x00000000,
+        .sio_device               = NULL,
+        .sio_params               = 0x00000000,
         .kbc_p1                   = 0x00000cf0,
         .gpio                     = 0xffffffff,
         .gpio_acpi                = 0xffffffff,
         .device                   = NULL,
         .kbd_device               = NULL,
         .fdc_device               = NULL,
-        .sio_device               = NULL,
-        .vid_device               = &s3_trio64v2_dx_onboard_pci_device,
+        .vid_device               = &s3_trio64v2dx_onboard_pci_device,
         .snd_device               = NULL,
-        .net_device               = NULL
+        .net_device               = NULL,
+        .aliases                  = { "MiTAC/Trigon PX6400LX", "HP Taroko Lite", "" }
     },
 
     /* Has a Winbond W83977TF Super I/O chip with on-chip KBC with AMIKey-2 KBC
@@ -18393,16 +22248,20 @@ const machine_t machines[] = {
         .default_jumpered_ecp_dma = -1,
         .kbc_device               = NULL,
         .kbc_params               = 0x00000000,
+        .nvr_device               = NULL,
+        .nvr_params               = 0x00000000,
+        .sio_device               = NULL,
+        .sio_params               = 0x00000000,
         .kbc_p1                   = 0x00000cf0,
         .gpio                     = 0xffffffff,
         .gpio_acpi                = 0xffffffff,
         .device                   = NULL,
         .kbd_device               = NULL,
         .fdc_device               = NULL,
-        .sio_device               = NULL,
         .vid_device               = NULL,
         .snd_device               = NULL,
-        .net_device               = NULL
+        .net_device               = NULL,
+        .aliases                  = { "QDI P6I440EX/MATX", "" }
     },
 
     /* Has a SMC FDC37M60x Super I/O chip with on-chip KBC with AMIKey-2 KBC
@@ -18428,7 +22287,7 @@ const machine_t machines[] = {
             .max_multi   = 5.0
         },
         .bus_flags = MACHINE_PS2_PCI | MACHINE_BUS_USB,
-        .flags     = MACHINE_IDE_DUAL | MACHINE_APM | MACHINE_ACPI | MACHINE_USB,
+        .flags     = MACHINE_IDE_DUAL | MACHINE_SOUND | MACHINE_APM | MACHINE_ACPI | MACHINE_USB,
         .ram       = {
             .min  = 8192,
             .max  = 262144,
@@ -18439,19 +22298,72 @@ const machine_t machines[] = {
         .default_jumpered_ecp_dma = -1,
         .kbc_device               = NULL,
         .kbc_params               = 0x00000000,
+        .nvr_device               = NULL,
+        .nvr_params               = 0x00000000,
+        .sio_device               = NULL,
+        .sio_params               = 0x00000000,
         .kbc_p1                   = 0x00000cf0,
         .gpio                     = 0xffffffff,
         .gpio_acpi                = 0xffffffff,
-        .device                   = NULL,
+        .device                   = &como_device,
         .kbd_device               = NULL,
         .fdc_device               = NULL,
-        .sio_device               = NULL,
-        .vid_device               = NULL,
+        .vid_device               = NULL, /* Onboard video not yet emulated: ATi Rage IIc AGP */
         .snd_device               = &cs4235_onboard_device,
-        .net_device               = NULL
+        .net_device               = NULL,
+        .aliases                  = { "TriGem Como-3", "Olivetti M24KD", "Olivetti M3000 MT/DT", "eMachines eTower 333i", "Sotec Micro PC Station 3__", "" }
     },
 
     /* 440BX */
+    /* Has a Winbond W83977EF Super I/O chip with on-chip KBC with AMIKey-2 KBC
+       firmware and an on-board HighPoint HPT366 IDE controller. */
+    {
+        .name              = "[i440BX] ABIT AB-BE6-II",
+        .internal_name     = "be6ii",
+        .type              = MACHINE_TYPE_SLOT1,
+        .chipset           = MACHINE_CHIPSET_INTEL_440BX,
+        .init              = machine_at_be6ii_init,
+        .p1_handler        = machine_generic_p1_handler,
+        .gpio_handler      = NULL,
+        .available_flag    = MACHINE_AVAILABLE,
+        .gpio_acpi_handler = NULL,
+        .cpu               = {
+            .package     = CPU_PKG_SLOT1,
+            .block       = CPU_BLOCK_NONE,
+            .min_bus     = 66666667,
+            .max_bus     = 133333333,
+            .min_voltage = 1300,
+            .max_voltage = 3500,
+            .min_multi   = 1.5,
+            .max_multi   = 8.0
+        },
+        .bus_flags = MACHINE_PS2_AGP | MACHINE_BUS_USB,
+        .flags     = MACHINE_IDE_QUAD | MACHINE_APM | MACHINE_ACPI | MACHINE_USB,
+        .ram       = {
+            .min  = 8192,
+            .max  = 786432,
+            .step = 8192
+        },
+        .nvrmask                  = 255,
+        .jumpered_ecp_dma         = 0,
+        .default_jumpered_ecp_dma = -1,
+        .kbc_device               = NULL,
+        .kbc_params               = 0x00000000,
+        .nvr_device               = NULL,
+        .nvr_params               = 0x00000000,
+        .sio_device               = NULL,
+        .sio_params               = 0x00000000,
+        .kbc_p1                   = 0x00000cf0,
+        .gpio                     = 0xffffffff,
+        .gpio_acpi                = 0xffffffff,
+        .device                   = &be6ii_device,
+        .kbd_device               = NULL,
+        .fdc_device               = NULL,
+        .vid_device               = NULL,
+        .snd_device               = NULL,
+        .net_device               = NULL,
+        .aliases                  = { "" }
+    },
     /* Has a Winbond W83977EF Super I/O chip with on-chip KBC with AMIKey-2 KBC
        firmware. */
     {
@@ -18486,16 +22398,20 @@ const machine_t machines[] = {
         .default_jumpered_ecp_dma = -1,
         .kbc_device               = NULL,
         .kbc_params               = 0x00000000,
+        .nvr_device               = NULL,
+        .nvr_params               = 0x00000000,
+        .sio_device               = NULL,
+        .sio_params               = 0x00000000,
         .kbc_p1                   = 0x00000cf0,
         .gpio                     = 0xffffffff,
         .gpio_acpi                = 0xffffffff,
         .device                   = NULL,
         .kbd_device               = NULL,
         .fdc_device               = NULL,
-        .sio_device               = NULL,
         .vid_device               = NULL,
         .snd_device               = NULL,
-        .net_device               = NULL
+        .net_device               = NULL,
+        .aliases                  = { "" }
     },
     /* Has a Winbond W83977TF Super I/O chip with on-chip KBC with AMIKey-2 KBC
        firmware. */
@@ -18531,16 +22447,20 @@ const machine_t machines[] = {
         .default_jumpered_ecp_dma = -1,
         .kbc_device               = NULL,
         .kbc_params               = 0x00000000,
+        .nvr_device               = NULL,
+        .nvr_params               = 0x00000000,
+        .sio_device               = NULL,
+        .sio_params               = 0x00000000,
         .kbc_p1                   = 0x00000cf0,
         .gpio                     = 0xffffffff,
         .gpio_acpi                = 0xffffffff,
         .device                   = &bx6_device,
         .kbd_device               = NULL,
         .fdc_device               = NULL,
-        .sio_device               = NULL,
         .vid_device               = NULL,
         .snd_device               = NULL,
-        .net_device               = NULL
+        .net_device               = NULL,
+        .aliases                  = { "" }
     },
     /* Has a Winbond W83977TF Super I/O chip with on-chip KBC with AMIKey-2 KBC
        firmware. */
@@ -18576,16 +22496,20 @@ const machine_t machines[] = {
         .default_jumpered_ecp_dma = -1,
         .kbc_device               = NULL,
         .kbc_params               = 0x00000000,
+        .nvr_device               = NULL,
+        .nvr_params               = 0x00000000,
+        .sio_device               = NULL,
+        .sio_params               = 0x00000000,
         .kbc_p1                   = 0x00000cf0,
         .gpio                     = 0xffffffff,
         .gpio_acpi                = 0xffffffff,
         .device                   = &ax6bc_device,
         .kbd_device               = NULL,
         .fdc_device               = NULL,
-        .sio_device               = NULL,
         .vid_device               = NULL,
         .snd_device               = NULL,
-        .net_device               = NULL
+        .net_device               = NULL,
+        .aliases                  = { "RM Accelerator 350P2XB", "RM Accelerator 450P3XB", "" }
     },
     /* Has a Winbond W83977EF Super I/O chip with on-chip KBC with AMIKey-2 KBC
        firmware. */
@@ -18621,16 +22545,20 @@ const machine_t machines[] = {
         .default_jumpered_ecp_dma = -1,
         .kbc_device               = NULL,
         .kbc_params               = 0x00000000,
+        .nvr_device               = NULL,
+        .nvr_params               = 0x00000000,
+        .sio_device               = NULL,
+        .sio_params               = 0x00000000,
         .kbc_p1                   = 0x00000cf0,
         .gpio                     = 0xffffffff,
         .gpio_acpi                = 0xffffffff,
         .device                   = NULL,
         .kbd_device               = NULL,
         .fdc_device               = NULL,
-        .sio_device               = NULL,
         .vid_device               = NULL,
         .snd_device               = NULL,
-        .net_device               = NULL
+        .net_device               = NULL,
+        .aliases                  = { "" }
     },
     /* Has a Winbond W83977EF Super I/O chip with on-chip KBC with AMIKey-2 KBC
        firmware. */
@@ -18666,16 +22594,20 @@ const machine_t machines[] = {
         .default_jumpered_ecp_dma = -1,
         .kbc_device               = NULL,
         .kbc_params               = 0x00000000,
+        .nvr_device               = NULL,
+        .nvr_params               = 0x00000000,
+        .sio_device               = NULL,
+        .sio_params               = 0x00000000,
         .kbc_p1                   = 0x00000cf0,
         .gpio                     = 0xffffffff,
         .gpio_acpi                = 0xffffffff,
         .device                   = NULL,
         .kbd_device               = NULL,
         .fdc_device               = NULL,
-        .sio_device               = NULL,
         .vid_device               = NULL,
         .snd_device               = NULL,
-        .net_device               = NULL
+        .net_device               = NULL,
+        .aliases                  = { "" }
     },
     /* Has a Winbond W83977TF Super I/O chip with on-chip KBC with AMIKey-2 KBC
        firmware. */
@@ -18711,16 +22643,20 @@ const machine_t machines[] = {
         .default_jumpered_ecp_dma = -1,
         .kbc_device               = NULL,
         .kbc_params               = 0x00000000,
+        .nvr_device               = NULL,
+        .nvr_params               = 0x00000000,
+        .sio_device               = NULL,
+        .sio_params               = 0x00000000,
         .kbc_p1                   = 0x00000cf0,
         .gpio                     = 0xffffffff,
         .gpio_acpi                = 0xffffffff,
         .device                   = &ga686_device,
         .kbd_device               = NULL,
         .fdc_device               = NULL,
-        .sio_device               = NULL,
         .vid_device               = NULL,
         .snd_device               = NULL,
-        .net_device               = NULL
+        .net_device               = NULL,
+        .aliases                  = { "Amptron PII-3100", "" }
     },
     /* Has a Winbond W83977TF Super I/O chip with on-chip KBC with AMIKey-2 (updated 'H') KBC firmware. */
     {
@@ -18755,16 +22691,20 @@ const machine_t machines[] = {
         .default_jumpered_ecp_dma = -1,
         .kbc_device               = NULL,
         .kbc_params               = 0x00000000,
+        .nvr_device               = NULL,
+        .nvr_params               = 0x00000000,
+        .sio_device               = NULL,
+        .sio_params               = 0x00000000,
         .kbc_p1                   = 0x00000cf0,
         .gpio                     = 0xffffffff,
         .gpio_acpi                = 0xffffffff,
         .device                   = &ms6119_device,
         .kbd_device               = NULL,
         .fdc_device               = NULL,
-        .sio_device               = NULL,
         .vid_device               = NULL,
         .snd_device               = NULL,
-        .net_device               = NULL
+        .net_device               = NULL,
+        .aliases                  = { "Packard Bell Tacoma", "Viglen Vig69M", "LG IBM Multinet x7G", "" }
     },
     /* Has a Winbond W83977TF Super I/O chip with on-chip KBC with AMIKey-2 KBC firmware. */
     {
@@ -18799,16 +22739,20 @@ const machine_t machines[] = {
         .default_jumpered_ecp_dma = -1,
         .kbc_device               = NULL,
         .kbc_params               = 0x00000000,
+        .nvr_device               = NULL,
+        .nvr_params               = 0x00000000,
+        .sio_device               = NULL,
+        .sio_params               = 0x00000000,
         .kbc_p1                   = 0x00000cf0,
         .gpio                     = 0xffffffff,
         .gpio_acpi                = 0xffffffff,
         .device                   = &ms6147_device,
         .kbd_device               = NULL,
         .fdc_device               = NULL,
-        .sio_device               = NULL,
         .vid_device               = NULL,
         .snd_device               = &es1371_onboard_device,
-        .net_device               = NULL
+        .net_device               = NULL,
+        .aliases                  = { "Packard Bell Tempest", "Fujitsu ErgoPro e368", "" }
     },
     /* Has a Winbond W83977TF Super I/O chip with on-chip KBC with AMIKey-2 KBC
        firmware. */
@@ -18844,16 +22788,20 @@ const machine_t machines[] = {
         .default_jumpered_ecp_dma = -1,
         .kbc_device               = NULL,
         .kbc_params               = 0x00000000,
+        .nvr_device               = NULL,
+        .nvr_params               = 0x00000000,
+        .sio_device               = NULL,
+        .sio_params               = 0x00000000,
         .kbc_p1                   = 0x00000cf0,
         .gpio                     = 0xffffffff,
         .gpio_acpi                = 0xffffffff,
         .device                   = &p6sba_device,
         .kbd_device               = NULL,
         .fdc_device               = NULL,
-        .sio_device               = NULL,
         .vid_device               = NULL,
         .snd_device               = NULL,
-        .net_device               = NULL
+        .net_device               = NULL,
+        .aliases                  = { "Leadtek WinFast 8000BX", "" }
     },
     /* Has a National Semiconductors PC87309 Super I/O chip with on-chip KBC
        with most likely AMIKey-2 KBC firmware. */
@@ -18889,16 +22837,20 @@ const machine_t machines[] = {
         .default_jumpered_ecp_dma = -1,
         .kbc_device               = NULL,
         .kbc_params               = 0x00000000,
+        .nvr_device               = NULL,
+        .nvr_params               = 0x00000000,
+        .sio_device               = NULL,
+        .sio_params               = 0x00000000,
         .kbc_p1                   = 0x000044f0,
         .gpio                     = 0xffffffff,
         .gpio_acpi                = 0xffffffff,
         .device                   = &s1846_device,
         .kbd_device               = NULL,
         .fdc_device               = NULL,
-        .sio_device               = NULL,
         .vid_device               = NULL,
         .snd_device               = &es1371_onboard_device,
-        .net_device               = NULL
+        .net_device               = NULL,
+        .aliases                  = { "Tulip Vision Line TP90", "Tyan S1846", "" }
     },
 
     /* 440ZX */
@@ -18936,16 +22888,20 @@ const machine_t machines[] = {
         .default_jumpered_ecp_dma = -1,
         .kbc_device               = NULL,
         .kbc_params               = 0x00000000,
+        .nvr_device               = NULL,
+        .nvr_params               = 0x00000000,
+        .sio_device               = NULL,
+        .sio_params               = 0x00000000,
         .kbc_p1                   = 0x000044f0,
         .gpio                     = 0xffffffff,
         .gpio_acpi                = 0xffffffff,
         .device                   = &vei8_device,
         .kbd_device               = NULL,
         .fdc_device               = NULL,
-        .sio_device               = NULL,
         .vid_device               = NULL,
         .snd_device               = NULL,
-        .net_device               = NULL
+        .net_device               = NULL,
+        .aliases                  = { "HP Sherwood-B", "HP Vectra VEi8", "HP Brio BA600", "HP Brio BAX", "" }
     },
     /* Has a Winbond W83977EF Super I/O chip with on-chip KBC with AMIKey-2 KBC
        firmware. */
@@ -18981,21 +22937,25 @@ const machine_t machines[] = {
         .default_jumpered_ecp_dma = -1,
         .kbc_device               = NULL,
         .kbc_params               = 0x00000000,
+        .nvr_device               = NULL,
+        .nvr_params               = 0x00000000,
+        .sio_device               = NULL,
+        .sio_params               = 0x00000000,
         .kbc_p1                   = 0x00000cf0,
         .gpio                     = 0xffffffff,
         .gpio_acpi                = 0xffffffff,
         .device                   = NULL,
         .kbd_device               = NULL,
         .fdc_device               = NULL,
-        .sio_device               = NULL,
         .vid_device               = &voodoo_3_2000_agp_onboard_8m_device,
         .snd_device               = &es1373_onboard_device,
-        .net_device               = NULL
+        .net_device               = NULL,
+        .aliases                  = { "Packard Bell Bora", "" }
     },
     /* Has a Winbond W83977EF Super I/O chip with on-chip KBC with AMIKey-2 KBC
        firmware. */
     {
-        .name              = "[i440ZX] Packard Bell Bora/Bora Pro (MSI MS-6168)",
+        .name              = "[i440ZX] Packard Bell Bora Pro",
         .internal_name     = "borapro",
         .type              = MACHINE_TYPE_SLOT1,
         .chipset           = MACHINE_CHIPSET_INTEL_440ZX,
@@ -19026,16 +22986,20 @@ const machine_t machines[] = {
         .default_jumpered_ecp_dma = -1,
         .kbc_device               = NULL,
         .kbc_params               = 0x00000000,
+        .nvr_device               = NULL,
+        .nvr_params               = 0x00000000,
+        .sio_device               = NULL,
+        .sio_params               = 0x00000000,
         .kbc_p1                   = 0x00000cf0,
         .gpio                     = 0xffffffff,
         .gpio_acpi                = 0xffffffff,
         .device                   = NULL,
         .kbd_device               = NULL,
         .fdc_device               = NULL,
-        .sio_device               = NULL,
         .vid_device               = &voodoo_3_2000_agp_onboard_8m_device,
         .snd_device               = &es1373_onboard_device,
-        .net_device               = NULL
+        .net_device               = NULL,
+        .aliases                  = { "Packard Bell Bora", "" }
     },
 
     /* SiS (5)600 */
@@ -19072,16 +23036,20 @@ const machine_t machines[] = {
         .default_jumpered_ecp_dma = -1,
         .kbc_device               = NULL,
         .kbc_params               = 0x00000000,
+        .nvr_device               = NULL,
+        .nvr_params               = 0x00000000,
+        .sio_device               = NULL,
+        .sio_params               = 0x00000000,
         .kbc_p1                   = 0x00000cf0,
         .gpio                     = 0xffffffff,
         .gpio_acpi                = 0xffffffff,
         .device                   = NULL,
         .kbd_device               = NULL,
         .fdc_device               = NULL,
-        .sio_device               = NULL,
         .vid_device               = NULL,
         .snd_device               = &es1373_onboard_device,
-        .net_device               = NULL
+        .net_device               = NULL,
+        .aliases                  = { "" }
     },
     /* Has the SiS (5)600 chipset with on-chip KBC. */
     {
@@ -19116,16 +23084,20 @@ const machine_t machines[] = {
         .default_jumpered_ecp_dma = -1,
         .kbc_device               = NULL,
         .kbc_params               = 0x00000000,
+        .nvr_device               = NULL,
+        .nvr_params               = 0x00000000,
+        .sio_device               = NULL,
+        .sio_params               = 0x00000000,
         .kbc_p1                   = 0x00000cf0,
         .gpio                     = 0xffffffff,
         .gpio_acpi                = 0xffffffff,
         .device                   = NULL,
         .kbd_device               = NULL,
         .fdc_device               = NULL,
-        .sio_device               = NULL,
         .vid_device               = NULL,
         .snd_device               = NULL,
-        .net_device               = NULL
+        .net_device               = NULL,
+        .aliases                  = { "" }
     },
 
     /* SMSC VictoryBX-66 */
@@ -19163,16 +23135,20 @@ const machine_t machines[] = {
         .default_jumpered_ecp_dma = -1,
         .kbc_device               = NULL,
         .kbc_params               = 0x00000000,
+        .nvr_device               = NULL,
+        .nvr_params               = 0x00000000,
+        .sio_device               = NULL,
+        .sio_params               = 0x00000000,
         .kbc_p1                   = 0x00000cf0,
         .gpio                     = 0xffffffff,
         .gpio_acpi                = 0xffffffff,
         .device                   = NULL,
         .kbd_device               = NULL,
         .fdc_device               = NULL,
-        .sio_device               = NULL,
         .vid_device               = NULL,
         .snd_device               = NULL,
-        .net_device               = NULL
+        .net_device               = NULL,
+        .aliases                  = { "" }
     },
 
     /* VIA Apollo Pro */
@@ -19210,16 +23186,20 @@ const machine_t machines[] = {
         .default_jumpered_ecp_dma = -1,
         .kbc_device               = NULL,
         .kbc_params               = 0x00000000,
+        .nvr_device               = NULL,
+        .nvr_params               = 0x00000000,
+        .sio_device               = NULL,
+        .sio_params               = 0x00000000,
         .kbc_p1                   = 0x00000cf0,
         .gpio                     = 0xffffffff,
         .gpio_acpi                = 0xffffffff,
         .device                   = NULL,
         .kbd_device               = NULL,
         .fdc_device               = NULL,
-        .sio_device               = NULL,
         .vid_device               = NULL,
         .snd_device               = NULL,
-        .net_device               = NULL
+        .net_device               = NULL,
+        .aliases                  = { "" }
     },
 
     /* VIA Apollo Pro 133 */
@@ -19257,16 +23237,20 @@ const machine_t machines[] = {
         .default_jumpered_ecp_dma = -1,
         .kbc_device               = NULL,
         .kbc_params               = 0x00000000,
+        .nvr_device               = NULL,
+        .nvr_params               = 0x00000000,
+        .sio_device               = NULL,
+        .sio_params               = 0x00000000,
         .kbc_p1                   = 0x00000cf0,
         .gpio                     = 0xffffffff,
         .gpio_acpi                = 0xffffffff,
-        .device                   = NULL,
+        .device                   = &p3v133_device,
         .kbd_device               = NULL,
         .fdc_device               = NULL,
-        .sio_device               = NULL,
         .vid_device               = NULL,
         .snd_device               = NULL,
-        .net_device               = NULL
+        .net_device               = NULL,
+        .aliases                  = { "HP NetServer E200", "HP Eagle 2", "" }
     },
     /* Has a Winbond W83977EF Super I/O chip with on-chip KBC with AMIKey-2 KBC
        firmware. */
@@ -19302,16 +23286,20 @@ const machine_t machines[] = {
         .default_jumpered_ecp_dma = -1,
         .kbc_device               = NULL,
         .kbc_params               = 0x00000000,
+        .nvr_device               = NULL,
+        .nvr_params               = 0x00000000,
+        .sio_device               = NULL,
+        .sio_params               = 0x00000000,
         .kbc_p1                   = 0x00000cf0,
         .gpio                     = 0xffffffff,
         .gpio_acpi                = 0xffffffff,
         .device                   = &ms6199va_device,
         .kbd_device               = NULL,
         .fdc_device               = NULL,
-        .sio_device               = NULL,
         .vid_device               = NULL,
         .snd_device               = &es1373_onboard_device,
-        .net_device               = NULL
+        .net_device               = NULL,
+        .aliases                  = { "Packard Bell Phoenix", "Compaq ProSignia 693A", "Compaq Deskpro 693A", "" }
     },
 
     /* VIA Apollo Pro 133A */
@@ -19349,16 +23337,20 @@ const machine_t machines[] = {
         .default_jumpered_ecp_dma = -1,
         .kbc_device               = NULL,
         .kbc_params               = 0x00000000,
+        .nvr_device               = NULL,
+        .nvr_params               = 0x00000000,
+        .sio_device               = NULL,
+        .sio_params               = 0x00000000,
         .kbc_p1                   = 0x00000cf0,
         .gpio                     = 0xffffffff,
         .gpio_acpi                = 0xffffffff,
         .device                   = NULL,
         .kbd_device               = NULL,
         .fdc_device               = NULL,
-        .sio_device               = NULL,
         .vid_device               = NULL,
         .snd_device               = NULL,
-        .net_device               = NULL
+        .net_device               = NULL,
+        .aliases                  = { "" }
     },
     /* Has a Winbond W83977EF Super I/O chip with on-chip KBC with AMIKey-2 KBC
        firmware. */
@@ -19394,16 +23386,20 @@ const machine_t machines[] = {
         .default_jumpered_ecp_dma = -1,
         .kbc_device               = &kbc_at_device,
         .kbc_params               = KBC_VEN_AMI | 0x00004800,
+        .nvr_device               = NULL,
+        .nvr_params               = 0x00000000,
+        .sio_device               = NULL,
+        .sio_params               = 0x00000000,
         .kbc_p1                   = 0x00000cf0,
         .gpio                     = 0xffffffff,
         .gpio_acpi                = 0xffffffff,
         .device                   = NULL,
         .kbd_device               = NULL,
         .fdc_device               = NULL,
-        .sio_device               = NULL,
         .vid_device               = NULL,
         .snd_device               = &es1373_onboard_device,
-        .net_device               = NULL
+        .net_device               = NULL,
+        .aliases                  = { "" }
     },
 
     /* Slot 1/2 machines */
@@ -19442,19 +23438,72 @@ const machine_t machines[] = {
         .default_jumpered_ecp_dma = -1,
         .kbc_device               = NULL,
         .kbc_params               = 0x00000000,
+        .nvr_device               = NULL,
+        .nvr_params               = 0x00000000,
+        .sio_device               = NULL,
+        .sio_params               = 0x00000000,
         .kbc_p1                   = 0x000044f0,
         .gpio                     = 0xffffffff,
         .gpio_acpi                = 0xffffffff,
         .device                   = NULL,
         .kbd_device               = NULL,
         .fdc_device               = NULL,
-        .sio_device               = NULL,
         .vid_device               = NULL,
         .snd_device               = NULL,
-        .net_device               = NULL
+        .net_device               = NULL,
+        .aliases                  = { "A-Trend ATC-6400", "" }
     },
 
     /* Slot 1/Socket 370 machines */
+    /* ALi ALADDiN-PRO II */
+    /* Has the ALi M1543C southbridge with on-chip KBC. */
+    {
+        .name              = "[ALi ALADDiN-PRO II] PC Chips M726MRT",
+        .internal_name     = "m726mrt",
+        .type              = MACHINE_TYPE_SLOT1_370,
+        .chipset           = MACHINE_CHIPSET_ALI_ALADDIN_PRO_II,
+        .init              = machine_at_m726mrt_init,
+        .p1_handler        = machine_generic_p1_handler,
+        .gpio_handler      = NULL,
+        .available_flag    = MACHINE_AVAILABLE,
+        .gpio_acpi_handler = NULL,
+        .cpu               = {
+            .package     = CPU_PKG_SLOT1 | CPU_PKG_SOCKET370,
+            .block       = CPU_BLOCK_NONE,
+            .min_bus     = 66666667,
+            .max_bus     = 112121212,
+            .min_voltage = 1800,
+            .max_voltage = 3500,
+            .min_multi   = 1.5,
+            .max_multi   = 8.0
+        },
+        .bus_flags = MACHINE_PS2_AGP | MACHINE_BUS_USB,
+        .flags     = MACHINE_IDE_DUAL | MACHINE_SOUND | MACHINE_APM | MACHINE_ACPI | MACHINE_USB,
+        .ram       = {
+            .min  = 8192,
+            .max  = 1572864,
+            .step = 8192
+        },
+        .nvrmask                  = 255,
+        .jumpered_ecp_dma         = 0,
+        .default_jumpered_ecp_dma = -1,
+        .kbc_device               = NULL,
+        .kbc_params               = 0x00000000,
+        .nvr_device               = NULL,
+        .nvr_params               = 0x00000000,
+        .sio_device               = NULL,
+        .sio_params               = 0x00000000,
+        .kbc_p1                   = 0x00000cf0,
+        .gpio                     = 0xffffffff,
+        .gpio_acpi                = 0xffffffff,
+        .device                   = &m726mrt_device,
+        .kbd_device               = NULL,
+        .fdc_device               = NULL,
+        .vid_device               = NULL,
+        .snd_device               = &cmi8738_onboard_device,
+        .net_device               = NULL,
+        .aliases                  = { "" }
+    },
     /* 440BX */
     /* Has a Winbond W83977EF Super I/O chip with on-chip KBC with AMIKey-2 KBC firmware.*/
     {
@@ -19469,7 +23518,7 @@ const machine_t machines[] = {
         .gpio_acpi_handler = NULL,
         .cpu               = {
             .package     = CPU_PKG_SLOT1 | CPU_PKG_SOCKET370,
-            .block       = CPU_BLOCK(CPU_PENTIUMPRO), /* Instability issues with PPro, and garbled text in POST with Cyrix (latter supported on unofficial v6.00PG BIOS) */
+            .block       = CPU_BLOCK(CPU_PENTIUMPRO), /* PPro is very unstable on this board. */
             .min_bus     = 66666667,
             .max_bus     = 124242424,
             .min_voltage = 1300,
@@ -19489,16 +23538,20 @@ const machine_t machines[] = {
         .default_jumpered_ecp_dma = -1,
         .kbc_device               = NULL,
         .kbc_params               = 0x00000000,
+        .nvr_device               = NULL,
+        .nvr_params               = 0x00000000,
+        .sio_device               = NULL,
+        .sio_params               = 0x00000000,
         .kbc_p1                   = 0x00000cf0,
         .gpio                     = 0xffffffff,
         .gpio_acpi                = 0xffffffff,
         .device                   = &prosignias31x_device,
         .kbd_device               = NULL,
         .fdc_device               = NULL,
-        .sio_device               = NULL,
         .vid_device               = NULL,
         .snd_device               = &cmi8738_onboard_device,
-        .net_device               = NULL
+        .net_device               = NULL,
+        .aliases                  = { "Compaq ProSignia 440BX", "Compaq Deskpro 440BX", "" }
     },
     /* Has a Winbond W83977EF Super I/O chip with on-chip KBC with AMIKey-2 KBC
        firmware. */
@@ -19534,16 +23587,20 @@ const machine_t machines[] = {
         .default_jumpered_ecp_dma = -1,
         .kbc_device               = NULL,
         .kbc_params               = 0x00000000,
+        .nvr_device               = NULL,
+        .nvr_params               = 0x00000000,
+        .sio_device               = NULL,
+        .sio_params               = 0x00000000,
         .kbc_p1                   = 0x00000cf0,
         .gpio                     = 0xffffffff,
         .gpio_acpi                = 0xffffffff,
         .device                   = NULL,
         .kbd_device               = NULL,
         .fdc_device               = NULL,
-        .sio_device               = NULL,
         .vid_device               = NULL,
         .snd_device               = &es1373_onboard_device,
-        .net_device               = NULL
+        .net_device               = NULL,
+        .aliases                  = { "Tyan S1857", "" }
     },
     /* VIA Apollo Pro */
     /* Has a Winbond W83977EF Super I/O chip with on-chip KBC with AMIKey-2 KBC
@@ -19580,16 +23637,20 @@ const machine_t machines[] = {
         .default_jumpered_ecp_dma = -1,
         .kbc_device               = NULL,
         .kbc_params               = 0x00000000,
+        .nvr_device               = NULL,
+        .nvr_params               = 0x00000000,
+        .sio_device               = NULL,
+        .sio_params               = 0x00000000,
         .kbc_p1                   = 0x00000cf0,
         .gpio                     = 0xffffffff,
         .gpio_acpi                = 0xffffffff,
         .device                   = NULL,
         .kbd_device               = NULL,
         .fdc_device               = NULL,
-        .sio_device               = NULL,
         .vid_device               = NULL,
         .snd_device               = &cmi8738_onboard_device,
-        .net_device               = NULL
+        .net_device               = NULL,
+        .aliases                  = { "Matsonic MS-7112C", "" }
     },
 
     /* Slot 2 machines */
@@ -19628,16 +23689,20 @@ const machine_t machines[] = {
         .default_jumpered_ecp_dma = -1,
         .kbc_device               = NULL,
         .kbc_params               = 0x00000000,
+        .nvr_device               = NULL,
+        .nvr_params               = 0x00000000,
+        .sio_device               = NULL,
+        .sio_params               = 0x00000000,
         .kbc_p1                   = 0x00000cf0,
         .gpio                     = 0xffffffff,
         .gpio_acpi                = 0xffffffff,
         .device                   = NULL,
         .kbd_device               = NULL,
         .fdc_device               = NULL,
-        .sio_device               = NULL,
         .vid_device               = NULL,
         .snd_device               = NULL,
-        .net_device               = NULL
+        .net_device               = NULL,
+        .aliases                  = { "" }
     },
     /* Has a Winbond W83977TF Super I/O chip with on-chip KBC with AMIKey-2 KBC
        firmware. */
@@ -19673,16 +23738,20 @@ const machine_t machines[] = {
         .default_jumpered_ecp_dma = -1,
         .kbc_device               = NULL,
         .kbc_params               = 0x00000000,
+        .nvr_device               = NULL,
+        .nvr_params               = 0x00000000,
+        .sio_device               = NULL,
+        .sio_params               = 0x00000000,
         .kbc_p1                   = 0x00000cf0,
         .gpio                     = 0xffffffff,
         .gpio_acpi                = 0xffffffff,
-        .device                   = NULL,
+        .device                   = &s2dge_device,
         .kbd_device               = NULL,
         .fdc_device               = NULL,
-        .sio_device               = NULL,
         .vid_device               = NULL,
         .snd_device               = NULL,
-        .net_device               = NULL
+        .net_device               = NULL,
+        .aliases                  = { "" }
     },
 
     /* PGA370 machines */
@@ -19703,7 +23772,7 @@ const machine_t machines[] = {
             .package     = CPU_PKG_SOCKET370,
             .block       = CPU_BLOCK_NONE,
             .min_bus     = 66666667,
-            .max_bus     = 100000000,
+            .max_bus     = 83333333,
             .min_voltage = 1800,
             .max_voltage = 3500,
             .min_multi   = MACHINE_MULTIPLIER_FIXED,
@@ -19721,16 +23790,20 @@ const machine_t machines[] = {
         .default_jumpered_ecp_dma = -1,
         .kbc_device               = NULL,
         .kbc_params               = 0x00000000,
+        .nvr_device               = NULL,
+        .nvr_params               = 0x00000000,
+        .sio_device               = NULL,
+        .sio_params               = 0x00000000,
         .kbc_p1                   = 0x00000cf0,
         .gpio                     = 0xffffffff,
         .gpio_acpi                = 0xffffffff,
         .device                   = NULL,
         .kbd_device               = NULL,
         .fdc_device               = NULL,
-        .sio_device               = NULL,
         .vid_device               = NULL,
         .snd_device               = NULL,
-        .net_device               = NULL
+        .net_device               = NULL,
+        .aliases                  = { "" }
     },
 
     /* 440BX */
@@ -19769,16 +23842,20 @@ const machine_t machines[] = {
         .default_jumpered_ecp_dma = -1,
         .kbc_device               = NULL,
         .kbc_params               = 0x00000000,
+        .nvr_device               = NULL,
+        .nvr_params               = 0x00000000,
+        .sio_device               = NULL,
+        .sio_params               = 0x00000000,
         .kbc_p1                   = 0x00000cf0,
         .gpio                     = 0xffffffff,
         .gpio_acpi                = 0xffffffff,
         .device                   = NULL,
         .kbd_device               = NULL,
         .fdc_device               = NULL,
-        .sio_device               = NULL,
         .vid_device               = &chips_69000_onboard_device,
         .snd_device               = NULL,
-        .net_device               = NULL
+        .net_device               = NULL,
+        .aliases                  = { "AEWIN AW-O671I", "" }
     },
     /* Has a Winbond W83977EF Super I/O chip with on-chip KBC with AMIKey-2 KBC
        firmware. */
@@ -19814,16 +23891,20 @@ const machine_t machines[] = {
         .default_jumpered_ecp_dma = -1,
         .kbc_device               = NULL,
         .kbc_params               = 0x00000000,
+        .nvr_device               = NULL,
+        .nvr_params               = 0x00000000,
+        .sio_device               = NULL,
+        .sio_params               = 0x00000000,
         .kbc_p1                   = 0x00000cf0,
         .gpio                     = 0xffffffff,
         .gpio_acpi                = 0xffffffff,
         .device                   = NULL,
         .kbd_device               = NULL,
         .fdc_device               = NULL,
-        .sio_device               = NULL,
         .vid_device               = NULL,
         .snd_device               = NULL,
-        .net_device               = NULL
+        .net_device               = NULL,
+        .aliases                  = { "" }
     },
     /* Has a Winbond W83977EF Super I/O chip with on-chip KBC with AMIKey-2 KBC
        firmware. */
@@ -19859,16 +23940,20 @@ const machine_t machines[] = {
         .default_jumpered_ecp_dma = -1,
         .kbc_device               = NULL,
         .kbc_params               = 0x00000000,
+        .nvr_device               = NULL,
+        .nvr_params               = 0x00000000,
+        .sio_device               = NULL,
+        .sio_params               = 0x00000000,
         .kbc_p1                   = 0x00000cf0,
         .gpio                     = 0xffffffff,
         .gpio_acpi                = 0xffffffff,
         .device                   = NULL,
         .kbd_device               = NULL,
         .fdc_device               = NULL,
-        .sio_device               = NULL,
         .vid_device               = NULL,
         .snd_device               = NULL,
-        .net_device               = NULL
+        .net_device               = NULL,
+        .aliases                  = { "" }
     },
 
     /* 440ZX */
@@ -19906,16 +23991,20 @@ const machine_t machines[] = {
         .default_jumpered_ecp_dma = -1,
         .kbc_device               = NULL,
         .kbc_params               = 0x00000000,
+        .nvr_device               = NULL,
+        .nvr_params               = 0x00000000,
+        .sio_device               = NULL,
+        .sio_params               = 0x00000000,
         .kbc_p1                   = 0x00000cf0,
         .gpio                     = 0xffffffff,
         .gpio_acpi                = 0xffffffff,
         .device                   = NULL,
         .kbd_device               = NULL,
         .fdc_device               = NULL,
-        .sio_device               = NULL,
         .vid_device               = NULL,
         .snd_device               = NULL,
-        .net_device               = NULL
+        .net_device               = NULL,
+        .aliases                  = { "Soltek SL-63A", "Magic-Pro MP-6ZX", "" }
     },
 
     /* SiS (5)600 */
@@ -19933,7 +24022,7 @@ const machine_t machines[] = {
         .gpio_acpi_handler = NULL,
         .cpu               = {
             .package     = CPU_PKG_SOCKET370,
-            .block       = CPU_BLOCK(CPU_CYRIX3S),
+            .block       = CPU_BLOCK_NONE,
             .min_bus     = 60000000,
             .max_bus     = 100000000,
             .min_voltage = 1800,
@@ -19953,16 +24042,20 @@ const machine_t machines[] = {
         .default_jumpered_ecp_dma = -1,
         .kbc_device               = NULL,
         .kbc_params               = 0x00000000,
+        .nvr_device               = NULL,
+        .nvr_params               = 0x00000000,
+        .sio_device               = NULL,
+        .sio_params               = 0x00000000,
         .kbc_p1                   = 0x00000cf0,
         .gpio                     = 0xffffffff,
         .gpio_acpi                = 0xffffffff,
         .device                   = NULL,
         .kbd_device               = NULL,
         .fdc_device               = NULL,
-        .sio_device               = NULL,
         .vid_device               = NULL,
         .snd_device               = NULL,
-        .net_device               = NULL
+        .net_device               = NULL,
+        .aliases                  = { "" }
     },
 
     /* SMSC VictoryBX-66 */
@@ -20000,16 +24093,20 @@ const machine_t machines[] = {
         .default_jumpered_ecp_dma = -1,
         .kbc_device               = NULL,
         .kbc_params               = 0x00000000,
+        .nvr_device               = NULL,
+        .nvr_params               = 0x00000000,
+        .sio_device               = NULL,
+        .sio_params               = 0x00000000,
         .kbc_p1                   = 0x00000cf0,
         .gpio                     = 0xffffffff,
         .gpio_acpi                = 0xffffffff,
         .device                   = NULL,
         .kbd_device               = NULL,
         .fdc_device               = NULL,
-        .sio_device               = NULL,
         .vid_device               = NULL,
         .snd_device               = NULL,
-        .net_device               = NULL
+        .net_device               = NULL,
+        .aliases                  = { "" }
     },
     /* Has an ITE IT8671F Super I/O chip with on-chip KBC with AMIKey-2 KBC
        firmware. */
@@ -20045,27 +24142,31 @@ const machine_t machines[] = {
         .default_jumpered_ecp_dma = -1,
         .kbc_device               = NULL,
         .kbc_params               = 0x00000000,
+        .nvr_device               = NULL,
+        .nvr_params               = 0x00000000,
+        .sio_device               = NULL,
+        .sio_params               = 0x00000000,
         .kbc_p1                   = 0x00000cf0,
         .gpio                     = 0xffffffff,
         .gpio_acpi                = 0xffffffff,
         .device                   = NULL,
         .kbd_device               = NULL,
         .fdc_device               = NULL,
-        .sio_device               = NULL,
         .vid_device               = NULL,
         .snd_device               = &cmi8738_onboard_device,
-        .net_device               = NULL
+        .net_device               = NULL,
+        .aliases                  = { "PC Chips M773MR", "" }
     },
 
     /* VIA Apollo Pro */
     /* Has the VIA VT82C586B southbridge with on-chip KBC identical to the VIA
        VT82C42N. */
     {
-        .name              = "[VIA Apollo Pro] PC Partner APAS3",
-        .internal_name     = "apas3",
+        .name              = "[VIA Apollo Pro] PC Partner VIM863S",
+        .internal_name     = "vim863s",
         .type              = MACHINE_TYPE_SOCKET370,
         .chipset           = MACHINE_CHIPSET_VIA_APOLLO_PRO,
-        .init              = machine_at_apas3_init,
+        .init              = machine_at_vim863s_init,
         .p1_handler        = machine_generic_p1_handler,
         .gpio_handler      = NULL,
         .available_flag    = MACHINE_AVAILABLE,
@@ -20081,7 +24182,7 @@ const machine_t machines[] = {
             .max_multi   = 8.0
         },
         .bus_flags = MACHINE_PS2_AGP | MACHINE_BUS_USB,
-        .flags     = MACHINE_IDE_DUAL | MACHINE_APM | MACHINE_ACPI | MACHINE_USB, /* Machine has internal video: Creative Vibra 16XV */
+        .flags     = MACHINE_IDE_DUAL | MACHINE_APM | MACHINE_ACPI | MACHINE_USB | MACHINE_SOUND,
         .ram       = {
             .min  = 8192,
             .max  = 786432,
@@ -20092,16 +24193,20 @@ const machine_t machines[] = {
         .default_jumpered_ecp_dma = -1,
         .kbc_device               = NULL,
         .kbc_params               = 0x00000000,
+        .nvr_device               = NULL,
+        .nvr_params               = 0x00000000,
+        .sio_device               = NULL,
+        .sio_params               = 0x00000000,
         .kbc_p1                   = 0x00000cf0,
         .gpio                     = 0xffffffff,
         .gpio_acpi                = 0xffffffff,
         .device                   = NULL,
         .kbd_device               = NULL,
         .fdc_device               = NULL,
-        .sio_device               = NULL,
         .vid_device               = NULL,
-        .snd_device               = NULL,
-        .net_device               = NULL
+        .snd_device               = &sb_vibra16xv_onboard_device,
+        .net_device               = NULL,
+        .aliases                  = { "" }
     },
     /* Has a Winbond W83977EF Super I/O chip with on-chip KBC with AMIKey-2 KBC
        firmware. */
@@ -20137,16 +24242,20 @@ const machine_t machines[] = {
         .default_jumpered_ecp_dma = -1,
         .kbc_device               = NULL,
         .kbc_params               = 0x00000000,
+        .nvr_device               = NULL,
+        .nvr_params               = 0x00000000,
+        .sio_device               = NULL,
+        .sio_params               = 0x00000000,
         .kbc_p1                   = 0x00000cf0,
         .gpio                     = 0xffffffff,
         .gpio_acpi                = 0xffffffff,
         .device                   = NULL,
         .kbd_device               = NULL,
         .fdc_device               = NULL,
-        .sio_device               = NULL,
         .vid_device               = NULL,
         .snd_device               = &cmi8738_onboard_device,
-        .net_device               = NULL
+        .net_device               = NULL,
+        .aliases                  = { "Matsonic MS-7117C", "" }
     },
     /* Has the VIA VT82C686B southbridge with on-chip KBC identical to the VIA
        VT82C42N. */
@@ -20182,16 +24291,20 @@ const machine_t machines[] = {
         .default_jumpered_ecp_dma = -1,
         .kbc_device               = NULL,
         .kbc_params               = 0x00000000,
+        .nvr_device               = NULL,
+        .nvr_params               = 0x00000000,
+        .sio_device               = NULL,
+        .sio_params               = 0x00000000,
         .kbc_p1                   = 0x00000cf0,
         .gpio                     = 0xffffffff,
         .gpio_acpi                = 0xffffffff,
         .device                   = NULL,
         .kbd_device               = NULL,
         .fdc_device               = NULL,
-        .sio_device               = NULL,
         .vid_device               = NULL,
-        .snd_device               = NULL,
-        .net_device               = NULL
+        .snd_device               = &alc100_device,
+        .net_device               = NULL,
+        .aliases                  = { "" }
     },
     /* Has the VIA VT82C686B southbridge with on-chip KBC identical to the VIA
        VT82C42N. */
@@ -20227,16 +24340,20 @@ const machine_t machines[] = {
         .default_jumpered_ecp_dma = -1,
         .kbc_device               = NULL,
         .kbc_params               = 0x00000000,
+        .nvr_device               = NULL,
+        .nvr_params               = 0x00000000,
+        .sio_device               = NULL,
+        .sio_params               = 0x00000000,
         .kbc_p1                   = 0x00000cf0,
         .gpio                     = 0xffffffff,
         .gpio_acpi                = 0xffffffff,
         .device                   = NULL,
         .kbd_device               = NULL,
         .fdc_device               = NULL,
-        .sio_device               = NULL,
         .vid_device               = NULL,
         .snd_device               = &cmi8738_onboard_device,
-        .net_device               = NULL
+        .net_device               = NULL,
+        .aliases                  = { "" }
     },
     /* Has the VIA VT82C686B southbridge with on-chip KBC identical to the VIA
        VT82C42N. */
@@ -20272,21 +24389,25 @@ const machine_t machines[] = {
         .default_jumpered_ecp_dma = -1,
         .kbc_device               = NULL,
         .kbc_params               = 0x00000000,
+        .nvr_device               = NULL,
+        .nvr_params               = 0x00000000,
+        .sio_device               = NULL,
+        .sio_params               = 0x00000000,
         .kbc_p1                   = 0x00000cf0,
         .gpio                     = 0xffffffff,
         .gpio_acpi                = 0xffffffff,
         .device                   = &ms6318_device,
         .kbd_device               = NULL,
         .fdc_device               = NULL,
-        .sio_device               = NULL,
         .vid_device               = NULL,
         .snd_device               = &ct5880_onboard_device,
-        .net_device               = NULL
+        .net_device               = NULL,
+        .aliases                  = { "HP Pavilion A7xx", "HP Pavilion A8xx", "HP Medion 2000A", "Medion MED 2000", "" }
     },
     /* Has the VIA VT82C686B southbridge with on-chip KBC identical to the VIA
        VT82C42N. */
     {
-        .name              = "[VIA Apollo Pro 133A] Samsung CAIRO-5 (MSI MS-6309)",
+        .name              = "[VIA Apollo Pro 133A] Samsung CAIRO-5",
         .internal_name     = "cairo5",
         .type              = MACHINE_TYPE_SOCKET370,
         .chipset           = MACHINE_CHIPSET_VIA_APOLLO_PRO_133A,
@@ -20317,16 +24438,20 @@ const machine_t machines[] = {
         .default_jumpered_ecp_dma = -1,
         .kbc_device               = NULL,
         .kbc_params               = 0x00000000,
+        .nvr_device               = NULL,
+        .nvr_params               = 0x00000000,
+        .sio_device               = NULL,
+        .sio_params               = 0x00000000,
         .kbc_p1                   = 0x00000cf0,
         .gpio                     = 0xffffffff,
         .gpio_acpi                = 0xffffffff,
         .device                   = NULL,
         .kbd_device               = NULL,
         .fdc_device               = NULL,
-        .sio_device               = NULL,
         .vid_device               = NULL,
         .snd_device               = NULL,
-        .net_device               = NULL
+        .net_device               = NULL,
+        .aliases                  = { "MSI MS-6309", "" }
     },
 
     /* Miscellaneous/Fake/Hypervisor machines */
@@ -20364,16 +24489,20 @@ const machine_t machines[] = {
         .default_jumpered_ecp_dma = -1,
         .kbc_device               = NULL,
         .kbc_params               = 0x00000000,
+        .nvr_device               = NULL,
+        .nvr_params               = 0x00000000,
+        .sio_device               = NULL,
+        .sio_params               = 0x00000000,
         .kbc_p1                   = 0x00000cf0,
         .gpio                     = 0xffffffff,
         .gpio_acpi                = 0xffffffff,
         .device                   = NULL,
         .kbd_device               = NULL,
         .fdc_device               = NULL,
-        .sio_device               = NULL,
         .vid_device               = NULL,
         .snd_device               = NULL,
-        .net_device               = NULL
+        .net_device               = NULL,
+        .aliases                  = { "" }
     },
 
     {
@@ -20408,16 +24537,20 @@ const machine_t machines[] = {
         .default_jumpered_ecp_dma = -1,
         .kbc_device               = NULL,
         .kbc_params               = 0x00000000,
+        .nvr_device               = NULL,
+        .nvr_params               = 0x00000000,
+        .sio_device               = NULL,
+        .sio_params               = 0x00000000,
         .kbc_p1                   = 0x00000000,
         .gpio                     = 0xffffffff,
         .gpio_acpi                = 0xffffffff,
         .device                   = NULL,
         .kbd_device               = NULL,
         .fdc_device               = NULL,
-        .sio_device               = NULL,
         .vid_device               = NULL,
         .snd_device               = NULL,
-        .net_device               = NULL
+        .net_device               = NULL,
+        .aliases                  = { "" }
     }
     // clang-format on
 };
@@ -20627,6 +24760,24 @@ machine_get_kbc_device(int m)
 }
 
 const device_t *
+machine_get_nvr_device(int m)
+{
+    if (machines[m].nvr_device)
+        return (machines[m].nvr_device);
+
+    return (NULL);
+}
+
+const device_t *
+machine_get_sio_device(int m)
+{
+    if (machines[m].sio_device)
+        return (machines[m].sio_device);
+
+    return (NULL);
+}
+
+const device_t *
 machine_get_device(int m)
 {
     if (machines[m].device)
@@ -20640,15 +24791,6 @@ machine_get_fdc_device(int m)
 {
     if (machines[m].fdc_device)
         return (machines[m].fdc_device);
-
-    return (NULL);
-}
-
-const device_t *
-machine_get_sio_device(int m)
-{
-    if (machines[m].sio_device)
-        return (machines[m].sio_device);
 
     return (NULL);
 }
@@ -20699,7 +24841,7 @@ machine_get_nvrmask(int m)
 }
 
 int
-machine_has_flags(int m, int flags)
+machine_has_flags(int m, uintptr_t flags)
 {
     int ret = machines[m].flags & flags;
 
@@ -20727,14 +24869,14 @@ machine_force_ps2(int is_ps2)
 }
 
 int
-machine_has_flags_ex(int flags)
+machine_has_flags_ex(uintptr_t flags)
 {
     int ret = machine_has_flags(machine, flags);
 
     if (flags & MACHINE_PS2_KBC) {
         if (machine_is_ps2 && (machines[machine].init != machine_at_pc5286_init))
             ret |= MACHINE_PS2_KBC;
-        else
+        else if (machines[machine].init == machine_at_pc5286_init)
             ret &= ~MACHINE_PS2_KBC;
     }
 
@@ -20742,7 +24884,7 @@ machine_has_flags_ex(int flags)
 }
 
 int
-machine_has_bus(int m, int bus_flags)
+machine_has_bus(int m, uintptr_t bus_flags)
 {
     int ret = machines[m].bus_flags & bus_flags;
 
@@ -20871,3 +25013,5 @@ machine_get_nvr_name(void)
 {
     return machine_get_nvr_name_ex(machine);
 }
+
+
