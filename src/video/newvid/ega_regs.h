@@ -375,7 +375,7 @@
 //
 // AR13.0-2: Horizontal pel panning shift register output select
 #define EGA_AR13_DELAY_SHIFT    0
-#define EGA_AR13_DELAY_ZERO     -1
+#define EGA_AR13_DELAY_ZERO     0
 #define EGA_AR13_DELAY_MASK     (((1 << 3) - 1) << 0)
 #define EGA_AR13_DELAY_WRITE(x) EGA_MAKE_WRITE(EGA_AR13_DELAY, x)
 #define EGA_AR13_DELAY_READ(x)  EGA_MAKE_READ(EGA_AR13_DELAY, x)

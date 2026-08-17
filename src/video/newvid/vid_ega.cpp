@@ -378,14 +378,16 @@ ega_tick_frame(void *priv)
     }
 
     // Apply multipliers
-    uint32_t char_width = 1;
-    uint32_t vdivide    = ega->cr.vdivide;
+    uint32_t raw_char_width = 1;
+    uint32_t char_width     = 1;
+    uint32_t dot_width      = 1;
+    uint32_t vdivide        = ega->cr.vdivide;
     if (vdivide == 0) {
         vdivide = 1;
     }
-    uint32_t xrshift = (ega->sr.sr01_clocking_mode & EGA_SR01_DOTCLK_MASK) == EGA_SR01_DOTCLK_DIV2 ? 1 : 0;
-    char_width *= (ega->sr.sr01_clocking_mode & EGA_SR01_CHARCLK_MASK) == EGA_SR01_CHARCLK_9DOT ? 9 : 8;
-    char_width *= (ega->sr.sr01_clocking_mode & EGA_SR01_DOTCLK_MASK) == EGA_SR01_DOTCLK_DIV2 ? 2 : 1;
+    raw_char_width *= (ega->sr.sr01_clocking_mode & EGA_SR01_CHARCLK_MASK) == EGA_SR01_CHARCLK_9DOT ? 9 : 8;
+    dot_width *= (ega->sr.sr01_clocking_mode & EGA_SR01_DOTCLK_MASK) == EGA_SR01_DOTCLK_DIV2 ? 2 : 1;
+    char_width = raw_char_width * dot_width;
     htotal *= char_width;
     hdisp *= char_width;
     vtotal *= vdivide;
@@ -449,6 +451,17 @@ ega_tick_frame(void *priv)
         // 256 KB wrap
         memaddrmask = 0xFFFF;
     }
+
+    int pelshift;
+    if (EGA_AR13_BYPASS_READ(ega->ar.ar13_pel_panning) == 0) {
+        // Apply horizontal fine scroll
+        pelshift = EGA_AR13_DELAY_READ(ega->ar.ar13_pel_panning);
+        pelshift -= 1;
+    } else {
+        pelshift = -1;
+    }
+    pelshift <<= 2;
+
     uint32_t y          = 0;
     uint32_t ymemaddr   = ega->cr.start_vaddr;
     uint32_t ymemdelta  = ega->cr.offset * 2;
@@ -456,11 +469,12 @@ ega_tick_frame(void *priv)
     uint32_t xloadshift = ((ega->sr.sr01_clocking_mode & EGA_SR01_SHIFTLOAD0_MASK) == EGA_SR01_SHIFTLOAD0_DIV2) ? 1 : 0;
     for (uint32_t py = 0; py < (uint32_t) ysize; py++) {
         if (y < vdisp) {
-            uint32_t xmemaddr = ymemaddr;
-            uint32_t data     = 0;
-            uint8_t  bg       = 0;
-            uint8_t  raw_fg   = 0;
-            uint32_t fontline = 0;
+            uint32_t xmemaddr  = ymemaddr;
+            uint32_t data      = 0;
+            uint8_t  bg        = 0;
+            uint8_t  raw_fg    = 0;
+            uint32_t fontline  = 0;
+            uint32_t pelbuffer = 0;
             for (uint32_t x = 0; x < htotal_chars; x++) {
                 if (x < hdisp_chars) {
                     // Clock divisor for loading into the shift registers
@@ -525,16 +539,17 @@ ega_tick_frame(void *priv)
                         xmemaddr += 1;
                     }
 
-                    for (uint32_t sx = 0; sx < char_width; sx++) {
-                        uint8_t c  = 0;
-                        uint8_t fg = 0;
+                    for (uint32_t sx = 0; sx < raw_char_width; sx++) {
+                        uint8_t c      = 0;
+                        uint8_t ccarry = 0;
+                        uint8_t fg     = 0;
 
                         // Handle GR06 graphics flag
                         if ((ega->gr.gr06_misc[0] & EGA_GR06_0_GRAPHICS_MASK) == EGA_GR06_0_GRAPHICS_OFF) {
                             fg = raw_fg;
                         } else {
                             for (uint32_t i = 0; i < 4; i++) {
-                                if (((data >> (((sx >> xrshift) ^ 0b111) + (8 * i))) & 0b1) != 0) {
+                                if (((data >> ((sx ^ 0b111) + (8 * i))) & 0b1) != 0) {
                                     fg |= (1 << i);
                                 }
                             }
@@ -545,22 +560,32 @@ ega_tick_frame(void *priv)
                             // Take graphics as-is
                             // TODO: Ensure we handle 9-dot shift correctly --GM
                             for (uint32_t i = 0; i < 4; i++) {
-                                if (((data >> (((sx >> xrshift) ^ 0b111) + (8 * i))) & 0b1) != 0) {
+                                if (((data >> ((sx ^ 0b111) + (8 * i))) & 0b1) != 0) {
                                     c |= (1 << i);
                                 }
                             }
                         } else {
                             // Text mode shift
-                            if ((fontline >> (((sx >> xrshift) ^ 0b111)) & 0b1) != 0) {
+                            if ((fontline >> ((sx ^ 0b111)) & 0b1) != 0) {
                                 c = fg;
                             } else {
                                 c = bg;
                             }
                         }
 
+                        // Optionally apply horizontal fine scrolling
+                        ccarry = c;
+                        if (pelshift >= 0) {
+                            c = pelbuffer >> pelshift;
+                        }
+                        pelbuffer = (((uint32_t) ccarry) << 28) | (pelbuffer >> 4);
+
+                        // Mask out planes
                         c &= ega->ar.ar12_plane_enable;
 
-                        buffer32->line[y][(x * char_width) + sx] = pal[ega->ar.pal[c]];
+                        for (uint32_t dotx = 0; dotx < dot_width; dotx++) {
+                            buffer32->line[y][(x * char_width) + (sx * dot_width) + dotx] = pal[ega->ar.pal[c]];
+                        }
                     }
 
                     data = (data >> 8) & 0x00FF00FF;

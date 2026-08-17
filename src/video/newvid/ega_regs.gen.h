@@ -216,7 +216,7 @@
 // - The 2-to-1 MUX outputs form the resulting colour palette index.
 //
 // AR13.0-2: Horizontal pel panning shift register output select
-!field DELAY 0 3 -1
+!field DELAY 0 3 0
 // AR13.3: Bypass horizontal pel panning shift registers
 !field BYPASS 3 1 0 OFF=0b0 ON=0b1
 !endreg AR13
