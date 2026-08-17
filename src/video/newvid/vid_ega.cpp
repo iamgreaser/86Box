@@ -423,10 +423,15 @@ ega_tick_frame(void *priv)
         uint8_t v = (uint8_t) i;
         if ((EGA_W3C2_POLARITY_READ(ega->misc_out_3c2) & 0b10) == 0b00) {
             // CGA monitor mapping
-            pal[i] = makecol32(
-                (((v >> 2) & 0x1) * 0xAA) | (((v >> 4) & 0x1) * 0x55),
-                (((v >> 1) & 0x1) * 0xAA) | (((v >> 4) & 0x1) * 0x55),
-                (((v >> 0) & 0x1) * 0xAA) | (((v >> 4) & 0x1) * 0x55));
+            if ((v & 0b010111) == 0b000110) {
+                // IRGB=0110 -> map to brown
+                pal[i] = makecol32(0xAA, 0x55, 0x00);
+            } else {
+                pal[i] = makecol32(
+                    (((v >> 2) & 0x1) * 0xAA) | (((v >> 4) & 0x1) * 0x55),
+                    (((v >> 1) & 0x1) * 0xAA) | (((v >> 4) & 0x1) * 0x55),
+                    (((v >> 0) & 0x1) * 0xAA) | (((v >> 4) & 0x1) * 0x55));
+            }
         } else {
             // EGA monitor mapping
             pal[i] = makecol32(
