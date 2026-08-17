@@ -456,7 +456,7 @@ ega_tick_frame(void *priv)
     if (EGA_AR13_BYPASS_READ(ega->ar.ar13_pel_panning) == 0) {
         // Apply horizontal fine scroll
         pelshift = EGA_AR13_DELAY_READ(ega->ar.ar13_pel_panning);
-        pelshift -= 1;
+        //pelshift -= 1;
     } else {
         pelshift = -1;
     }
