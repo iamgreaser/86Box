@@ -614,36 +614,36 @@ ega_tick_frame(void *priv)
                 } else {
                     uint32_t c;
                     if (x < hblankbeg) {
-                        c = ega->ar.ar11_overscan_color & 0x3F;
+                        c = pal[ega->ar.ar11_overscan_color & 0x3F];
                     } else if (x < hsyncbeg) {
                         c = 0;
                     } else if (x < hsyncend) {
-                        c = 0x20; // mark sync with red
+                        c = makecol32(0x55, 0x00, 0x00); // mark sync with red
                     } else if (x < hblankend) {
                         c = 0;
                     } else {
-                        c = ega->ar.ar11_overscan_color & 0x3F;
+                        c = pal[ega->ar.ar11_overscan_color & 0x3F];
                     }
                     for (uint32_t sx = 0; sx < char_width; sx++) {
-                        buffer32->line[y][(x * char_width) + sx] = pal[c];
+                        buffer32->line[y][(x * char_width) + sx] = c;
                     }
                 }
             }
         } else {
             uint32_t c;
             if (y < vblankbeg) {
-                c = ega->ar.ar11_overscan_color & 0x3F;
+                c = pal[ega->ar.ar11_overscan_color & 0x3F];
             } else if (y < vsyncbeg) {
                 c = 0;
             } else if (y < vsyncend) {
-                c = 0x20; // mark sync with red
+                c = makecol32(0x55, 0x00, 0x00); // mark sync with red
             } else if (y < vblankend) {
                 c = 0;
             } else {
-                c = ega->ar.ar11_overscan_color & 0x3F;
+                c = pal[ega->ar.ar11_overscan_color & 0x3F];
             }
             for (uint32_t px = 0; px < htotal; px++) {
-                buffer32->line[y][px] = pal[c];
+                buffer32->line[y][px] = c;
             }
         }
 
