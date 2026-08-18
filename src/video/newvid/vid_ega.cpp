@@ -354,6 +354,9 @@ ega_tick_frame(void *priv)
     uint32_t htotal_chars = htotal;
     uint32_t hdisp_chars  = hdisp;
 
+    uint32_t hdisp_skew         = ega->cr.skew_disp;
+    uint32_t hdisp_chars_skewed = hdisp_chars + hdisp_skew;
+
     uint32_t hblankbeg = ega->cr.hblankbeg;
     uint32_t hsyncbeg  = ega->cr.hsyncbeg;
     uint32_t hsyncend  = (hsyncbeg & ~0x1F) | ega->cr.hsyncend;
@@ -364,6 +367,10 @@ ega_tick_frame(void *priv)
     if (hblankend <= hblankbeg) {
         hblankend += 0x20;
     }
+
+    // FIXME: Look into what this affects and implement this properly --GM
+    hsyncbeg += ega->cr.skew_hsync;
+    hsyncend += ega->cr.skew_hsync;
 
     uint32_t vblankbeg = ega->cr.vblankbeg;
     uint32_t vsyncbeg  = ega->cr.vsyncbeg;
@@ -409,7 +416,7 @@ ega_tick_frame(void *priv)
     // printf("disp %u x %u (%u)\n", (unsigned int) hdisp, (unsigned int) vdisp, EGA_W3C2_CLOCKSEL_READ(ega->misc_out_3c2));
 
     if (htotal != (uint32_t) xsize || vtotal != (uint32_t) ysize || video_force_resize_get()) {
-        printf("h %03X %03X %03X %03X %03X %03X\n", hdisp_chars, hblankbeg, hsyncbeg, hsyncend, hblankend, htotal_chars);
+        printf("h %03X %03X %03X %03X %03X %03X %01X %01X %01X\n", hdisp_chars, hblankbeg, hsyncbeg, hsyncend, hblankend, htotal_chars, ega->cr.skew_hsync, ega->cr.skew_disp, ega->cr.skew_cursor);
         printf("v %03X %03X %03X %03X %03X %03X\n", vdisp, vblankbeg, vsyncbeg, vsyncend, vblankend, vtotal);
         xsize = htotal;
         ysize = vtotal;
@@ -452,21 +459,23 @@ ega_tick_frame(void *priv)
         memaddrmask = 0xFFFF;
     }
 
+    // Compute horizontal fine scroll
     int pelshift;
     if (EGA_AR13_BYPASS_READ(ega->ar.ar13_pel_panning) == 0) {
-        // Apply horizontal fine scroll
-        pelshift = EGA_AR13_DELAY_READ(ega->ar.ar13_pel_panning);
-        //pelshift -= 1;
+        pelshift = 8 - EGA_AR13_DELAY_READ(ega->ar.ar13_pel_panning);
     } else {
-        pelshift = -1;
+        pelshift = 0;
     }
     pelshift <<= 2;
+
+    // TODO: Position screen correctly based on hsync (currently using pre-skewed disp enable) --GM
 
     uint32_t y          = 0;
     uint32_t ymemaddr   = ega->cr.start_vaddr;
     uint32_t ymemdelta  = ega->cr.offset * 2;
     uint32_t memy       = ega->cr.vfinescroll & 0x1F;
     uint32_t xloadshift = ((ega->sr.sr01_clocking_mode & EGA_SR01_SHIFTLOAD0_MASK) == EGA_SR01_SHIFTLOAD0_DIV2) ? 1 : 0;
+    uint32_t planemask  = 0x11111111 * (EGA_AR12_PLANEMASK_READ(ega->ar.ar12_plane_enable));
     for (uint32_t py = 0; py < (uint32_t) ysize; py++) {
         if (y < vdisp) {
             uint32_t xmemaddr  = ymemaddr;
@@ -474,9 +483,11 @@ ega_tick_frame(void *priv)
             uint8_t  bg        = 0;
             uint8_t  raw_fg    = 0;
             uint32_t fontline  = 0;
-            uint32_t pelbuffer = 0;
+            uint64_t pelbuffer = 0;
             for (uint32_t x = 0; x < htotal_chars; x++) {
-                if (x < hdisp_chars) {
+                if (x < hdisp_chars_skewed) {
+                    // TODO: Keep fetching even when not displaying anything, so the pel scrolling can work correctly --GM
+
                     // Clock divisor for loading into the shift registers
                     if ((x & ((1 << xloadshift) - 1)) == 0) {
                         uint32_t vaddr = xmemaddr;
@@ -539,10 +550,10 @@ ega_tick_frame(void *priv)
                         xmemaddr += 1;
                     }
 
+                    // Compute character clock data
                     for (uint32_t sx = 0; sx < raw_char_width; sx++) {
-                        uint8_t c      = 0;
-                        uint8_t ccarry = 0;
-                        uint8_t fg     = 0;
+                        uint8_t c  = 0;
+                        uint8_t fg = 0;
 
                         // Handle GR06 graphics flag
                         if ((ega->gr.gr06_misc[0] & EGA_GR06_0_GRAPHICS_MASK) == EGA_GR06_0_GRAPHICS_OFF) {
@@ -574,17 +585,27 @@ ega_tick_frame(void *priv)
                         }
 
                         // Optionally apply horizontal fine scrolling
-                        ccarry = c;
-                        if (pelshift >= 0) {
-                            c = pelbuffer >> pelshift;
-                        }
-                        pelbuffer = (((uint32_t) ccarry) << 28) | (pelbuffer >> 4);
+                        pelbuffer = (pelbuffer << 4) | c;
+                        c         = (pelbuffer >> pelshift) & 0x0F;
 
                         // Mask out planes
-                        c &= ega->ar.ar12_plane_enable;
+                        // NOTE: It will be very difficult to tell if this is applied before or after PEL shifting.
+                        // If you *really* care that much, please do the research and let us know what you find!
+                        c &= planemask;
 
-                        for (uint32_t dotx = 0; dotx < dot_width; dotx++) {
-                            buffer32->line[y][(x * char_width) + (sx * dot_width) + dotx] = pal[ega->ar.pal[c]];
+                        // Only draw left border when display output is not skewed
+                        if (x >= hdisp_skew) {
+                            for (uint32_t dotx = 0; dotx < dot_width; dotx++) {
+                                buffer32->line[y][(x * char_width) + (sx * dot_width) + dotx] = pal[ega->ar.pal[c]];
+                            }
+                        }
+                    }
+
+                    // Hide left border when display output is skewed
+                    if (x < hdisp_skew) {
+                        uint8_t c = ega->ar.ar11_overscan_color & 0x3F;
+                        for (uint32_t px = 0; px < htotal; px++) {
+                            buffer32->line[y][px] = pal[c];
                         }
                     }
 
